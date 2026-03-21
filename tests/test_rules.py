@@ -41,11 +41,30 @@ class RulesTestCase(unittest.TestCase):
                         self.assertEqual(label(rule, q1, q2), label(rule, q2, q1))
 
     def test_magnitude_irrelevance_with_fixed_sign_pattern(self):
+        same_sign_examples = [
+            (1, 2),
+            (1, 3),
+            (2, 3),
+            (-1, -2),
+            (-1, -3),
+            (-2, -3),
+        ]
+        opposite_sign_examples = [
+            (1, -1),
+            (1, -2),
+            (1, -3),
+            (2, -1),
+            (2, -2),
+            (2, -3),
+            (3, -1),
+            (3, -2),
+            (3, -3),
+        ]
         cases = [
-            (RuleName.R_STD, [(1, 2), (1, 3), (2, 3), (-1, -2), (-1, -3), (-2, -3)]),
-            (RuleName.R_STD, [(1, -1), (1, -2), (2, -3), (-1, 1), (-2, 1), (-3, 2)]),
-            (RuleName.R_INV, [(1, 2), (1, 3), (2, 3), (-1, -2), (-1, -3), (-2, -3)]),
-            (RuleName.R_INV, [(1, -1), (1, -2), (2, -3), (-1, 1), (-2, 1), (-3, 2)]),
+            (RuleName.R_STD, same_sign_examples),
+            (RuleName.R_STD, opposite_sign_examples),
+            (RuleName.R_INV, same_sign_examples),
+            (RuleName.R_INV, opposite_sign_examples),
         ]
 
         for rule, examples in cases:
