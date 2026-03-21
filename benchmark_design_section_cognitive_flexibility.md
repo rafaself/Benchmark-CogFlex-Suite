@@ -13,50 +13,48 @@ More specifically, the benchmark should measure whether a model can:
 - maintain a currently active rule,
 - detect evidence that the rule is no longer valid,
 - disengage from the previous rule,
-- and adapt to the new rule with minimal delay and perseveration.
+- and adapt to the new rule with minimal perseveration.
 
-This wording is preferable to broader claims such as “general flexibility” or “pure reasoning,” because the literature suggests that flexibility is strongly shaped by contextual learning and control-state adaptation.
+This wording is preferable to broader claims such as "general flexibility" or "pure reasoning", because the literature suggests that flexibility is strongly shaped by contextual learning and control-state adaptation.
 
 ### Design requirements
 1. **Use controlled latent shifts.** Rule changes should be generated and tracked by the evaluator, but never explicitly announced to the model.
-2. **Prevent predictable switch rhythms.** Shift timing should not follow simple periodic or locally exploitable patterns.
+2. **Avoid structural shortcut cues.** Template design must not let the model recover the shift boundary solely by counting from the end of the episode.
 3. **Eliminate superficial contextual cues.** Layout, ordering, surface form, token patterns, and presentation details must not reveal when a shift has occurred.
 4. **Keep reasoning demands bounded.** The task should require some inference, but the dominant challenge must remain adaptation after a regime change, not solving a deeply complex rule.
-5. **Test out-of-context generalization.** Include evaluation subsets where the same hidden-shift logic appears under novel surface conditions.
+5. **Test robustness across surface forms.** At least one semantically equivalent alternate rendering should be included so success is not tied to one prompt template.
 
-### Core evaluation metrics
-Aggregate accuracy is insufficient. The benchmark should report adaptation-sensitive metrics, including:
+### What v1 can support
+The current v1 protocol supports a narrow claim:
 
-- **Pre-shift accuracy**
-- **Immediate post-shift drop**
-- **Recovery length**: number of examples required to recover stable performance
-- **Perseveration rate**: tendency to continue applying the old rule after the shift
-- **Adaptation efficiency**: how quickly performance stabilizes under the new rule
+- performance on final post-shift probes after sparse contradictory evidence;
+- comparison against shortcut baselines such as physics-prior, never-update, last-example, and majority-label behavior;
+- robustness checks across a canonical binary rendering and a narrative rendering built from the same episodes.
 
-These metrics should be reported by phase:
+### What v1 cannot support directly
+The current v1 protocol does **not** directly measure:
 
-- **Pre-shift**
-- **Transition window**
-- **Post-shift recovery**
+- switch cost at the item level,
+- immediate post-shift drop,
+- recovery length,
+- adaptation efficiency as a time series.
+
+Those claims require a later protocol variant that captures intermediate predictions or stepwise responses rather than only the final probe outputs.
+
+### Core evaluation policy
+Aggregate accuracy over the final post-shift probes is acceptable for v1 because the current two-rule MVP makes every probe disagreement-sensitive. However, the benchmark should still retain disagreement metadata internally for audit, shortcut analysis, and sliced reporting.
 
 ### Validity risks to document
 The benchmark specification should explicitly acknowledge the following threats to construct validity:
 
-- exploitation of local shift-frequency statistics,
+- exploitation of structural or positional cues,
 - reliance on contextual or formatting cues,
 - memorization of surface associations rather than policy adaptation,
-- strong final accuracy without fast recovery after change,
+- strong final probe accuracy without genuine rule revision,
 - benchmark behavior dominated by reasoning complexity instead of switching behavior.
 
 ### Recommended interpretation policy
-A high score should not be interpreted as evidence of cognitive flexibility unless the model also shows:
-
-- low perseveration,
-- a clear but bounded post-shift disruption,
-- and rapid recovery after the hidden rule change.
-
-In other words, success should be attributed to **adaptive control reconfiguration**, not merely to overall accuracy.
+A high v1 score should not be interpreted as evidence of broad cognitive flexibility. It should be interpreted only as evidence that the model successfully applied an updated latent rule to final post-shift probes in a controlled binary environment, and that this performance was not well explained by the documented shortcut baselines.
 
 ### Bottom line
-The benchmark should be designed and described as a test of **adaptive task-set reconfiguration under latent regime change**, with evaluation centered on **switch cost, recovery, and robustness against contextual shortcuts**.
-
+The benchmark should be designed and described as a test of **adaptive task-set reconfiguration under latent regime change**, with v1 evaluation centered on **final post-shift success and robustness against contextual shortcuts**. Richer switch-cost and recovery claims belong to a later stepwise protocol, not the current MVP.

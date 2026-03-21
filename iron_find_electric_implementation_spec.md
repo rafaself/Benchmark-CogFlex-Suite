@@ -8,7 +8,7 @@ Implement a Kaggle Community Benchmark that measures **cognitive flexibility** t
 
 The implementation must make the following interpretation defensible:
 
-> A strong score indicates that the model updated from an initial latent rule to a new latent rule after contradictory sparse evidence.
+> A strong v1 score indicates that the model applied an updated latent rule to final post-shift probes after contradictory sparse evidence.
 
 The implementation must prevent high scores from being explained mainly by:
 
@@ -16,11 +16,12 @@ The implementation must prevent high scores from being explained mainly by:
 - majority-label behavior;
 - constant-output behavior;
 - recency-only behavior;
+- structural template cues;
 - formatting artifacts.
 
 ---
 
-## 2. MVP Scope
+## 2. v1 Scope
 
 ### Included
 
@@ -28,9 +29,10 @@ The implementation must prevent high scores from being explained mainly by:
 - binary label: `attract` or `repel`;
 - one hidden rule before shift;
 - one hidden rule after shift;
-- structured/tabular evaluation;
+- fixed total episode length;
 - deterministic generation;
-- one primary leaderboard task.
+- one leaderboard-primary task;
+- one required non-leaderboard robustness companion task.
 
 ### Excluded
 
@@ -39,7 +41,8 @@ The implementation must prevent high scores from being explained mainly by:
 - continuous outputs;
 - temporal dynamics;
 - trajectory simulation;
-- explanation-based primary scoring.
+- explanation-based primary scoring;
+- item-level switch-cost or recovery claims.
 
 ---
 
@@ -55,17 +58,17 @@ CHARGES = [-3, -2, -1, +1, +2, +3]
 
 Zero is excluded.
 
-## 3.2 Rule family for MVP
+## 3.2 Rule family for v1
 
-Only two rules are allowed in the primary benchmark:
+Only two rules are allowed in the v1 benchmark:
 
 ### `R_std`
-- same signs → `repel`
-- opposite signs → `attract`
+- same signs -> `repel`
+- opposite signs -> `attract`
 
 ### `R_inv`
-- same signs → `attract`
-- opposite signs → `repel`
+- same signs -> `attract`
+- opposite signs -> `repel`
 
 ## 3.3 Label function
 
@@ -88,37 +91,38 @@ Magnitude must not affect the label.
 
 ## 4. Episode Definition
 
-## 4.1 Episode template
+## 4.1 Template family
 
-Each episode contains exactly 9 items in this order:
+Each episode contains exactly 9 items and must use one of the following frozen templates:
 
-1. pre-shift labeled example 1
-2. pre-shift labeled example 2
-3. pre-shift labeled example 3
-4. post-shift labeled example 1
-5. post-shift labeled example 2
-6. post-shift probe 1
-7. post-shift probe 2
-8. post-shift probe 3
-9. post-shift probe 4
+### `T1`
+```text
+2 pre + 3 post-labeled + 4 probes
+```
 
-Template shorthand:
-
+### `T2`
 ```text
 3 pre + 2 post-labeled + 4 probes
 ```
+
+The final 4 items are always probes. The first 5 items are always labeled examples. The hidden shift boundary varies by template.
+
+The benchmark must not use any approved template whose shift position is recoverable solely by counting backward from the final probe block.
 
 ## 4.2 Hidden transition
 
 For each episode:
 
-- choose initial rule `rule_A ∈ {R_std, R_inv}`
-- set `rule_B` to the other rule
-- first 3 labeled examples use `rule_A`
-- next 2 labeled examples use `rule_B`
-- all 4 probes must be answered under `rule_B`
+- choose initial rule `rule_A ∈ {R_std, R_inv}`;
+- set `rule_B` to the other rule;
+- choose `template_id ∈ {T1, T2}`;
+- derive `pre_count` and `post_labeled_count` from `template_id`;
+- set `shift_after_position = pre_count`;
+- first `pre_count` labeled examples use `rule_A`;
+- next `post_labeled_count` labeled examples use `rule_B`;
+- all 4 probes are answered under `rule_B`.
 
-The shift is not announced explicitly.
+The shift is never announced to the model.
 
 ## 4.3 No duplicate item tuples within an episode
 
@@ -132,13 +136,17 @@ Within a single episode, `(q1, q2)` pairs must be unique unless a later diagnost
 
 For each episode:
 
-1. sample `rule_A` uniformly from `{R_std, R_inv}`
-2. set `rule_B` as the opposite rule
-3. sample 3 unique pre-shift examples from the charge space
-4. sample 2 unique post-shift labeled examples
-5. sample 4 unique post-shift probes
-6. verify all validity constraints
-7. if any constraint fails, resample the episode
+1. sample `rule_A` uniformly from `{R_std, R_inv}`;
+2. set `rule_B` as the opposite rule;
+3. sample `template_id` from the frozen template set;
+4. derive `pre_count`, `post_labeled_count`, and `shift_after_position`;
+5. sample `pre_count` unique pre-shift labeled examples from the charge space;
+6. sample `post_labeled_count` unique post-shift labeled examples;
+7. sample 4 unique post-shift probes;
+8. verify all validity constraints;
+9. if any constraint fails, resample the episode.
+
+Across each split, template usage must be approximately balanced between `T1` and `T2`.
 
 ## 5.2 Charge-space definition
 
@@ -154,8 +162,8 @@ Since label is symmetric in `q1, q2`, ordered presentation is a surface-form cho
 
 Every generated episode must satisfy all of the following.
 
-### Constraint A — contradiction after shift
-At least 1 of the 2 post-shift labeled examples must directly contradict the label predicted by `rule_A`.
+### Constraint A - contradiction after shift
+At least 1 post-shift labeled example must directly contradict the label predicted by `rule_A`.
 
 Operationally:
 
@@ -163,32 +171,33 @@ Operationally:
 label(rule_B, q1, q2) != label(rule_A, q1, q2)
 ```
 
-for at least one post-shift labeled item.
+for at least one labeled item in the post-shift segment.
 
-### Constraint B — disagreement probes
-At least 2 of the 4 probes must be disagreement probes.
+### Constraint B - nontrivial probe block
+The 4 probes in an episode must not all have the same correct label under `rule_B`.
 
-A disagreement probe is a pair for which:
+### Constraint C - disagreement metadata
+The implementation should still compute and store whether each probe is a disagreement case:
 
 ```text
 label(R_std, q1, q2) != label(R_inv, q1, q2)
 ```
 
-In this benchmark, any non-degenerate sign pattern is a disagreement case, so the implementation should still check explicitly and store this flag.
+This flag is for audit and analysis only, not for the v1 headline metric.
 
-### Constraint C — balanced probe labels at dataset level
+### Constraint D - balanced probe labels at dataset level
 Across the full dataset, probe answers under `rule_B` should be approximately balanced between `attract` and `repel`.
 
-### Constraint D — balanced transition direction
+### Constraint E - balanced transition direction
 Across the full dataset, approximately half of episodes must be:
 
-- `R_std → R_inv`
+- `R_std -> R_inv`
 
 and half:
 
-- `R_inv → R_std`
+- `R_inv -> R_std`
 
-### Constraint E — sign-pattern coverage
+### Constraint F - sign-pattern coverage
 Across the full dataset, the following pair categories must be represented evenly enough for stable slice analysis:
 
 - positive / positive
@@ -196,8 +205,8 @@ Across the full dataset, the following pair categories must be represented evenl
 - positive / negative
 - negative / positive
 
-### Constraint F — no trivial probe set
-The 4 probes in an episode must not all have the same correct label under `rule_B`.
+### Constraint G - template validity
+The approved template family must not expose the hidden shift boundary purely through end-position counting.
 
 ---
 
@@ -209,25 +218,26 @@ Difficulty is metadata attached to each episode.
 
 Requirements:
 
-- both post-shift labeled examples contradict the pre-shift rule;
-- at least 3 of 4 probes are disagreement probes;
-- probe label distribution is mixed.
+- strong contradiction after shift;
+- redundant post-shift evidence;
+- mixed probe labels;
+- low ambiguity after the labeled sequence.
 
 ## 6.2 Medium
 
 Requirements:
 
-- exactly 1 post-shift labeled example is decisive contradiction;
-- at least 2 of 4 probes are disagreement probes;
-- moderate ambiguity remains after first post-shift item.
+- contradiction is present but less redundant;
+- moderate ambiguity remains after the first post-shift labeled item;
+- probe mix creates moderate temptation for shortcut behavior.
 
 ## 6.3 Hard
 
 Requirements:
 
 - minimal sufficient contradiction pattern;
-- exactly 2 disagreement probes;
-- stronger temptation for persistence or recency heuristic.
+- less redundant post-shift evidence;
+- stronger temptation for persistence or last-example heuristics.
 
 Difficulty assignment must be deterministic from generator metadata, not subjective post hoc judgment.
 
@@ -243,6 +253,10 @@ Each episode should be represented as one structured row in the source dataset.
 episode_id: string
 split: string                  # dev | public | private
 difficulty: string             # easy | medium | hard
+template_id: string            # T1 | T2
+pre_count: integer             # 2 | 3
+post_labeled_count: integer    # 3 | 2
+shift_after_position: integer  # equals pre_count
 rule_A: string                 # stored internally; not shown to model
 rule_B: string                 # stored internally; not shown to model
 transition: string             # R_std_to_R_inv | R_inv_to_R_std
@@ -253,15 +267,15 @@ probe_metadata: json/string
 
 ## 7.2 `items` structure
 
-`items` contains an ordered list of 9 dict objects:
+`items` contains an ordered list of 9 dict objects. Example for `T1`:
 
 ```json
 [
-  {"position": 1, "phase": "pre", "kind": "labeled", "q1": 2,  "q2": -3, "label": "attract"},
-  {"position": 2, "phase": "pre", "kind": "labeled", "q1": -1, "q2": -2, "label": "repel"},
-  {"position": 3, "phase": "pre", "kind": "labeled", "q1": 3,  "q2": 1,  "label": "repel"},
-  {"position": 4, "phase": "post", "kind": "labeled", "q1": -2, "q2": -3, "label": "attract"},
-  {"position": 5, "phase": "post", "kind": "labeled", "q1": 1,  "q2": -1, "label": "repel"},
+  {"position": 1, "phase": "pre",  "kind": "labeled", "q1": 2,  "q2": -3, "label": "attract"},
+  {"position": 2, "phase": "pre",  "kind": "labeled", "q1": -1, "q2": -2, "label": "repel"},
+  {"position": 3, "phase": "post", "kind": "labeled", "q1": 3,  "q2": 1,  "label": "attract"},
+  {"position": 4, "phase": "post", "kind": "labeled", "q1": 1,  "q2": -1, "label": "repel"},
+  {"position": 5, "phase": "post", "kind": "labeled", "q1": -2, "q2": -3, "label": "attract"},
   {"position": 6, "phase": "post", "kind": "probe",   "q1": 2,  "q2": 3},
   {"position": 7, "phase": "post", "kind": "probe",   "q1": -3, "q2": 1},
   {"position": 8, "phase": "post", "kind": "probe",   "q1": 1,  "q2": -2},
@@ -275,7 +289,7 @@ probe_metadata: json/string
 ["attract", "repel", "repel", "attract"]
 ```
 
-Order must match positions 6–9.
+Order must match positions 6-9.
 
 ## 7.4 `probe_metadata` structure
 
@@ -283,10 +297,10 @@ One object per probe:
 
 ```json
 [
-  {"position": 6, "is_disagreement_probe": true,  "old_rule_label": "repel",   "new_rule_label": "attract"},
-  {"position": 7, "is_disagreement_probe": true,  "old_rule_label": "attract", "new_rule_label": "repel"},
-  {"position": 8, "is_disagreement_probe": true,  "old_rule_label": "attract", "new_rule_label": "repel"},
-  {"position": 9, "is_disagreement_probe": true,  "old_rule_label": "repel",   "new_rule_label": "attract"}
+  {"position": 6, "is_disagreement_probe": true, "old_rule_label": "repel",   "new_rule_label": "attract"},
+  {"position": 7, "is_disagreement_probe": true, "old_rule_label": "attract", "new_rule_label": "repel"},
+  {"position": 8, "is_disagreement_probe": true, "old_rule_label": "attract", "new_rule_label": "repel"},
+  {"position": 9, "is_disagreement_probe": true, "old_rule_label": "repel",   "new_rule_label": "attract"}
 ]
 ```
 
@@ -298,15 +312,14 @@ This metadata is for evaluation and audit, not for model input.
 
 The benchmark should expose one prompt string or one structured serialized field per episode.
 
-## 8.1 Canonical model-facing format
+## 8.1 Canonical Binary rendering
 
-Recommended textual rendering:
+Recommended textual rendering. Example for `T2`:
 
 ```text
-You are given examples of interactions between two electric charges.
-Each example shows charge_1, charge_2, and the observed result.
-The hidden rule may change once without warning.
-Use the latest valid rule to answer the final unlabeled cases.
+You are given labeled interactions between two electric charges.
+Each labeled line shows q1, q2, and the observed result.
+Infer the interaction pattern supported by the full sequence, then answer the final unlabeled cases.
 
 1. q1=+2, q2=-3 -> attract
 2. q1=-1, q2=-2 -> repel
@@ -321,7 +334,30 @@ Use the latest valid rule to answer the final unlabeled cases.
 Return exactly four labels in order, each either attract or repel.
 ```
 
-## 8.2 Required output format
+## 8.2 Narrative companion rendering
+
+Required non-leaderboard robustness rendering using the same underlying episode and targets:
+
+```text
+Two electric charges were observed interacting in the following sequence.
+Use the pattern best supported by the labeled observations to answer the unlabeled observations at the end.
+
+1. A +2 charge and a -3 charge were observed to attract.
+2. A -1 charge and a -2 charge were observed to repel.
+3. A +3 charge and a +1 charge were observed to repel.
+4. A -2 charge and a -3 charge were observed to attract.
+5. A +1 charge and a -1 charge were observed to repel.
+6. A +2 charge and a +3 charge were observed to ?
+7. A -3 charge and a +1 charge were observed to ?
+8. A +1 charge and a -2 charge were observed to ?
+9. A -1 charge and a -2 charge were observed to ?
+
+Return exactly four labels in order, each either attract or repel.
+```
+
+The benchmark package must include both renderings. Only the Binary task is leaderboard-primary.
+
+## 8.3 Required output format
 
 Model output must parse into exactly four labels in order:
 
@@ -358,34 +394,28 @@ Parsed prediction length must equal 4. Invalid outputs count as incorrect for al
 
 ## 10.1 Primary metric
 
-### Disagreement Probe Accuracy
+### Post-shift Probe Accuracy
 
-Compute accuracy only over probes where `is_disagreement_probe = true`.
+Compute accuracy over the final 4 probes under `rule_B`.
 
 Formula:
 
 ```text
-primary_score = correct_disagreement_probe_predictions / total_disagreement_probes
+primary_score = correct_probe_predictions / total_probes
 ```
 
-This is the leaderboard metric.
+This is the leaderboard metric for `Adaptive Rule Updating - Binary`.
 
 ## 10.2 Secondary metrics
 
 Compute and report:
 
-### Overall Post-shift Accuracy
-
-```text
-overall_probe_accuracy = correct_probe_predictions / total_probes
-```
-
 ### Rule Persistence Rate
 
-Among disagreement probes:
+Among probes where the old rule and new rule give different answers:
 
 ```text
-rule_persistence_rate = predictions_matching_old_rule / total_disagreement_probes
+rule_persistence_rate = predictions_matching_old_rule / total_old_new_disagreement_probes
 ```
 
 High persistence is evidence of failed adaptation.
@@ -394,8 +424,8 @@ High persistence is evidence of failed adaptation.
 
 Separate scores for:
 
-- `R_std → R_inv`
-- `R_inv → R_std`
+- `R_std -> R_inv`
+- `R_inv -> R_std`
 
 ### Slice Accuracy by Difficulty
 
@@ -404,6 +434,12 @@ Separate scores for:
 - easy
 - medium
 - hard
+
+### Format Robustness Comparison
+
+Compare Binary and Narrative performance on the same underlying episode set.
+
+Metrics such as adaptation lag, immediate post-shift drop, and recovery length require a future stepwise protocol and are not part of v1 reporting.
 
 ## 10.3 Confidence intervals
 
@@ -426,9 +462,9 @@ Always answer every probe using `R_std`, regardless of evidence.
 
 ## 11.2 Never-update baseline
 
-Infer rule from the first 3 labeled examples, then apply that inferred rule to all probes without updating.
+Infer rule from the first `pre_count` labeled examples, then apply that inferred rule to all probes without updating.
 
-If the first 3 examples are ambiguous, default deterministically to `R_std`.
+If the initial segment is ambiguous, default deterministically to `R_std`.
 
 ## 11.3 Last-example baseline
 
@@ -455,10 +491,11 @@ The generator pipeline must run validation before dataset freeze.
 For every episode, verify:
 
 - exactly 9 items exist;
-- first 5 items are labeled correctly;
-- last 4 items are unlabeled probes;
+- the first 5 items are labeled and the last 4 items are probes;
+- `template_id` is valid;
+- `pre_count` and `post_labeled_count` match `template_id`;
+- `shift_after_position = pre_count`;
 - at least 1 post-shift labeled item contradicts `rule_A`;
-- at least 2 probes are disagreement probes;
 - no duplicate `(q1, q2)` pair within episode;
 - probe target list length is 4;
 - probe metadata length is 4.
@@ -468,20 +505,22 @@ For every episode, verify:
 For every split, verify:
 
 - transition directions are near-balanced;
+- template usage is near-balanced between `T1` and `T2`;
 - difficulty tiers match intended proportions;
 - probe labels are near-balanced;
 - sign categories have coverage;
 - baseline performance pattern is sensible;
-- public/private generation logic is identical except seed bank.
+- public/private generation logic is identical except for seed bank.
 
 ## 12.3 Anti-shortcut acceptance criteria
 
 The benchmark is not accepted unless:
 
-- physics-prior baseline is clearly below the target model on disagreement probes;
+- physics-prior baseline is clearly below the target model on shift-sensitive slices;
 - never-update baseline fails on shift-sensitive slices;
 - majority-label baseline remains near chance or clearly inferior;
-- last-example baseline does not dominate hard subset.
+- last-example baseline does not dominate the hard subset;
+- approved templates do not expose the shift boundary solely through end-position counting.
 
 ---
 
@@ -573,6 +612,7 @@ Implements:
 Implements:
 
 - episode sampling
+- template assignment
 - difficulty assignment
 - resampling on failed constraints
 
@@ -586,7 +626,7 @@ Defines:
 
 ## `render.py`
 
-Converts structured episodes into model-facing prompt strings.
+Converts structured episodes into Binary and Narrative model-facing prompt strings.
 
 ## `parser.py`
 
@@ -610,7 +650,7 @@ Runs per-episode and dataset-level validity checks.
 
 ## `splits.py`
 
-Builds frozen datasets from seed lists.
+Builds frozen datasets from seed lists and balanced template usage.
 
 ---
 
@@ -619,28 +659,38 @@ Builds frozen datasets from seed lists.
 ## 16.1 Primary benchmark task name
 
 ```text
-Adaptive Rule Updating — Binary
+Adaptive Rule Updating - Binary
 ```
 
-## 16.2 Notebook behavior
+## 16.2 Required companion task
+
+```text
+Adaptive Rule Updating - Narrative
+```
+
+This task is required for v1 robustness evidence, but it is not leaderboard-primary.
+
+## 16.3 Notebook behavior
 
 Main benchmark notebook must:
 
 1. load frozen evaluation data;
-2. expose one benchmark task through `%choose`;
-3. call the participant model on each episode prompt;
-4. parse outputs;
-5. compute primary score and confidence interval;
-6. return numeric evaluation results.
+2. expose the Binary benchmark task through `%choose`;
+3. run the required Narrative companion evaluation on the same underlying episodes;
+4. call the participant model on each episode prompt;
+5. parse outputs;
+6. compute primary score and confidence interval;
+7. return numeric evaluation results and robustness comparison.
 
-## 16.3 Benchmark card minimum contents
+## 16.4 Benchmark card minimum contents
 
 Must state:
 
 - track: Executive Functions;
 - construct: cognitive flexibility;
 - substrate: simplified two-charge interaction rules;
-- primary metric: Disagreement Probe Accuracy;
+- primary metric: Post-shift Probe Accuracy;
+- required companion task: Adaptive Rule Updating - Narrative;
 - main limitations;
 - baseline results;
 - reproducibility details.
@@ -667,7 +717,8 @@ At least these invariants:
 - swapping `q1` and `q2` preserves label;
 - magnitude changes preserving sign do not change label;
 - `R_std` and `R_inv` always disagree on same-sign and opposite-sign cases;
-- every accepted episode satisfies all generator constraints.
+- every accepted episode satisfies all generator constraints;
+- approved templates never make the shift recoverable purely by counting backward from the probe block.
 
 ## 17.3 Regression tests
 
@@ -680,7 +731,7 @@ Freeze a small reference dataset and expected metric outputs so refactors cannot
 Version all of the following independently:
 
 - rule family version;
-- episode template version;
+- episode template-set version;
 - generator version;
 - parser version;
 - metric version;
@@ -696,18 +747,25 @@ Any change that can alter leaderboard scores requires a version bump.
 
 ---
 
-## 19. Acceptance Criteria for MVP
+## 19. Acceptance Criteria for v1
 
-The MVP is ready only if all of the following are true:
+The v1 benchmark is ready only if all of the following are true:
 
 1. generator is deterministic and validated;
 2. dataset schema is frozen;
-3. primary metric is disagreement-probe accuracy;
-4. public/private splits are frozen and separated by seed bank;
-5. all baselines run end-to-end;
-6. validity checks pass;
-7. benchmark notebook runs from frozen assets;
-8. benchmark card states scope and limitations precisely.
+3. the only approved template family is the frozen fixed-length `T1` / `T2` set;
+4. template usage is balanced across splits;
+5. no approved template exposes the shift boundary purely through end-position counting;
+6. primary metric is Post-shift Probe Accuracy;
+7. Binary is the only leaderboard-primary task;
+8. Narrative is included as required non-leaderboard robustness evidence;
+9. public/private splits are frozen and separated by seed bank;
+10. all baselines run end-to-end;
+11. validity checks pass;
+12. benchmark notebook runs from frozen assets;
+13. benchmark card states scope, limitations, and v1 protocol boundaries precisely.
+
+Phase-level recovery and lag claims remain out of scope unless the protocol is expanded to collect intermediate predictions.
 
 ---
 
@@ -719,13 +777,13 @@ Implement in this exact order:
 Build `rules.py` and unit tests.
 
 ### Step 2
-Build `generator.py` with per-episode constraints.
+Build `generator.py` with template-aware per-episode constraints.
 
 ### Step 3
 Build `schema.py` and serialize sample episodes.
 
 ### Step 4
-Build `render.py` and canonical prompt format.
+Build `render.py` for Binary and Narrative prompt formats.
 
 ### Step 5
 Build `parser.py` and invalid-output handling.
@@ -740,7 +798,7 @@ Build `baselines.py` and run first sanity checks.
 Build `validate.py` and dataset freeze pipeline.
 
 ### Step 9
-Generate dev/public/private splits.
+Generate dev/public/private splits with balanced template usage.
 
 ### Step 10
 Wrap everything in the Kaggle benchmark notebook.
@@ -753,7 +811,6 @@ The first concrete deliverable is not the full Kaggle notebook.
 
 It is:
 
-> a deterministic local prototype that generates valid episodes, renders prompts, parses 4-label outputs, and computes Disagreement Probe Accuracy against frozen targets.
+> a deterministic local prototype that generates valid episodes, renders Binary and Narrative prompts, parses 4-label outputs, and computes Post-shift Probe Accuracy against frozen targets.
 
 That prototype should be completed before any benchmark packaging work.
-

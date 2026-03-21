@@ -10,9 +10,9 @@ It targets **cognitive flexibility** in the **Executive Functions** track.
 
 Core question:
 
-> Can a model infer a latent rule from sparse evidence, detect an unsignaled rule change, inhibit the previous response policy, and apply the new rule on conflict cases?
+> Can a model infer a latent binary rule from sparse labeled evidence, detect contradiction, revise its active rule, and apply the updated rule to final probe cases?
 
-The electrostatics setting is only a **controlled substrate**. The benchmark is **not** intended to measure physics knowledge, simulation ability, or general scientific reasoning.
+The electrostatics setting is only a **controlled substrate**. The benchmark is **not** intended to measure physics knowledge, simulation ability, or broad scientific reasoning.
 
 ---
 
@@ -20,9 +20,9 @@ The electrostatics setting is only a **controlled substrate**. The benchmark is 
 
 The benchmark should support the following claim and no stronger one:
 
-> A high score indicates successful adaptation to a hidden rule shift from sparse labeled evidence in a simple, controlled binary environment.
+> A high v1 score indicates successful application of an updated hidden rule to final post-shift probes after sparse contradictory evidence in a simple controlled binary environment.
 
-The benchmark should **not** claim that a high score demonstrates broad physical reasoning or broad AGI capability.
+The benchmark should **not** claim that a high score demonstrates broad physical reasoning, broad AGI capability, or item-level recovery dynamics.
 
 ---
 
@@ -37,7 +37,7 @@ This project is aligned if it satisfies four conditions:
 
 Alignment test for every design decision:
 
-> If a model scores well, is that only plausibly explained by adaptation to a hidden rule change, rather than by electrostatics priors, recency, majority-label guessing, or benchmark artifacts?
+> If a model scores well, is that only plausibly explained by adaptation to a hidden rule change, rather than by electrostatics priors, majority-label guessing, last-example copying, prompt artifacts, or structural template cues?
 
 ---
 
@@ -57,7 +57,7 @@ A successful model must:
 2. detect contradiction against the earlier hypothesis;
 3. inhibit the old response pattern;
 4. switch to the new rule;
-5. answer new probes according to the new rule.
+5. answer final probes according to the new rule.
 
 ### What the benchmark must not accidentally measure instead
 
@@ -72,48 +72,50 @@ A successful model must:
 
 ## 5. Scope
 
-### In scope for MVP
+### In scope for v1
 
 - two charges only;
 - binary output: `attract` or `repel`;
-- hidden rule shift;
+- one hidden rule before shift;
+- one hidden rule after shift;
+- fixed total episode length;
 - few-shot labeled evidence;
-- short episodes;
-- tabular / structured evaluation format;
-- one primary leaderboard task.
+- one primary leaderboard task;
+- one required non-leaderboard robustness task.
 
-### Out of scope for MVP
+### Out of scope for v1
 
 - 3D trajectories;
 - temporal simulation;
 - more than two charges;
 - realistic force magnitudes;
-- open-ended explanation scoring;
+- explanation scoring;
+- item-level switch-cost or recovery measurement;
 - multi-ability benchmark design.
 
-These extensions add complexity faster than they add construct validity.
+These extensions add complexity faster than they add construct validity in the first release.
 
 ---
 
 ## 6. Rule Family
 
-### MVP leaderboard rule family
+### v1 rule family
 
-Use only two relational rules in the primary task:
+Use only two relational rules in v1:
 
 - **R_std**: same signs repel, opposite signs attract
 - **R_inv**: same signs attract, opposite signs repel
 
-This is the cleanest MVP because both rules depend on the **relation between the two charges**. A model cannot solve the task by following a constant output policy.
+This keeps the task relational while preventing constant-output solutions.
 
 ### Diagnostic-only rules
 
-The following rules may be used later in diagnostics, but should **not** be part of the first leaderboard task:
+The following rules may be used later in diagnostics, but should **not** be part of the first benchmark package:
 
 - **R_allA**: always attract
 - **R_allR**: always repel
 
-These are useful for stress-testing heuristics, but they weaken construct purity if included in the core leaderboard because they permit non-relational shortcut behavior.
+These are useful for stress-testing heuristics, but they weaken construct purity if included in the core task.
 
 ---
 
@@ -127,7 +129,7 @@ Each atomic case consists of:
 - `q2 ∈ {-3, -2, -1, +1, +2, +3}`
 - label in `{attract, repel}`
 
-Magnitude is present only to prevent the benchmark from collapsing into a trivial visual token rule, but magnitudes do not affect the correct label.
+Magnitude is present only to keep the representation from collapsing into a trivial token rule. Magnitudes do not affect the correct label.
 
 ### Episode format
 
@@ -138,17 +140,16 @@ Each evaluation unit is an **episode** with four segments:
 3. **Post-shift labeled examples** under Regime B
 4. **Post-shift unlabeled probes** to be answered under Regime B
 
-### Fixed MVP episode template
+### Frozen v1 template family
 
-For the first benchmark version, use a frozen template:
+Use a small frozen, versioned template set with fixed total length:
 
-- 3 pre-shift labeled examples
-- 2 post-shift labeled examples
-- 4 post-shift probes
+- **T1**: 2 pre-shift labeled + 3 post-shift labeled + 4 probes
+- **T2**: 3 pre-shift labeled + 2 post-shift labeled + 4 probes
 
 Total: **9 items per episode**
 
-This is enough to create sparse evidence without making episodes long or noisy.
+The benchmark must not use any template whose shift boundary can be recovered solely by counting backward from the final probe block.
 
 ---
 
@@ -160,35 +161,39 @@ The generator must be deterministic, auditable, and explicitly designed to block
 
 For every episode:
 
-- choose Regime A uniformly from `{R_std, R_inv}`
-- choose Regime B as the opposite rule
-- sample pre-shift and post-shift examples from the same charge space
-- vary shift position only across benchmark versions or episode templates, not within the item list semantics
-- avoid duplicate examples unless explicitly needed for diagnostics
+- choose `rule_A` uniformly from `{R_std, R_inv}`;
+- choose `rule_B` as the opposite rule;
+- choose `template_id` from `{T1, T2}`;
+- derive `pre_count` and `post_labeled_count` from the template;
+- set `shift_after_position = pre_count`;
+- sample pre-shift, post-shift, and probe items from the same charge space;
+- avoid duplicate examples unless a later diagnostic variant explicitly allows repetition.
 
 ### 8.2 Conflict requirement
 
 Every episode must contain at least:
 
-- **2 disagreement probes** where `R_std` and `R_inv` predict different answers
-- **1 decisive post-shift labeled example** that directly contradicts the pre-shift rule
+- **1 decisive post-shift labeled example** that directly contradicts the pre-shift rule;
+- a nontrivial probe block whose correct answers are not all identical.
 
-This is the most important generator constraint. Without it, a model can score well without showing real adaptation.
+Without contradiction after the shift, a model can score well without showing real adaptation.
 
 ### 8.3 Balance requirements
 
 Across the dataset:
 
-- balance `attract` and `repel`
-- balance initial regime direction (`R_std → R_inv` and `R_inv → R_std`)
-- balance sign patterns across episodes
-- balance probe difficulty tiers
+- balance transition direction (`R_std → R_inv` and `R_inv → R_std`);
+- balance template usage (`T1` and `T2`);
+- balance `attract` and `repel` on probes;
+- balance sign patterns across episodes;
+- balance difficulty tiers.
 
-### 8.4 Invariance requirements
+### 8.4 Invariance and anti-shortcut requirements
 
-- swapping `q1` and `q2` must never change the label
-- surface formatting must not alter the answer
-- equivalent episodes should remain equivalent under harmless re-orderings where appropriate
+- swapping `q1` and `q2` must never change the label;
+- surface formatting must not alter the answer;
+- template design must not expose the shift boundary by end-position counting;
+- equivalent episodes should remain equivalent under harmless re-renderings.
 
 ---
 
@@ -198,21 +203,21 @@ Difficulty should be defined operationally, not rhetorically.
 
 ### Easy
 
-- strong contradiction after shift
-- disagreement probes dominate post-shift probes
-- post-shift evidence is clean and redundant
+- strong contradiction after shift;
+- redundant post-shift evidence;
+- probe labels are mixed and easy to separate from shortcut behavior.
 
 ### Medium
 
-- contradiction is present but less redundant
-- mix of disagreement and non-disagreement probes
-- moderate temptation for prior-following behavior
+- contradiction is present but less redundant;
+- moderate ambiguity remains after the first post-shift labeled item;
+- probe mix creates meaningful temptation for prior-following behavior.
 
 ### Hard
 
-- minimal but sufficient shift evidence
-- disagreement probes still present but fewer
-- stronger temptation for old-rule persistence or recency heuristics
+- minimal but sufficient contradiction pattern;
+- less redundant post-shift evidence;
+- stronger temptation for old-rule persistence or last-example heuristics.
 
 Difficulty metadata should be attached per episode and used in slice reporting.
 
@@ -224,24 +229,28 @@ Difficulty metadata should be attached per episode and used in slice reporting.
 
 Use:
 
-### **Disagreement Probe Accuracy**
+### **Post-shift Probe Accuracy**
 
-Accuracy computed only on post-shift probes for which the pre-shift and post-shift rules would give different answers.
+Accuracy computed over the final four probes under `rule_B`.
 
-Why this should be primary:
+Why this should be primary in v1:
 
-- it directly measures successful rule updating;
-- it minimizes inflation from probes that both rules answer the same way;
-- it makes the benchmark claim more defensible.
+- it directly reflects success on the scored post-shift task;
+- it is honest about what the current protocol actually observes;
+- it keeps the benchmark claim defensible without overstating disagreement-only scoring.
 
 ## 10.2 Secondary metrics
 
 Report but do not optimize the leaderboard around:
 
-- **Overall Post-shift Accuracy**
-- **Rule Persistence Rate**: fraction of disagreement probes answered according to the old rule
-- **Adaptation Lag**: number of post-shift labeled examples needed before predictions align with the new rule
-- **Slice Accuracy** by transition direction and difficulty tier
+- **Rule Persistence Rate**: fraction of probes answered according to the old rule when old-rule and new-rule answers differ;
+- **Transition Slice Accuracy** by `R_std → R_inv` and `R_inv → R_std`;
+- **Difficulty Slice Accuracy** by `easy`, `medium`, and `hard`;
+- **Format Robustness Comparison** between Binary and Narrative renderings.
+
+### Future diagnostic metrics
+
+Metrics such as adaptation lag, recovery length, immediate post-shift drop, and switch cost require a later stepwise protocol that collects intermediate predictions. They are not part of the v1 leaderboard claim.
 
 ## 10.3 Uncertainty reporting
 
@@ -261,13 +270,13 @@ Required baselines:
    Always apply `R_std`.
 
 2. **Never-Update Baseline**  
-   Infer one initial rule and continue using it after the shift.
+   Infer one initial rule from the first `pre_count` labeled examples and continue using it after the shift.
 
 3. **Last-Example Baseline**  
-   Overweight only the latest labeled example.
+   Overweight only the final labeled example before the probe block.
 
 4. **Majority Label Baseline**  
-   Always output the majority class.
+   Always output the majority class observed in the five labeled examples.
 
 5. **Random Baseline**  
    Uniform random over `{attract, repel}`.
@@ -275,7 +284,7 @@ Required baselines:
 Expected pattern:
 
 - baselines may perform non-trivially on easy subsets;
-- they should fail clearly on disagreement-probe slices;
+- they should fail clearly on shift-sensitive slices;
 - a strong model should beat them with margin on the main metric.
 
 ---
@@ -291,16 +300,18 @@ The benchmark must assume the model may exploit:
 - majority labels;
 - constant output behavior;
 - fixed template structure;
-- positional artifacts.
+- positional artifacts;
+- format-specific prompt cues.
 
 ### Required controls
 
-- disagreement probes in every episode;
+- contradiction after the hidden shift in every episode;
 - balanced label marginals;
 - variable sign combinations;
 - no constant-rule shortcuts in the primary task;
 - adversarial subsets where standard-prior and never-update fail;
-- frozen and versioned templates.
+- frozen and versioned template sets;
+- a required narrative-format robustness companion task.
 
 ### Heuristics-fail subsets
 
@@ -311,7 +322,7 @@ At minimum, include evaluation slices where:
 - last-example fails;
 - majority-label fails.
 
-These subsets are not optional diagnostics. They are part of the validity argument.
+These subsets are part of the validity argument, not optional extras.
 
 ---
 
@@ -331,7 +342,7 @@ Freeze and record:
 
 - generator version
 - rule-family version
-- template version
+- template-set version
 - dataset seed list
 - difficulty assignment logic
 - metric code
@@ -344,44 +355,49 @@ The private audit set should be generated from frozen logic and held outside nor
 
 ## 14. Failure Analysis
 
-The benchmark should support diagnosis of at least five failure modes:
+The benchmark should support diagnosis of at least four v1 failure modes:
 
 1. **Initial inference failure**  
-   Model fails before the shift.
+   Model never infers the starting rule from the early labeled items.
 
 2. **Change-detection failure**  
-   Model does not react to contradictory post-shift evidence.
+   Model does not revise after contradictory post-shift evidence.
 
 3. **Old-rule persistence**  
-   Model continues using the original rule on disagreement probes.
+   Model continues using the original rule on probes where old-rule and new-rule predictions diverge.
 
-4. **Recency overshoot**  
-   Model follows the latest example without stable rule revision.
+4. **Format fragility**  
+   Model succeeds in the Binary rendering but degrades materially in the Narrative rendering.
 
-5. **Format fragility**  
-   Model succeeds only in one prompt surface form.
-
-This is why disagreement probes, lag, and sliced reporting are necessary.
+Item-level recovery and lag analysis require a future stepwise protocol rather than the current final-probe-only outputs.
 
 ---
 
 ## 15. Validity Extensions
 
-These are important, but they are **Phase 2–3 items**, not blockers for the first submission.
+### Required in v1
 
-### Human baseline
+#### Alternate format
+
+Include a semantically equivalent **Adaptive Rule Updating — Narrative** task in the first benchmark package.
+
+Purpose: test whether the benchmark measures rule updating rather than performance on one specific surface template.
+
+This companion task is required for validity evidence, but it is **not** leaderboard-primary.
+
+### Phase 2–3 extensions
+
+#### Human baseline
 
 Run a small adult pilot using the exact same episodes and response format.
 
 Use it to support calibration, not grand claims.
 
-### Alternate format
+#### Stepwise diagnostics
 
-Add a semantically equivalent alternate presentation format, such as a lightly verbalized version of the same structured task.
+Add a protocol variant that collects intermediate predictions if switch cost, recovery length, or adaptation lag become required benchmark claims.
 
-Purpose: test whether the benchmark measures rule updating rather than one specific surface template.
-
-### Independent verification
+#### Independent verification
 
 Obtain external review or independent rerun of:
 
@@ -397,24 +413,23 @@ Obtain external review or independent rerun of:
 
 **Adaptive Rule Updating — Binary**
 
-This is the only leaderboard task in the first submission.
+This is the only leaderboard-primary task in the first submission.
 
-Its score should be based on **Disagreement Probe Accuracy**.
+Its score should be based on **Post-shift Probe Accuracy**.
 
-### Optional companion tasks
+### Required companion task
 
-1. **Shift Detection & Rule Switching**  
-   Diagnostic task to separate detection failure from application failure.
+**Adaptive Rule Updating — Narrative**
 
-2. **Adaptive Rule Updating — Alternate Format**  
-   Robustness task for surface variation.
+This uses the same underlying episodes and targets with a narrative-format rendering. It is required in v1 for robustness evidence, but it is not leaderboard-primary.
 
 ### Packaging
 
-- one main notebook with `%choose` pointing to the primary task
-- benchmark card explaining construct, scope, and limitations
-- versioned dataset artifacts
-- baseline results table
+- one main notebook with `%choose` pointing to the primary task;
+- one required companion evaluation for the narrative rendering;
+- benchmark card explaining construct, scope, limitations, and v1 protocol boundaries;
+- versioned dataset artifacts;
+- baseline results table.
 
 ---
 
@@ -424,65 +439,68 @@ Its score should be based on **Disagreement Probe Accuracy**.
 
 Deliverables:
 
-- final construct statement
-- track declaration: **Executive Functions**
-- benchmark claim
-- explicit non-goals
+- final construct statement;
+- track declaration: **Executive Functions**;
+- benchmark claim;
+- explicit non-goals;
+- frozen v1 template set and metric definitions.
 
 Exit condition:
 
-- no wording suggests this is mainly a physics benchmark
-- no wording overclaims beyond cognitive flexibility under hidden rule shift
+- no wording suggests this is mainly a physics benchmark;
+- no wording overclaims beyond final post-shift rule updating under hidden shift.
 
-## Phase 1 — Build the MVP benchmark
+## Phase 1 — Build the v1 benchmark
 
 Deliverables:
 
-- deterministic generator
-- deterministic labeler
-- fixed episode template
-- disagreement-probe primary metric
-- baseline suite
-- adversarial evaluation slices
-- reproducible public/dev split logic
+- deterministic generator;
+- deterministic labeler;
+- frozen `T1` / `T2` episode template family;
+- `Post-shift Probe Accuracy` primary metric;
+- Binary task;
+- Narrative companion task;
+- baseline suite;
+- adversarial evaluation slices;
+- reproducible public/dev split logic.
 
 Exit condition:
 
-- a high score is not plausibly explained by standard-prior, majority-label, or never-update shortcuts
+- a high score is not plausibly explained by standard-prior, majority-label, never-update, or end-counting shortcuts.
 
-## Phase 2 — Add robustness
+## Phase 2 — Add deeper diagnostics
 
 Deliverables:
 
-- alternate-format companion task
-- adaptation-lag diagnostics
-- private audit split
-- stronger slice reporting by difficulty and transition direction
+- stepwise prediction protocol;
+- adaptation-lag diagnostics;
+- stronger slice reporting by difficulty and transition direction;
+- richer failure analysis.
 
 Exit condition:
 
-- robustness additions strengthen the same construct instead of changing the task into something broader
+- new diagnostics strengthen the same construct instead of broadening the task into a different benchmark.
 
 ## Phase 3 — Strengthen scientific validity
 
 Deliverables:
 
-- small human pilot
-- independent audit or rerun
-- confidence interval reporting in benchmark card
-- contamination statement
+- small human pilot;
+- independent audit or rerun;
+- confidence interval reporting in benchmark card;
+- contamination statement.
 
 Exit condition:
 
-- stronger claims are made only when supporting evidence exists
+- stronger claims are made only when supporting evidence exists.
 
 ---
 
 ## 18. Non-goals
 
-Do not add the following to the MVP unless they solve a clear validity problem:
+Do not add the following to v1 unless they solve a clear validity problem:
 
-- more charges because it appears more sophisticated;
+- more charges because they appear more sophisticated;
 - 3D or temporal motion;
 - realistic electrostatic simulation;
 - explanation-based main scoring;
@@ -506,9 +524,8 @@ A Kaggle Community Benchmark that measures cognitive flexibility through hidden 
 
 ### Submission-safe description
 
-Iron Find Electric evaluates whether a model can revise an inferred binary interaction rule after an unsignaled rule shift from sparse labeled evidence, using a controlled two-charge environment and a primary score based on post-shift disagreement probes.
+Iron Find Electric evaluates whether a model can revise an inferred binary interaction rule after contradictory labeled evidence and apply the updated rule to final post-shift probes in a controlled two-charge environment, using one leaderboard-primary binary task and one required non-leaderboard narrative robustness task.
 
 ### Scope statement
 
-This is a targeted benchmark of cognitive flexibility within the challenge framework, not a standalone measure of AGI progress.
-
+This is a targeted benchmark of cognitive flexibility within the challenge framework, not a standalone measure of AGI progress or a direct measure of item-level recovery dynamics.
