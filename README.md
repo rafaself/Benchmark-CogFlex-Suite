@@ -62,7 +62,8 @@ source .venv/bin/activate
 Run the current tests:
 
 ```bash
-python3 -m unittest discover -s tests -p 'test_rules.py' -v
+python3 -m pip install -r requirements-dev.txt
+python3 -m pytest
 ```
 
 ## Source of Truth
