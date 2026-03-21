@@ -1,0 +1,28 @@
+{
+  "partition": "public_leaderboard",
+  "episode_split": "public",
+  "manifest_version": "R8",
+  "seed_bank_version": "R8-public-1",
+  "spec_version": "v1",
+  "generator_version": "R3",
+  "template_set_version": "v1",
+  "difficulty_version": "R3",
+  "seeds": [
+    2059,
+    2060,
+    2061,
+    2062,
+    2063,
+    2064,
+    2065,
+    2066,
+    2067,
+    2068,
+    2069,
+    2070,
+    2071,
+    2072,
+    2073,
+    2074
+  ]
+}
