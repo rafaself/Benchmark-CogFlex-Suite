@@ -1,5 +1,4 @@
-CHARGES = (-3, -2, -1, 1, 2, 3)
-RULES = frozenset({"R_std", "R_inv"})
+from protocol import CHARGES, RULES, InteractionLabel, RuleName, parse_rule
 
 
 def sign(charge: int) -> int:
@@ -11,14 +10,21 @@ def same_sign(q1: int, q2: int) -> bool:
     return sign(q1) == sign(q2)
 
 
-def label(rule: str, q1: int, q2: int) -> str:
-    if rule not in RULES:
-        raise ValueError(f"unknown rule: {rule}")
+def label(rule: RuleName | str, q1: int, q2: int) -> InteractionLabel:
+    resolved_rule = parse_rule(rule)
 
     if same_sign(q1, q2):
-        return "repel" if rule == "R_std" else "attract"
+        return (
+            InteractionLabel.REPEL
+            if resolved_rule is RuleName.R_STD
+            else InteractionLabel.ATTRACT
+        )
 
-    return "attract" if rule == "R_std" else "repel"
+    return (
+        InteractionLabel.ATTRACT
+        if resolved_rule is RuleName.R_STD
+        else InteractionLabel.REPEL
+    )
 
 
 def _validate_charge(charge: int) -> None:

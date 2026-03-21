@@ -6,6 +6,7 @@
 
 This repository now contains:
 
+- the shared protocol contract in [`src/protocol.py`](./src/protocol.py);
 - the benchmark specification and planning documents;
 - the first implementation slice for v1: the rule engine in [`src/rules.py`](./src/rules.py);
 - focused rule tests in [`tests/test_rules.py`](./tests/test_rules.py).
@@ -31,6 +32,8 @@ The v1 benchmark allows exactly two rules over charges from `{-3, -2, -1, +1, +2
 
 Labels depend only on sign pattern, not magnitude. Swapping `(q1, q2)` must not change the label.
 
+The canonical protocol vocabulary now lives in [`src/protocol.py`](./src/protocol.py), which defines shared enums and frozen constants for rules, labels, templates, transitions, and episode counts. New generator, validator, scorer, and parser code should import protocol values from there rather than retyping raw strings.
+
 ## Repository Layout
 
 ```text
@@ -40,8 +43,10 @@ Labels depend only on sign pattern, not magnitude. Swapping `(q1, q2)` must not 
 ├── iron_find_electric_implementation_spec.md
 ├── iron_find_electric_improved_plan.md
 ├── src/
+│   ├── protocol.py
 │   └── rules.py
 └── tests/
+    ├── test_protocol.py
     └── test_rules.py
 ```
 
