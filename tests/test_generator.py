@@ -6,7 +6,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from generator import generate_episode
-from protocol import LABELED_ITEM_COUNT, ItemKind, Phase, TemplateId
+from protocol import LABELED_ITEM_COUNT, Difficulty, ItemKind, Phase, Split, TemplateId, Transition
 from rules import label
 from schema import Episode
 
@@ -71,13 +71,18 @@ class GeneratorTestCase(unittest.TestCase):
     def test_schema_fields_are_always_present(self):
         expected_fields = (
             "episode_id",
+            "split",
+            "difficulty",
             "template_id",
             "rule_A",
             "rule_B",
+            "transition",
             "pre_count",
             "post_labeled_count",
             "shift_after_position",
             "items",
+            "probe_targets",
+            "probe_metadata",
             "spec_version",
             "generator_version",
             "template_set_version",
@@ -90,6 +95,20 @@ class GeneratorTestCase(unittest.TestCase):
         for field_name in expected_fields:
             with self.subTest(field_name=field_name):
                 self.assertTrue(hasattr(episode, field_name))
+
+    def test_generator_populates_canonical_row_metadata(self):
+        episode = generate_episode(3)
+
+        self.assertIs(episode.split, Split.DEV)
+        self.assertIsInstance(episode.difficulty, Difficulty)
+        self.assertEqual(episode.transition, Transition.from_rules(episode.rule_A, episode.rule_B))
+        self.assertEqual(tuple(metadata.new_rule_label for metadata in episode.probe_metadata), episode.probe_targets)
+
+    def test_probe_targets_are_never_homogeneous(self):
+        for seed in range(64):
+            with self.subTest(seed=seed):
+                episode = generate_episode(seed)
+                self.assertGreaterEqual(len(set(episode.probe_targets)), 2)
 
     def test_labeled_items_use_the_active_rule_engine_label(self):
         for seed in range(10):
