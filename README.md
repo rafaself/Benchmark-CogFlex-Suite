@@ -1,27 +1,27 @@
 # Iron Find Electric
 
-Iron Find Electric is benchmark infrastructure for the Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository now contains the implemented local benchmark pipeline, the frozen split assets, and the task-specific logic for the two-charge rule-update benchmark.
+Iron Find Electric is benchmark infrastructure for the Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository contains the implemented local benchmark environment, frozen split assets, and task-specific logic for the two-charge rule-update benchmark.
 
 ## Current State
 
 The repository currently implements:
 
-- task protocol constants and enum parsing;
-- task-specific rule evaluation for `R_std` and `R_inv`;
-- canonical episode schema and derived metadata;
-- deterministic episode generation from seeds;
-- Binary and Narrative prompt rendering;
-- prediction parsing for both task modes;
-- metric computation;
-- dataset and regeneration validation;
-- heuristic baselines;
-- frozen split loading, regeneration, overlap checks, and audits.
+- rules: task protocol constants, enum parsing, and rule evaluation for `R_std` and `R_inv`;
+- schema: canonical episode dataclasses and derived metadata;
+- generator: deterministic episode generation from seeds;
+- render: Binary and Narrative prompt rendering;
+- parser: prediction parsing for both task modes;
+- metrics: benchmark scoring and summary helpers;
+- baselines: heuristic benchmark baselines, including the recency shortcut baseline `last_evidence`;
+- validation: episode, dataset, and regeneration checks;
+- splits: frozen split loading, deterministic replay, and overlap checks;
+- audit: split- and baseline-level audit reporting.
 
 Current blockers and known limitations:
 
-- the `last_evidence` baseline is still too strong relative to the intended benchmark difficulty profile;
+- the recency shortcut baseline `last_evidence` is still too strong relative to the intended benchmark difficulty profile and remains the main current validity blocker;
 - `hard` remains a reserved difficulty label and is not currently emitted by the R3 generator;
-- the repository has local benchmark infrastructure and frozen assets, but not Kaggle packaging or benchmark-card publication work.
+- Kaggle notebook packaging and benchmark-card publication belong after local validity repair rather than before it.
 
 ## Benchmark Shape
 
@@ -115,10 +115,11 @@ python3 -m pytest
 
 ## Source of Truth
 
-If repository documents disagree, treat [`iron_find_electric_implementation_spec.md`](./iron_find_electric_implementation_spec.md) as authoritative for v1 behavior, with the caveat that some planning sections remain historical and do not reflect the current implementation state.
+The source of truth for the current project state is the implemented local benchmark stack in [`src/`](./src/), the frozen assets in [`src/frozen_splits/`](./src/frozen_splits/), and the local validation, audit, and test suite results. Supporting documents should describe that implemented state honestly; they are not a substitute for the code, frozen assets, and local validity checks.
 
 Supporting documents:
 
+- [`iron_find_electric_implementation_spec.md`](./iron_find_electric_implementation_spec.md): behavior and contract reference for the implemented local benchmark pipeline.
+- [`iron_find_electric_improved_plan.md`](./iron_find_electric_improved_plan.md): current repair roadmap and status notes.
 - [`src/README.md`](./src/README.md): source-tree overview and canonical package layout.
-- [`iron_find_electric_improved_plan.md`](./iron_find_electric_improved_plan.md): planning document with updated status notes.
 - [`benchmark_design_section_cognitive_flexibility.md`](./benchmark_design_section_cognitive_flexibility.md): benchmark framing and explicit v1 limitations.

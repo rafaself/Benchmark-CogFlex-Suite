@@ -28,7 +28,7 @@ This wording is preferable to broader claims such as "general flexibility" or "p
 The current v1 protocol supports a narrow claim:
 
 - performance on final post-shift probes after sparse contradictory evidence;
-- comparison against shortcut baselines such as physics-prior, never-update, last-example, and majority-label behavior;
+- comparison against shortcut baselines such as physics-prior, never-update, the recency shortcut baseline `last_evidence`, and majority-label behavior;
 - robustness checks across a canonical binary rendering and a narrative rendering built from the same episodes.
 
 ### What v1 cannot support directly

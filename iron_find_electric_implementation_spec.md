@@ -2,11 +2,11 @@
 
 ## Concrete Implementation Spec
 
-> Status note: the repository now implements the local v1 benchmark pipeline described here. Remaining issues are benchmark-quality blockers rather than missing infrastructure: `last_evidence` is still too strong, and `hard` remains part of the protocol vocabulary but is not emitted by the current generator.
+> Status note: the repository already implements the local benchmark infrastructure for the Iron Find Electric v1 task described here. Remaining issues are benchmark-validity blockers rather than missing infrastructure: the recency shortcut baseline `last_evidence` is still too strong, `hard` remains part of the protocol vocabulary but is not emitted by the current generator, and Kaggle staging should follow local validity repair rather than precede it.
 
 ## 1. Objective
 
-Implement a Kaggle Community Benchmark that measures **cognitive flexibility** through **hidden rule updating** in short two-charge binary episodes.
+Describe and maintain the implemented local benchmark pipeline for the Iron Find Electric v1 task, which measures **cognitive flexibility** through **hidden rule updating** in short two-charge binary episodes.
 
 The implementation must make the following interpretation defensible:
 
@@ -239,7 +239,7 @@ Requirements:
 
 - minimal sufficient contradiction pattern;
 - less redundant post-shift evidence;
-- stronger temptation for persistence or last-example heuristics.
+- stronger temptation for persistence or recency shortcut heuristics such as `last_evidence`.
 
 Difficulty assignment must be deterministic from generator metadata, not subjective post hoc judgment.
 
@@ -431,11 +431,12 @@ Separate scores for:
 
 ### Slice Accuracy by Difficulty
 
-Separate scores for:
+Separate scores for emitted difficulties. Under the current generator this means:
 
 - easy
 - medium
-- hard
+
+If a future release emits `hard`, it can be added back to slice reporting at that point.
 
 ### Format Robustness Comparison
 
@@ -532,7 +533,7 @@ The benchmark is not accepted unless:
 - physics-prior baseline is clearly below the target model on shift-sensitive slices;
 - never-update baseline fails on shift-sensitive slices;
 - majority-label baseline remains near chance or clearly inferior;
-- last-example baseline does not dominate the hard subset;
+- the recency shortcut baseline `last_evidence` does not dominate emitted shift-sensitive subsets, and no acceptance claim depends on an unimplemented hard slice;
 - approved templates do not expose the shift boundary solely through end-position counting.
 
 ---
@@ -670,7 +671,7 @@ Builds frozen datasets from seed lists and balanced template usage.
 
 ---
 
-## 16. Kaggle Benchmark Interface
+## 16. Kaggle Staging Interface
 
 ## 16.1 Primary benchmark task name
 
@@ -697,6 +698,8 @@ Main benchmark notebook must:
 5. parse outputs;
 6. compute primary score and confidence interval;
 7. return numeric evaluation results and robustness comparison.
+
+This staging work belongs after local validity repair, the validity gate, the split re-freeze, and the empirical re-audit.
 
 ## 16.4 Benchmark card minimum contents
 
@@ -778,46 +781,34 @@ The v1 benchmark is ready only if all of the following are true:
 9. public/private splits are frozen and separated by seed bank;
 10. all baselines run end-to-end;
 11. validity checks pass;
-12. benchmark notebook runs from frozen assets;
+12. if and when Kaggle staging is attempted, the benchmark notebook runs from frozen assets;
 13. benchmark card states scope, limitations, and v1 protocol boundaries precisely.
 
 Phase-level recovery and lag claims remain out of scope unless the protocol is expanded to collect intermediate predictions.
 
 ---
 
-## 20. Immediate Build Order
+## 20. Active Repair Sequence
 
-Implement in this exact order:
+The repository is past the initial build phase. The active release sequence is:
 
-### Step 1
-Build `rules.py` and invariance-focused unit tests.
+### R11
+Documentation realignment.
 
-### Step 2
-Build `generator.py` with template-aware per-episode constraints and deterministic difficulty assignment.
+### R12
+Protocol hardening.
 
-### Step 3
-Build `schema.py` and freeze the canonical serialized episode format, metadata fields, and version tags.
+### R13
+Validity gate.
 
-### Step 4
-Build `render.py` for Binary and Narrative prompt formats.
+### R14
+Split re-freeze.
 
-### Step 5
-Build `parser.py` and invalid-output handling.
+### R15
+Empirical re-audit.
 
-### Step 6
-Build `metrics.py` with primary and secondary scores.
-
-### Step 7
-Build `baselines.py` and run first sanity checks, including shortcut slices.
-
-### Step 8
-Build `validate.py`, property tests, and regression checks against frozen reference fixtures.
-
-### Step 9
-Generate and freeze dev/public/private splits with separate seed banks and frozen version identifiers for generator, template set, parser, metric, and difficulty logic.
-
-### Step 10
-Wrap everything in the Kaggle benchmark notebook and benchmark card only after the implemented local benchmark is packaging-ready.
+### R16
+Kaggle staging and packaging.
 
 ---
 
@@ -836,6 +827,6 @@ That local benchmark pipeline is now present in the repository and remains the p
 The main remaining blockers are:
 
 1. keep deterministic generation, validation, and regression fixtures stable under refactor;
-2. reduce the strength of shortcut baselines, especially `last_evidence`;
-3. decide whether to emit a real `hard` slice in a way that preserves benchmark validity;
-4. package the benchmark notebook and benchmark card when the current implementation is ready.
+2. reduce the strength of the recency shortcut baseline `last_evidence`;
+3. keep `hard` reserved and not emitted unless a later release can do so without weakening benchmark validity;
+4. package the benchmark notebook and benchmark card only after local validity repair, the validity gate, the split re-freeze, and the empirical re-audit are complete.

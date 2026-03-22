@@ -2,13 +2,13 @@
 
 ## Improved Project Plan
 
-> Status note: this document still contains planning material, but the repository now implements the local v1 benchmark pipeline, frozen splits, validation, and audits. The current blockers are benchmark quality rather than missing infrastructure: `last_evidence` remains too strong, and `hard` is still reserved rather than emitted by the R3 generator.
+> Status note: the repository already implements the local benchmark infrastructure for the Iron Find Electric v1 task, including rules, schema, generator, renderers, parser, metrics, baselines, validation, frozen splits, and audits. The current blockers are benchmark-validity issues rather than missing infrastructure: the recency shortcut baseline `last_evidence` remains too strong, `hard` is still reserved rather than emitted by the R3 generator, and Kaggle staging should happen only after local validity repair.
 
 ## 1. Purpose
 
-**Iron Find Electric** is a Kaggle Community Benchmark for the **Measuring Progress Toward AGI – Cognitive Abilities** challenge.
+**Iron Find Electric** is benchmark infrastructure for the Iron Find Electric v1 task in the **Executive Functions** track of the **Measuring Progress Toward AGI – Cognitive Abilities** challenge.
 
-It targets **cognitive flexibility** in the **Executive Functions** track.
+The repository's current role is to provide the implemented local benchmark environment and validity checks. Kaggle is a later staging and integration target, not the present source of truth.
 
 Core question:
 
@@ -33,13 +33,13 @@ The benchmark should **not** claim that a high score demonstrates broad physical
 This project is aligned if it satisfies four conditions:
 
 1. It measures a clearly named cognitive ability inside one official track.
-2. It is implementable as a Kaggle Community Benchmark.
+2. It remains compatible with later Kaggle staging after local validity repair.
 3. It yields reproducible scores from frozen benchmark logic.
 4. A strong score is interpretable as evidence of **rule updating**, not shortcut exploitation.
 
 Alignment test for every design decision:
 
-> If a model scores well, is that only plausibly explained by adaptation to a hidden rule change, rather than by electrostatics priors, majority-label guessing, last-example copying, prompt artifacts, or structural template cues?
+> If a model scores well, is that only plausibly explained by adaptation to a hidden rule change, rather than by electrostatics priors, majority-label guessing, recency shortcut behavior such as `last_evidence`, prompt artifacts, or structural template cues?
 
 ---
 
@@ -65,7 +65,7 @@ A successful model must:
 
 - standard electrostatics prior only;
 - majority-label guessing;
-- last-example copying;
+- recency shortcut behavior such as `last_evidence`;
 - fixed shift-position detection;
 - prompt-template memorization;
 - order artifacts.
@@ -95,7 +95,7 @@ A successful model must:
 - item-level switch-cost or recovery measurement;
 - multi-ability benchmark design.
 
-These extensions add complexity faster than they add construct validity in the first release.
+These extensions add complexity faster than they add construct validity in the current v1 task.
 
 ---
 
@@ -219,9 +219,9 @@ Difficulty should be defined operationally, not rhetorically.
 
 - minimal but sufficient contradiction pattern;
 - less redundant post-shift evidence;
-- stronger temptation for old-rule persistence or last-example heuristics.
+- stronger temptation for old-rule persistence or recency shortcut heuristics such as `last_evidence`.
 
-Difficulty metadata should be attached per episode and used in slice reporting.
+`hard` remains part of the protocol vocabulary, but it is currently reserved and not emitted by the local R3 generator. Current slice reporting should therefore describe emitted difficulties honestly rather than implying an active hard slice.
 
 ---
 
@@ -247,7 +247,7 @@ Report but do not optimize the leaderboard around:
 
 - **Rule Persistence Rate**: fraction of probes answered according to the old rule when old-rule and new-rule answers differ;
 - **Transition Slice Accuracy** by `R_std → R_inv` and `R_inv → R_std`;
-- **Difficulty Slice Accuracy** by `easy`, `medium`, and `hard`;
+- **Difficulty Slice Accuracy** by emitted difficulties, with `hard` reported only if a future release begins emitting it;
 - **Format Robustness Comparison** between Binary and Narrative renderings.
 
 ### Future diagnostic metrics
@@ -274,7 +274,7 @@ Required baselines:
 2. **Never-Update Baseline**  
    Infer one initial rule from the first `pre_count` labeled examples and continue using it after the shift.
 
-3. **Last-Example Baseline**  
+3. **Recency Shortcut Baseline (`last_evidence`)**  
    Overweight only the final labeled example before the probe block.
 
 4. **Majority Label Baseline**  
@@ -321,7 +321,7 @@ At minimum, include evaluation slices where:
 
 - standard-prior fails;
 - never-update fails;
-- last-example fails;
+- the recency shortcut baseline `last_evidence` fails;
 - majority-label fails.
 
 These subsets are part of the validity argument, not optional extras.
@@ -387,7 +387,7 @@ Purpose: test whether the benchmark measures rule updating rather than performan
 
 This companion task is required for validity evidence, but it is **not** leaderboard-primary.
 
-### Phase 2–3 extensions
+### Later extensions
 
 #### Human baseline
 
@@ -409,13 +409,13 @@ Obtain external review or independent rerun of:
 
 ---
 
-## 16. Kaggle Implementation Plan
+## 16. Kaggle Staging and Packaging
 
 ### Primary task
 
 **Adaptive Rule Updating — Binary**
 
-This is the only leaderboard-primary task in the first submission.
+This is the only leaderboard-primary task once the benchmark is staged externally.
 
 Its score should be based on **Post-shift Probe Accuracy**.
 
@@ -427,6 +427,8 @@ This uses the same underlying episodes and targets with a narrative-format rende
 
 ### Packaging
 
+Packaging is downstream of local validity repair, the validity gate, the split re-freeze, and the empirical re-audit.
+
 - one main notebook with `%choose` pointing to the primary task;
 - one required companion evaluation for the narrative rendering;
 - benchmark card explaining construct, scope, limitations, and v1 protocol boundaries;
@@ -435,71 +437,33 @@ This uses the same underlying episodes and targets with a narrative-format rende
 
 ---
 
-## 17. Step-by-Step Roadmap
+## 17. Active Release Sequence
 
-## Phase 0 — Freeze the framing
+The current repository is past the initial build phase. The active repair sequence is:
 
-Deliverables:
+1. **R11 Documentation realignment**
+   - describe the repo as implemented local benchmark infrastructure for the Iron Find Electric v1 task;
+   - align docs with the current code, frozen assets, and emitted difficulties;
+   - make current blockers explicit.
 
-- final construct statement;
-- track declaration: **Executive Functions**;
-- benchmark claim;
-- explicit non-goals;
-- frozen v1 template set and metric definitions.
+2. **R12 Protocol hardening**
+   - tighten benchmark contracts without changing the intended construct;
+   - remove ambiguities that allow misleading benchmark claims or fragile downstream packaging assumptions.
 
-Exit condition:
+3. **R13 Validity gate**
+   - make local validation the acceptance gate for benchmark validity;
+   - ensure the recency shortcut baseline `last_evidence` no longer undermines the main benchmark claim.
 
-- no wording suggests this is mainly a physics benchmark;
-- no wording overclaims beyond final post-shift rule updating under hidden shift.
+4. **R14 Split re-freeze**
+   - re-freeze dev/public/private partitions only after protocol and validity fixes are in place;
+   - keep split-overlap checks in split tooling and audits rather than treating them as a separate earlier milestone.
 
-## Phase 1 — Build the v1 benchmark
+5. **R15 Empirical re-audit**
+   - rerun audits and baseline comparisons on the repaired frozen assets;
+   - confirm that the updated benchmark state supports the intended interpretation.
 
-Deliverables:
-
-- deterministic generator;
-- deterministic labeler;
-- frozen `T1` / `T2` episode template family;
-- deterministic difficulty assignment implemented in generator logic;
-- canonical frozen schema and metadata fields;
-- `Post-shift Probe Accuracy` primary metric;
-- Binary task;
-- Narrative companion task;
-- baseline suite;
-- adversarial evaluation slices;
-- validation scripts plus property/regression tests;
-- frozen split seed banks and version metadata;
-- reproducible dev/public/private split logic.
-
-Exit condition:
-
-- a high score is not plausibly explained by standard-prior, majority-label, never-update, end-counting, or other simple template heuristics;
-- deterministic regeneration, validation, and regression checks pass before split freeze.
-
-## Phase 2 — Add deeper diagnostics
-
-Deliverables:
-
-- stepwise prediction protocol;
-- adaptation-lag diagnostics;
-- stronger slice reporting by difficulty and transition direction;
-- richer failure analysis.
-
-Exit condition:
-
-- new diagnostics strengthen the same construct instead of broadening the task into a different benchmark.
-
-## Phase 3 — Strengthen scientific validity
-
-Deliverables:
-
-- small human pilot;
-- independent audit or rerun;
-- confidence interval reporting in benchmark card;
-- contamination statement.
-
-Exit condition:
-
-- stronger claims are made only when supporting evidence exists.
+6. **R16 Kaggle staging/packaging**
+   - stage the benchmark notebook, companion evaluation, and benchmark card only after local validity repair and re-audit are complete.
 
 ---
 
@@ -527,11 +491,11 @@ Do not add the following to v1 unless they solve a clear validity problem:
 
 ### One-sentence description
 
-A Kaggle Community Benchmark that measures cognitive flexibility through hidden rule updating in short two-charge binary episodes.
+Benchmark infrastructure for the Iron Find Electric v1 task, measuring cognitive flexibility through hidden rule updating in short two-charge binary episodes.
 
 ### Submission-safe description
 
-Iron Find Electric evaluates whether a model can revise an inferred binary interaction rule after contradictory labeled evidence and apply the updated rule to final post-shift probes in a controlled two-charge environment, using one leaderboard-primary binary task and one required non-leaderboard narrative robustness task.
+Iron Find Electric evaluates whether a model can revise an inferred binary interaction rule after contradictory labeled evidence and apply the updated rule to final post-shift probes in a controlled two-charge environment, using one leaderboard-primary binary task and one required non-leaderboard narrative robustness task. The repository already contains the local benchmark infrastructure for this v1 task; external Kaggle packaging remains a later staging step.
 
 ### Scope statement
 
@@ -539,58 +503,43 @@ This is a targeted benchmark of cognitive flexibility within the challenge frame
 
 ---
 
-## 20. Historical Execution Order
+## 20. Current Status Summary
 
-This was the implementation order used to reach the current repository state:
+The implemented local benchmark stack is already present in the repository:
 
 1. `rules.py`
-   - encode the two-rule family;
-   - add invariance and unit tests;
-   - verify label consistency.
+   - encodes the two-rule family and invariance behavior.
 
 2. `generator.py`
-   - generate episodes deterministically from seed;
-   - enforce `T1` / `T2` template constraints;
-   - assign deterministic difficulty tiers from explicit metadata;
-   - ensure pre-shift and post-shift structure is valid.
+   - generates deterministic episodes from seeds under the frozen template family.
 
 3. `schema.py`
-   - define the canonical episode format;
-   - freeze field names, metadata, and version tags.
+   - defines the canonical episode format, metadata fields, and versioned payload shape.
 
 4. `render.py`
-   - render Binary task prompts;
-   - render Narrative robustness prompts.
+   - renders Binary and Narrative prompts from the same underlying episodes.
 
 5. `parser.py`
-   - parse model outputs safely;
-   - handle malformed answers deterministically.
+   - parses model outputs deterministically.
 
 6. `metrics.py`
-   - compute `Post-shift Probe Accuracy`;
-   - compute subset and diagnostic metrics.
+   - computes the primary and supporting benchmark metrics.
 
 7. `baselines.py`
-   - implement never-update, always-update / last-evidence, physics-prior, template-position heuristic, and random baselines;
-   - measure heuristic behavior and identify residual shortcut strength.
+   - implements the benchmark baselines, including the recency shortcut baseline `last_evidence`.
 
 8. `validate.py` and tests
-   - check no invalid episodes, no schema drift, and balanced metadata distributions;
-   - add property/regression tests and a frozen reference fixture so refactors cannot silently change behavior.
+   - enforce local validity, schema stability, and deterministic replay from frozen fixtures.
 
 9. `splits.py`
-   - freeze dev, public, and private splits;
-   - freeze separate seed banks and version identifiers for generator, templates, metrics, parser, and difficulty logic.
-   - keep split-overlap checks in split tooling and audits rather than treating them as an R7-only validation milestone.
-
-10. Kaggle packaging
-   - prepare the benchmark notebook and benchmark card only after the implemented local benchmark is packaging-ready.
+   - manages frozen dev/public/private partitions plus split-overlap checks and audits.
 
 ### Current blocker summary
 
-Infrastructure is largely in place. The remaining blockers are:
+Infrastructure is in place locally. The remaining blockers are:
 
-- maintain deterministic generation and frozen-format stability;
+- keep deterministic generation and frozen-format stability;
 - keep validation, property tests, and regression tests green from frozen seeds;
-- reduce the strength of shortcut heuristics, especially `last_evidence`;
-- decide whether and how to emit a real `hard` slice without changing the current protocol contract.
+- reduce the strength of the recency shortcut baseline `last_evidence`;
+- keep `hard` reserved and not emitted unless a later release can do so without weakening benchmark validity;
+- stage Kaggle packaging only after the local validity-repair sequence is complete.
