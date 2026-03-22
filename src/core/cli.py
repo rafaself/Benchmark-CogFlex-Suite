@@ -218,6 +218,11 @@ def _command_gemini_first_panel(args: argparse.Namespace) -> int:
         "model_name": artifacts.model_name,
         "prompt_modes": [mode.value for mode in artifacts.prompt_modes],
         "report_path": str(artifacts.report_path),
+        "artifact_path": (
+            str(artifacts.artifact_path)
+            if artifacts.artifact_path is not None
+            else None
+        ),
     }
     print(json.dumps(payload, indent=2))
     return 0
