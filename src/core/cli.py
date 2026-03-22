@@ -137,7 +137,11 @@ def main(argv: list[str] | None = None) -> int:
         args.pytest_args.extend(unknown)
     elif unknown:
         parser.error(f"unrecognized arguments: {' '.join(unknown)}")
-    return args.func(args)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        print("Interrupted.", file=sys.stderr)
+        return 130
 
 
 def _add_output_argument(parser: argparse.ArgumentParser) -> None:

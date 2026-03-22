@@ -216,3 +216,22 @@ def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
     assert exit_code == 0
     assert payload["prompt_modes"] == ["binary", "narrative"]
     assert payload["artifact_path"] == str(report_path.with_suffix(".json"))
+
+
+def test_main_returns_130_on_keyboard_interrupt(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.setattr(
+        cli,
+        "run_gemini_first_panel",
+        lambda **_: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+
+    exit_code = cli.main(["gemini-first-panel"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 130
+    assert captured.out == ""
+    assert captured.err.strip() == "Interrupted."
