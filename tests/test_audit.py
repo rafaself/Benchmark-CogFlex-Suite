@@ -465,7 +465,7 @@ def test_release_r15_reaudit_honestly_reports_absent_real_model_runs():
         "No emitted hard episodes in supplied set; hard slice omitted.",
         "No structured model runs supplied; frozen R15 re-audit covers deterministic baselines only.",
         "No matched Binary/Narrative model runs supplied; Binary vs Narrative comparison is unavailable.",
-        "Narrative remains a robustness companion and does not replace the primary Binary post-shift probe audit.",
+        "Narrative remains required non-leaderboard robustness evidence on the same frozen episodes and probe targets as Binary; only the final four labels are scored, and it does not replace the primary Binary post-shift probe audit.",
     )
 
 

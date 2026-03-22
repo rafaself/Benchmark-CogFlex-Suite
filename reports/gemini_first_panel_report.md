@@ -47,4 +47,4 @@
 
 - `hard` remains reserved and is not emitted in the current frozen repaired benchmark, so no hard slice is reported.
 - Narrative mode was not run in this first real-model panel, so Binary vs Narrative comparison is unavailable.
-- Narrative remains a robustness companion and does not replace the primary Binary post-shift probe audit.
+- Narrative remains required non-leaderboard robustness evidence on the same frozen episodes and probe targets as Binary; only the final four labels are scored, and it does not replace the primary Binary post-shift probe audit.

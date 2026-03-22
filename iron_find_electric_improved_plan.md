@@ -22,7 +22,7 @@ The electrostatics setting is only a **controlled substrate**. The benchmark is 
 
 The benchmark should support the following claim and no stronger one:
 
-> A high v1 score indicates successful application of an updated hidden rule to final post-shift probes after sparse contradictory evidence in a simple controlled binary environment.
+> A high v1 score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, or general reasoning ability.
 
 The benchmark should **not** claim that a high score demonstrates broad physical reasoning, broad AGI capability, or item-level recovery dynamics.
 
@@ -241,14 +241,14 @@ Why this should be primary in v1:
 - it is honest about what the current protocol actually observes;
 - it keeps the benchmark claim defensible without overstating disagreement-only scoring.
 
-## 10.2 Secondary metrics
+## 10.2 Diagnostic-only metrics
 
-Report but do not optimize the leaderboard around:
+Report only as diagnostic-only outputs, not as headline metrics and not as claim-extending evidence:
 
 - **Rule Persistence Rate**: fraction of probes answered according to the old rule when old-rule and new-rule answers differ;
 - **Transition Slice Accuracy** by `R_std → R_inv` and `R_inv → R_std`;
 - **Difficulty Slice Accuracy** by emitted difficulties, with `hard` reported only if a future release begins emitting it;
-- **Format Robustness Comparison** between Binary and Narrative renderings.
+- **Format Robustness Comparison** between Binary and Narrative renderings over the same frozen episodes and probe targets, with Narrative reasoning unscored.
 
 ### Future diagnostic metrics
 
@@ -423,7 +423,7 @@ Its score should be based on **Post-shift Probe Accuracy**.
 
 **Adaptive Rule Updating — Narrative**
 
-This uses the same underlying episodes and targets with a narrative-format rendering. It is required in v1 for robustness evidence, but it is not leaderboard-primary.
+This uses the same frozen episodes and probe targets as Binary with a narrative-format rendering. Any reasoning is unscored. It is required in v1 for robustness evidence, but it is not leaderboard-primary.
 
 ### Packaging
 

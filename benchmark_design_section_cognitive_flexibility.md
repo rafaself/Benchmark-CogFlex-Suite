@@ -1,7 +1,7 @@
 ## Design implications from Braem & Egner (2018)
 
 ### Benchmark framing
-This benchmark should be framed as a **task-switching benchmark** targeting **cognitive flexibility under latent rule change**. The goal is not to measure abstract reasoning in general, but the model's ability to reconfigure its active policy when the governing rule changes without explicit notification.
+This benchmark should be framed narrowly as an Executive Functions benchmark for cognitive flexibility. Electrostatics is only the controlled substrate, and the v1 goal is final post-shift rule application after sparse contradictory evidence, not abstract reasoning in general.
 
 ### Construct definition
 The target construct should be defined narrowly as:
@@ -29,7 +29,7 @@ The current v1 protocol supports a narrow claim:
 
 - performance on final post-shift probes after sparse contradictory evidence;
 - comparison against shortcut baselines such as physics-prior, never-update, the recency shortcut baseline `last_evidence`, and majority-label behavior;
-- robustness checks across a canonical binary rendering and a narrative rendering built from the same episodes.
+- robustness checks across a canonical Binary rendering and a Narrative rendering built from the same frozen episodes and probe targets.
 
 ### What v1 cannot support directly
 The current v1 protocol does **not** directly measure:
@@ -42,7 +42,7 @@ The current v1 protocol does **not** directly measure:
 Those claims require a later protocol variant that captures intermediate predictions or stepwise responses rather than only the final probe outputs.
 
 ### Core evaluation policy
-Aggregate accuracy over the final post-shift probes is acceptable for v1 because the current two-rule MVP makes every probe disagreement-sensitive. However, the benchmark should still retain disagreement metadata internally for audit, shortcut analysis, and sliced reporting.
+Binary-only Post-shift Probe Accuracy over the final post-shift probes is the sole headline metric for v1. The benchmark should still retain disagreement metadata internally for audit, shortcut analysis, and diagnostic-only sliced reporting.
 
 ### Validity risks to document
 The benchmark specification should explicitly acknowledge the following threats to construct validity:
@@ -57,4 +57,4 @@ The benchmark specification should explicitly acknowledge the following threats 
 A high v1 score should not be interpreted as evidence of broad cognitive flexibility. It should be interpreted only as evidence that the model successfully applied an updated latent rule to final post-shift probes in a controlled binary environment, and that this performance was not well explained by the documented shortcut baselines.
 
 ### Bottom line
-The benchmark should be designed and described as a test of **adaptive task-set reconfiguration under latent regime change**, with v1 evaluation centered on **final post-shift success and robustness against contextual shortcuts**. Richer switch-cost and recovery claims belong to a later stepwise protocol, not the current MVP.
+The benchmark should be designed and described as a narrow test of final post-shift rule application after sparse contradictory evidence, with v1 evaluation centered on Binary-only Post-shift Probe Accuracy and Narrative used only as same-episode robustness evidence. Richer switch-cost and recovery claims belong to a later stepwise protocol, not the current MVP.

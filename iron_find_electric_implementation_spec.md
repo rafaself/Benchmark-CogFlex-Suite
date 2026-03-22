@@ -6,7 +6,7 @@
 
 ## 1. Objective
 
-Describe and maintain the implemented local benchmark pipeline for the Iron Find Electric v1 task, which measures **cognitive flexibility** through **hidden rule updating** in short two-charge binary episodes.
+Describe and maintain the implemented local benchmark pipeline for the Iron Find Electric v1 task, a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence in short two-charge binary episodes.
 
 The implementation must make the following interpretation defensible:
 
@@ -338,7 +338,7 @@ Return exactly four labels in order, each either attract or repel.
 
 ## 8.2 Narrative companion rendering
 
-Required non-leaderboard robustness rendering using the same underlying episode and targets:
+Required non-leaderboard robustness rendering using the same frozen episodes and probe targets as Binary:
 
 ```text
 Two electric charges were observed interacting in the following sequence.
@@ -354,7 +354,7 @@ Use the pattern best supported by the labeled observations to answer the unlabel
 8. A +1 charge and a -2 charge were observed to ?
 9. A -1 charge and a -2 charge were observed to ?
 
-Return exactly four labels in order, each either attract or repel.
+Any reasoning is optional and unscored. On the final line, return exactly four labels in order, each either attract or repel.
 ```
 
 The benchmark package must include both renderings. Only the Binary task is leaderboard-primary.
@@ -368,6 +368,7 @@ attract, repel, repel, attract
 ```
 
 Acceptable parser variants may allow newline-separated outputs, but the benchmark must normalize strictly.
+For Narrative, any preceding reasoning text is unscored; only the final four labels are evaluated.
 
 ---
 
@@ -388,7 +389,7 @@ public_000001,"attract,repel,repel,attract"
 public_000002,"repel,attract,repel,attract"
 ```
 
-Parsed prediction length must equal 4. Invalid outputs count as incorrect for all four probes unless a more granular parser is explicitly versioned.
+Parsed prediction length must equal 4. Invalid outputs count as incorrect for all four probes unless a more granular parser is explicitly versioned. Narrative reasoning text must not receive any score.
 
 ---
 
@@ -406,13 +407,13 @@ Formula:
 primary_score = correct_probe_predictions / total_probes
 ```
 
-This is the leaderboard metric for `Adaptive Rule Updating - Binary`.
+This is the sole headline metric for `Adaptive Rule Updating - Binary`.
 
-## 10.2 Secondary metrics
+## 10.2 Diagnostic reporting only
 
-Compute and report:
+Any additional metrics or slices are diagnostic-only and must not extend the benchmark claim or change the Binary headline score.
 
-### Rule Persistence Rate
+### Rule Persistence Rate (diagnostic only)
 
 Among probes where the old rule and new rule give different answers:
 
@@ -420,16 +421,16 @@ Among probes where the old rule and new rule give different answers:
 rule_persistence_rate = predictions_matching_old_rule / total_old_new_disagreement_probes
 ```
 
-High persistence is evidence of failed adaptation.
+High persistence is a diagnostic signal only; it is not a standalone v1 claim.
 
-### Adaptation Success by Transition
+### Transition Slice Accuracy (diagnostic only)
 
 Separate scores for:
 
 - `R_std -> R_inv`
 - `R_inv -> R_std`
 
-### Slice Accuracy by Difficulty
+### Slice Accuracy by Difficulty (diagnostic only)
 
 Separate scores for emitted difficulties. Under the current generator this means:
 
@@ -438,9 +439,9 @@ Separate scores for emitted difficulties. Under the current generator this means
 
 If a future release emits `hard`, it can be added back to slice reporting at that point.
 
-### Format Robustness Comparison
+### Format Robustness Comparison (diagnostic only)
 
-Compare Binary and Narrative performance on the same underlying episode set.
+Compare Binary and Narrative performance on the same frozen episode set and probe targets. Narrative reasoning is unscored, and only the final four labels count toward the Narrative companion score.
 
 Metrics such as adaptation lag, immediate post-shift drop, and recovery length require a future stepwise protocol and are not part of v1 reporting.
 

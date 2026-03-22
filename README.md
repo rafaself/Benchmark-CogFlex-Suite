@@ -1,6 +1,10 @@
 # Iron Find Electric
 
-Iron Find Electric is benchmark infrastructure for the Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository contains the implemented local benchmark environment, frozen split assets, and task-specific logic for the two-charge rule-update benchmark.
+Iron Find Electric is benchmark infrastructure for the Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository contains the implemented local benchmark environment, frozen split assets, and task-specific logic for a narrow cognitive-flexibility benchmark.
+
+Iron Find Electric v1 is a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
+
+A high v1 score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, or general reasoning ability.
 
 ## Current State
 
@@ -23,6 +27,12 @@ Current blockers and known limitations:
 - `hard` remains a reserved difficulty label and is not currently emitted by the R3 generator;
 - no real-model runs are bundled in-repo, so model-vs-heuristic separation remains unverified locally;
 - the Kaggle staging bundle under [`packaging/kaggle/`](./packaging/kaggle/) mirrors the repaired local benchmark state, but local validation remains the source of truth.
+
+Task and metric boundaries:
+
+- Binary is the only leaderboard-primary task and the scored evaluation path for the v1 claim.
+- Narrative is required non-leaderboard robustness evidence. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
+- The primary metric is Binary-only Post-shift Probe Accuracy.
 
 Optional real-model execution is available locally through the Gemini first-panel runner. It is not part of the deterministic main test gate and only runs when `GEMINI_API_KEY` is configured, either in the shell environment or in a repo-root `.env` file.
 
