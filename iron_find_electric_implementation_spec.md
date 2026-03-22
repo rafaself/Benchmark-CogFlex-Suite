@@ -2,6 +2,8 @@
 
 ## Concrete Implementation Spec
 
+> Status note: the repository now implements the local v1 benchmark pipeline described here. Remaining issues are benchmark-quality blockers rather than missing infrastructure: `last_evidence` is still too strong, and `hard` remains part of the protocol vocabulary but is not emitted by the current generator.
+
 ## 1. Objective
 
 Implement a Kaggle Community Benchmark that measures **cognitive flexibility** through **hidden rule updating** in short two-charge binary episodes.
@@ -815,28 +817,25 @@ Build `validate.py`, property tests, and regression checks against frozen refere
 Generate and freeze dev/public/private splits with separate seed banks and frozen version identifiers for generator, template set, parser, metric, and difficulty logic.
 
 ### Step 10
-Wrap everything in the Kaggle benchmark notebook and benchmark card only after the local prototype is stable.
+Wrap everything in the Kaggle benchmark notebook and benchmark card only after the implemented local benchmark is packaging-ready.
 
 ---
 
-## 21. First Deliverable
+## 21. Implemented Local Deliverable
 
 The first concrete deliverable is not the full Kaggle notebook.
 
 It is:
 
-> a deterministic local prototype that generates valid episodes, assigns deterministic difficulty tiers, renders Binary and Narrative prompts, parses 4-label outputs, computes Post-shift Probe Accuracy against frozen targets, and runs baseline sanity checks.
+> an implemented local benchmark pipeline that generates valid episodes, assigns deterministic difficulty tiers, renders Binary and Narrative prompts, parses 4-label outputs, computes Post-shift Probe Accuracy against frozen targets, and runs baseline sanity checks.
 
-That prototype should be completed before any benchmark packaging work.
+That local benchmark pipeline is now present in the repository and remains the prerequisite for packaging work.
 
-## 21.1 Definition of done for the next milestone
+## 21.1 Current Blockers
 
-The next milestone is complete only when all of the following are true:
+The main remaining blockers are:
 
-1. generator outputs valid frozen-format episodes;
-2. deterministic difficulty assignment is attached to every episode;
-3. renderer and parser work end-to-end;
-4. metric computation is stable;
-5. baseline behaviors are measurable;
-6. at least one hard slice clearly defeats shortcut baselines;
-7. validation, property tests, and regression tests pass from frozen seeds.
+1. keep deterministic generation, validation, and regression fixtures stable under refactor;
+2. reduce the strength of shortcut baselines, especially `last_evidence`;
+3. decide whether to emit a real `hard` slice in a way that preserves benchmark validity;
+4. package the benchmark notebook and benchmark card when the current implementation is ready.

@@ -2,6 +2,8 @@
 
 ## Improved Project Plan
 
+> Status note: this document still contains planning material, but the repository now implements the local v1 benchmark pipeline, frozen splits, validation, and audits. The current blockers are benchmark quality rather than missing infrastructure: `last_evidence` remains too strong, and `hard` is still reserved rather than emitted by the R3 generator.
+
 ## 1. Purpose
 
 **Iron Find Electric** is a Kaggle Community Benchmark for the **Measuring Progress Toward AGI – Cognitive Abilities** challenge.
@@ -537,9 +539,9 @@ This is a targeted benchmark of cognitive flexibility within the challenge frame
 
 ---
 
-## 20. Immediate Execution Order
+## 20. Historical Execution Order
 
-Implement the first executable version in this order:
+This was the implementation order used to reach the current repository state:
 
 1. `rules.py`
    - encode the two-rule family;
@@ -570,28 +572,25 @@ Implement the first executable version in this order:
 
 7. `baselines.py`
    - implement never-update, always-update / last-evidence, physics-prior, template-position heuristic, and random baselines;
-   - verify shortcut baselines fail on intended hard slices.
+   - measure heuristic behavior and identify residual shortcut strength.
 
 8. `validate.py` and tests
-   - check no invalid episodes, no schema drift, no leakage, no split duplication, and balanced metadata distributions;
+   - check no invalid episodes, no schema drift, and balanced metadata distributions;
    - add property/regression tests and a frozen reference fixture so refactors cannot silently change behavior.
 
 9. `splits.py`
    - freeze dev, public, and private splits;
    - freeze separate seed banks and version identifiers for generator, templates, metrics, parser, and difficulty logic.
+   - keep split-overlap checks in split tooling and audits rather than treating them as an R7-only validation milestone.
 
 10. Kaggle packaging
-   - prepare the benchmark notebook and benchmark card only after the local prototype is stable.
+   - prepare the benchmark notebook and benchmark card only after the implemented local benchmark is packaging-ready.
 
-### Definition of done for the next milestone
+### Current blocker summary
 
-The next milestone is complete when:
+Infrastructure is largely in place. The remaining blockers are:
 
-- generator outputs valid frozen-format episodes;
-- deterministic difficulty assignment is attached to every episode;
-- renderer and parser work end-to-end;
-- metric computation is stable;
-- baseline behaviors are measurable;
-- at least one hard slice clearly defeats shortcut baselines;
-- validation, property tests, and regression tests pass from frozen seeds.
-
+- maintain deterministic generation and frozen-format stability;
+- keep validation, property tests, and regression tests green from frozen seeds;
+- reduce the strength of shortcut heuristics, especially `last_evidence`;
+- decide whether and how to emit a real `hard` slice without changing the current protocol contract.

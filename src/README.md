@@ -1,8 +1,38 @@
 # `src` Overview
 
-## Files
+This directory contains the implemented benchmark code for Iron Find Electric v1.
 
-- `protocol.py`: Defines the shared benchmark vocabulary, enums, frozen constants, template catalog, and parser helpers used across the codebase.
-- `rules.py`: Implements the charge interaction rule engine, including sign handling and label resolution for `R_std` and `R_inv`.
-- `schema.py`: Defines the canonical episode data structures and validation rules for items, probe metadata, and full episode rows.
-- `generator.py`: Builds deterministic episodes from a seed, assigns template/rule metadata, derives probe targets and probe metadata, and enforces generator constraints.
+## Canonical Layout
+
+- `core/`: generic benchmark infrastructure used by this repository.
+- `tasks/iron_find_electric/`: task-specific protocol, schema, generation, rendering, and baseline logic.
+- top-level `*.py` modules: compatibility wrappers that re-export the canonical package modules.
+
+## Core Infrastructure
+
+- `core/parser.py`: `ParsedPrediction`, `ParseStatus`, `parse_binary_output`, and `parse_narrative_output`.
+- `core/metrics.py`: `MetricSummary`, `compute_post_shift_probe_accuracy`, and `compute_metrics`.
+- `core/validate.py`: validation result dataclasses, `validate_episode`, `validate_dataset`, and `normalize_episode_payload`.
+- `core/splits.py`: `FrozenSplitManifest`, frozen split loading/generation, overlap checks, and split audits.
+- `core/audit.py`: source-level audit summaries, mode comparisons, and heuristic alignment reporting.
+
+## Task Logic
+
+- `tasks/iron_find_electric/protocol.py`: shared task vocabulary, enums, template metadata, and parsing helpers.
+- `tasks/iron_find_electric/rules.py`: charge-sign rule engine for `R_std` and `R_inv`.
+- `tasks/iron_find_electric/schema.py`: canonical episode dataclasses and invariants.
+- `tasks/iron_find_electric/generator.py`: deterministic seed-based episode generation.
+- `tasks/iron_find_electric/render.py`: Binary and Narrative prompt renderers.
+- `tasks/iron_find_electric/baselines.py`: heuristic baselines and baseline-run helpers.
+
+## Frozen Assets
+
+- `frozen_splits/dev.json`: frozen development partition.
+- `frozen_splits/public_leaderboard.json`: frozen public leaderboard partition.
+- `frozen_splits/private_leaderboard.json`: frozen private leaderboard partition.
+
+## Current Notes
+
+- `hard` is still part of the protocol vocabulary but is reserved and not emitted by the current generator.
+- The `last_evidence` heuristic remains stronger than desired and is still a live benchmark-quality blocker.
+- Compatibility wrappers are intentionally kept to avoid breaking existing imports while the canonical package paths settle.
