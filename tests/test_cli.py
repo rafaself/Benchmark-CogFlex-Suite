@@ -124,8 +124,10 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
 def test_gemini_first_panel_command_fails_clearly_without_api_key(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
 ):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr("core.providers.gemini._repo_root", lambda: tmp_path)
 
     exit_code = cli.main(["gemini-first-panel"])
 

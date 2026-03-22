@@ -201,9 +201,11 @@ class GeminiAdapter:
 
     def _read_text_attr(self, response: object, attr_name: str) -> str | None:
         value = getattr(response, attr_name, None)
-        if value is None:
+        if value is not None:
+            return str(value)
+        if attr_name != "text":
             return None
-        return str(value)
+        return _extract_text_from_candidates(getattr(response, "candidates", None))
 
     def _read_string_attr(self, response: object, attr_name: str) -> str | None:
         value = getattr(response, attr_name, None)
@@ -296,3 +298,20 @@ def _extract_binary_labels(payload: object) -> tuple[str, ...] | None:
     if not normalized:
         return None
     return normalized
+
+
+def _extract_text_from_candidates(candidates: object) -> str | None:
+    if not isinstance(candidates, (list, tuple)):
+        return None
+
+    text_parts: list[str] = []
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        for part in getattr(content, "parts", ()) or ():
+            text = getattr(part, "text", None)
+            if _is_nonempty_string(text):
+                text_parts.append(text.strip())
+
+    if not text_parts:
+        return None
+    return "\n".join(text_parts)

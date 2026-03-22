@@ -21,8 +21,20 @@ class _FakeUsageMetadata:
     total_token_count = 18
 
 
+class _FakePart:
+    def __init__(self, *, text: str | None = None) -> None:
+        self.text = text
+
+
+class _FakeContent:
+    def __init__(self, *, parts: tuple[_FakePart, ...]) -> None:
+        self.parts = parts
+
+
 class _FakeCandidate:
-    finish_reason = "STOP"
+    def __init__(self, *, text_parts: tuple[str, ...] = ()) -> None:
+        self.finish_reason = "STOP"
+        self.content = _FakeContent(parts=tuple(_FakePart(text=text) for text in text_parts))
 
 
 class _FakeResponse:
@@ -31,13 +43,14 @@ class _FakeResponse:
         *,
         parsed: object = None,
         text: str | None = None,
+        candidate_text_parts: tuple[str, ...] = (),
     ) -> None:
         self.parsed = parsed
         self.text = text
         self.usage_metadata = _FakeUsageMetadata()
         self.response_id = "resp-123"
         self.model_version = "gemini-2.5-flash-001"
-        self.candidates = (_FakeCandidate(),)
+        self.candidates = (_FakeCandidate(text_parts=candidate_text_parts),)
 
 
 class _FakeModels:
@@ -244,6 +257,31 @@ def test_gemini_adapter_uses_json_text_fallback_for_binary_mapping(
     assert result.response_text == "repel, repel, attract, attract"
 
 
+def test_gemini_adapter_falls_back_to_candidate_part_text_for_binary_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    models = _FakeModels(
+        response=_FakeResponse(
+            text=None,
+            candidate_text_parts=('{"labels":["repel","repel","attract","attract"]}',),
+        )
+    )
+    _install_fake_google_genai(monkeypatch, models=models)
+
+    adapter = GeminiAdapter.from_env(env={GEMINI_API_KEY_ENV_VAR: "test-key"})
+    request = ModelRequest(
+        provider_name="gemini",
+        model_name="gemini-2.5-flash",
+        prompt_text="Benchmark prompt",
+        mode=ModelMode.BINARY,
+    )
+
+    result = adapter.generate(request, ModelRunConfig())
+
+    assert result.succeeded is True
+    assert result.response_text == "repel, repel, attract, attract"
+
+
 def test_gemini_adapter_returns_canonical_error_result_for_provider_failures(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -266,7 +304,13 @@ def test_gemini_adapter_returns_canonical_error_result_for_provider_failures(
     assert result.response_text is None
 
 
-def test_gemini_adapter_fails_clearly_when_api_key_is_missing():
+def test_gemini_adapter_fails_clearly_when_api_key_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    monkeypatch.delenv(GEMINI_API_KEY_ENV_VAR, raising=False)
+    monkeypatch.setattr("core.providers.gemini._repo_root", lambda: tmp_path)
+
     with pytest.raises(MissingGeminiApiKeyError) as excinfo:
         GeminiAdapter.from_env(env={})
 
@@ -275,9 +319,16 @@ def test_gemini_adapter_fails_clearly_when_api_key_is_missing():
 
 def test_gemini_adapter_fails_clearly_when_sdk_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ):
-    monkeypatch.delitem(sys.modules, "google", raising=False)
-    monkeypatch.delitem(sys.modules, "google.genai", raising=False)
+    monkeypatch.delenv(GEMINI_API_KEY_ENV_VAR, raising=False)
+    monkeypatch.setattr("core.providers.gemini._repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "core.providers.gemini._default_client_factory",
+        lambda _api_key: (_ for _ in ()).throw(
+            MissingGeminiSdkError("google-genai is not installed")
+        ),
+    )
 
     result = GeminiAdapter.from_env(
         env={GEMINI_API_KEY_ENV_VAR: "test-key"}
