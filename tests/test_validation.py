@@ -21,22 +21,35 @@ from render import render_binary_prompt, render_narrative_prompt
 from rules import label
 from schema import Episode, EpisodeItem, ProbeMetadata
 from validate import (
+    BaselineAccuracySummary,
+    BenchmarkValidityReport,
     DatasetDistributionSummary,
     DatasetValidationResult,
     EpisodeValidationResult,
     RegenerationCheck,
+    SplitBaselineAccuracySummary,
     ValidationIssue,
     normalize_episode_payload,
+    run_benchmark_validity_report,
+    serialize_benchmark_validity_report,
+    validate_benchmark_validity,
     validate_dataset,
     validate_episode,
 )
 
 
 _FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "validation_regression.json"
+_VALIDITY_FIXTURE_PATH = (
+    Path(__file__).resolve().parent / "fixtures" / "release_r13_validity_report.json"
+)
 
 
 def _load_fixture() -> dict[str, object]:
     return json.loads(_FIXTURE_PATH.read_text())
+
+
+def _load_validity_fixture() -> dict[str, object]:
+    return json.loads(_VALIDITY_FIXTURE_PATH.read_text())
 
 
 def _episode_from_payload(payload: dict[str, object]) -> Episode:
@@ -67,6 +80,72 @@ def _parsed_payload(parsed_prediction: ParsedPrediction) -> dict[str, object]:
 
 def _issue_codes(result: EpisodeValidationResult | DatasetValidationResult) -> set[str]:
     return {issue.code for issue in result.issues}
+
+
+def _synthetic_split_summary(
+    split_name: str,
+    accuracy: float,
+    *,
+    template_scores: tuple[tuple[str, float], ...],
+    difficulty_scores: tuple[tuple[str, float], ...],
+) -> SplitBaselineAccuracySummary:
+    return SplitBaselineAccuracySummary(
+        split_name=split_name,
+        accuracy=accuracy,
+        by_template=template_scores,
+        by_difficulty=difficulty_scores,
+    )
+
+
+def _synthetic_baseline_summary(
+    baseline_name: str,
+    overall_accuracy: float,
+    split_scores: tuple[SplitBaselineAccuracySummary, ...],
+    *,
+    template_scores: tuple[tuple[str, float], ...] = (("T1", 0.5), ("T2", 0.5)),
+    difficulty_scores: tuple[tuple[str, float], ...] = (
+        ("easy", 0.5),
+        ("medium", 0.5),
+    ),
+) -> BaselineAccuracySummary:
+    return BaselineAccuracySummary(
+        baseline_name=baseline_name,
+        overall_accuracy=overall_accuracy,
+        by_split=split_scores,
+        by_template=template_scores,
+        by_difficulty=difficulty_scores,
+    )
+
+
+def _synthetic_report(
+    baseline_summaries: tuple[BaselineAccuracySummary, ...],
+) -> BenchmarkValidityReport:
+    return BenchmarkValidityReport(
+        release_id="R13",
+        random_baseline_seed=11,
+        report_splits=("dev", "public_leaderboard", "private_leaderboard"),
+        gate_splits=("public_leaderboard", "private_leaderboard"),
+        audit_split="private_leaderboard",
+        split_episode_counts=(
+            ("dev", 4),
+            ("public_leaderboard", 4),
+            ("private_leaderboard", 4),
+        ),
+        difficulty_labels_present=("easy", "medium"),
+        difficulty_labels_missing=("hard",),
+        critical_baselines=(
+            "never_update",
+            "last_evidence",
+            "physics_prior",
+            "template_position",
+        ),
+        baseline_summaries=baseline_summaries,
+        checks=(),
+        passed=False,
+        comparison_summary="provisional",
+        validity_note="provisional",
+        limitations=("No emitted hard episodes in supplied set; hard slice omitted.",),
+    )
 
 
 def test_validate_episode_accepts_frozen_valid_fixture():
@@ -356,3 +435,155 @@ def test_validation_result_objects_are_stable_dataclasses():
     )
     assert "ValidationIssue(" in repr(issue)
     assert "DatasetValidationResult(" in repr(dataset_result)
+
+
+def test_benchmark_validity_report_is_deterministic_for_frozen_splits():
+    assert validate_benchmark_validity() == validate_benchmark_validity()
+    assert run_benchmark_validity_report() == run_benchmark_validity_report()
+
+
+def test_benchmark_validity_report_matches_current_frozen_fixture():
+    report = validate_benchmark_validity()
+
+    assert serialize_benchmark_validity_report(report) == _load_validity_fixture()
+
+
+def test_benchmark_validity_report_honestly_limits_difficulty_reporting_to_emitted_labels():
+    report = validate_benchmark_validity()
+    template_position = next(
+        summary
+        for summary in report.baseline_summaries
+        if summary.baseline_name == "template_position"
+    )
+
+    assert report.difficulty_labels_present == ("easy", "medium")
+    assert report.difficulty_labels_missing == ("hard",)
+    assert tuple(label for label, _ in template_position.by_difficulty) == (
+        "easy",
+        "medium",
+    )
+    assert "hard" not in {label for label, _ in template_position.by_difficulty}
+    assert "Hard is still not emitted" in report.validity_note
+
+
+def test_benchmark_validity_gate_fails_when_shortcut_baseline_remains_too_strong():
+    split_scores = (
+        _synthetic_split_summary(
+            "dev",
+            0.5,
+            template_scores=(("T1", 0.5), ("T2", 0.5)),
+            difficulty_scores=(("easy", 0.5), ("medium", 0.5)),
+        ),
+        _synthetic_split_summary(
+            "public_leaderboard",
+            0.5,
+            template_scores=(("T1", 0.5), ("T2", 0.5)),
+            difficulty_scores=(("easy", 0.5), ("medium", 0.5)),
+        ),
+        _synthetic_split_summary(
+            "private_leaderboard",
+            0.625,
+            template_scores=(("T1", 0.625), ("T2", 0.625)),
+            difficulty_scores=(("easy", 0.625), ("medium", 0.625)),
+        ),
+    )
+    report = _synthetic_report(
+        (
+            _synthetic_baseline_summary("random", 0.5, split_scores),
+            _synthetic_baseline_summary("never_update", 0.5, split_scores),
+            _synthetic_baseline_summary("last_evidence", 0.625, split_scores),
+            _synthetic_baseline_summary("physics_prior", 0.5, split_scores),
+            _synthetic_baseline_summary("template_position", 0.5, split_scores),
+        )
+    )
+
+    result = validate_benchmark_validity(report=report)
+    check_map = {check.code: check for check in result.checks}
+
+    assert not result.passed
+    assert not check_map["last_evidence_bounded"].passed
+    assert not check_map["no_dominant_trivial_heuristic"].passed
+
+
+def test_benchmark_validity_gate_passes_for_handcrafted_repaired_report():
+    random_splits = (
+        _synthetic_split_summary(
+            "dev",
+            0.48,
+            template_scores=(("T1", 0.5), ("T2", 0.46)),
+            difficulty_scores=(("easy", 0.49), ("medium", 0.47)),
+        ),
+        _synthetic_split_summary(
+            "public_leaderboard",
+            0.5,
+            template_scores=(("T1", 0.52), ("T2", 0.48)),
+            difficulty_scores=(("easy", 0.51), ("medium", 0.49)),
+        ),
+        _synthetic_split_summary(
+            "private_leaderboard",
+            0.47,
+            template_scores=(("T1", 0.53), ("T2", 0.41)),
+            difficulty_scores=(("easy", 0.52), ("medium", 0.42)),
+        ),
+    )
+    bounded_uniform_splits = (
+        _synthetic_split_summary(
+            "dev",
+            0.48,
+            template_scores=(("T1", 0.48), ("T2", 0.48)),
+            difficulty_scores=(("easy", 0.48), ("medium", 0.48)),
+        ),
+        _synthetic_split_summary(
+            "public_leaderboard",
+            0.5,
+            template_scores=(("T1", 0.5), ("T2", 0.5)),
+            difficulty_scores=(("easy", 0.5), ("medium", 0.5)),
+        ),
+        _synthetic_split_summary(
+            "private_leaderboard",
+            0.52,
+            template_scores=(("T1", 0.52), ("T2", 0.52)),
+            difficulty_scores=(("easy", 0.52), ("medium", 0.52)),
+        ),
+    )
+    separated_template_position_splits = (
+        _synthetic_split_summary(
+            "dev",
+            0.49,
+            template_scores=(("T1", 0.55), ("T2", 0.43)),
+            difficulty_scores=(("easy", 0.56), ("medium", 0.42)),
+        ),
+        _synthetic_split_summary(
+            "public_leaderboard",
+            0.53,
+            template_scores=(("T1", 0.58), ("T2", 0.48)),
+            difficulty_scores=(("easy", 0.57), ("medium", 0.49)),
+        ),
+        _synthetic_split_summary(
+            "private_leaderboard",
+            0.54,
+            template_scores=(("T1", 0.62), ("T2", 0.46)),
+            difficulty_scores=(("easy", 0.64), ("medium", 0.44)),
+        ),
+    )
+    report = _synthetic_report(
+        (
+            _synthetic_baseline_summary("random", 0.48333333333333334, random_splits),
+            _synthetic_baseline_summary("never_update", 0.5, bounded_uniform_splits),
+            _synthetic_baseline_summary("last_evidence", 0.5, bounded_uniform_splits),
+            _synthetic_baseline_summary("physics_prior", 0.5, bounded_uniform_splits),
+            _synthetic_baseline_summary(
+                "template_position",
+                0.52,
+                separated_template_position_splits,
+                template_scores=(("T1", 0.58), ("T2", 0.45)),
+                difficulty_scores=(("easy", 0.59), ("medium", 0.45)),
+            ),
+        )
+    )
+
+    result = validate_benchmark_validity(report=report)
+
+    assert result.passed
+    assert all(check.passed for check in result.checks)
+    assert "Current status: PASS." in result.validity_note

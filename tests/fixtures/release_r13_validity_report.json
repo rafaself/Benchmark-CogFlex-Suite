@@ -1,0 +1,571 @@
+{
+  "release_id": "R13",
+  "random_baseline_seed": 11,
+  "report_splits": [
+    "dev",
+    "public_leaderboard",
+    "private_leaderboard"
+  ],
+  "gate_splits": [
+    "public_leaderboard",
+    "private_leaderboard"
+  ],
+  "audit_split": "private_leaderboard",
+  "split_episode_counts": [
+    {
+      "split": "dev",
+      "episode_count": 16
+    },
+    {
+      "split": "public_leaderboard",
+      "episode_count": 16
+    },
+    {
+      "split": "private_leaderboard",
+      "episode_count": 16
+    }
+  ],
+  "difficulty_labels_present": [
+    "easy",
+    "medium"
+  ],
+  "difficulty_labels_missing": [
+    "hard"
+  ],
+  "critical_baselines": [
+    "never_update",
+    "last_evidence",
+    "physics_prior",
+    "template_position"
+  ],
+  "baseline_summaries": [
+    {
+      "baseline_name": "random",
+      "overall_accuracy": 0.4739583333333333,
+      "by_split": [
+        {
+          "split_name": "dev",
+          "accuracy": 0.53125,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.575
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.4583333333333333
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.575
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.4583333333333333
+            }
+          ]
+        },
+        {
+          "split_name": "public_leaderboard",
+          "accuracy": 0.484375,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.4583333333333333
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.4583333333333333
+            }
+          ]
+        },
+        {
+          "split_name": "private_leaderboard",
+          "accuracy": 0.40625,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.45
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.3333333333333333
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.45
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.3333333333333333
+            }
+          ]
+        }
+      ],
+      "by_template": [
+        {
+          "label": "T1",
+          "accuracy": 0.5083333333333333
+        },
+        {
+          "label": "T2",
+          "accuracy": 0.4166666666666667
+        }
+      ],
+      "by_difficulty": [
+        {
+          "label": "easy",
+          "accuracy": 0.5083333333333333
+        },
+        {
+          "label": "medium",
+          "accuracy": 0.4166666666666667
+        }
+      ]
+    },
+    {
+      "baseline_name": "never_update",
+      "overall_accuracy": 0.5,
+      "by_split": [
+        {
+          "split_name": "dev",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "public_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "private_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        }
+      ],
+      "by_template": [
+        {
+          "label": "T1",
+          "accuracy": 0.5
+        },
+        {
+          "label": "T2",
+          "accuracy": 0.5
+        }
+      ],
+      "by_difficulty": [
+        {
+          "label": "easy",
+          "accuracy": 0.5
+        },
+        {
+          "label": "medium",
+          "accuracy": 0.5
+        }
+      ]
+    },
+    {
+      "baseline_name": "last_evidence",
+      "overall_accuracy": 0.5,
+      "by_split": [
+        {
+          "split_name": "dev",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "public_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "private_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        }
+      ],
+      "by_template": [
+        {
+          "label": "T1",
+          "accuracy": 0.5
+        },
+        {
+          "label": "T2",
+          "accuracy": 0.5
+        }
+      ],
+      "by_difficulty": [
+        {
+          "label": "easy",
+          "accuracy": 0.5
+        },
+        {
+          "label": "medium",
+          "accuracy": 0.5
+        }
+      ]
+    },
+    {
+      "baseline_name": "physics_prior",
+      "overall_accuracy": 0.5,
+      "by_split": [
+        {
+          "split_name": "dev",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "public_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "private_leaderboard",
+          "accuracy": 0.5,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        }
+      ],
+      "by_template": [
+        {
+          "label": "T1",
+          "accuracy": 0.5
+        },
+        {
+          "label": "T2",
+          "accuracy": 0.5
+        }
+      ],
+      "by_difficulty": [
+        {
+          "label": "easy",
+          "accuracy": 0.5
+        },
+        {
+          "label": "medium",
+          "accuracy": 0.5
+        }
+      ]
+    },
+    {
+      "baseline_name": "template_position",
+      "overall_accuracy": 0.5,
+      "by_split": [
+        {
+          "split_name": "dev",
+          "accuracy": 0.4375,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.5
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.3333333333333333
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.5
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.3333333333333333
+            }
+          ]
+        },
+        {
+          "split_name": "public_leaderboard",
+          "accuracy": 0.484375,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.475
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.475
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5
+            }
+          ]
+        },
+        {
+          "split_name": "private_leaderboard",
+          "accuracy": 0.578125,
+          "by_template": [
+            {
+              "label": "T1",
+              "accuracy": 0.575
+            },
+            {
+              "label": "T2",
+              "accuracy": 0.5833333333333334
+            }
+          ],
+          "by_difficulty": [
+            {
+              "label": "easy",
+              "accuracy": 0.575
+            },
+            {
+              "label": "medium",
+              "accuracy": 0.5833333333333334
+            }
+          ]
+        }
+      ],
+      "by_template": [
+        {
+          "label": "T1",
+          "accuracy": 0.5166666666666667
+        },
+        {
+          "label": "T2",
+          "accuracy": 0.4722222222222222
+        }
+      ],
+      "by_difficulty": [
+        {
+          "label": "easy",
+          "accuracy": 0.5166666666666667
+        },
+        {
+          "label": "medium",
+          "accuracy": 0.4722222222222222
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "code": "never_update_bounded",
+      "passed": true,
+      "message": "never_update must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split public_leaderboard=0.500000."
+    },
+    {
+      "code": "last_evidence_bounded",
+      "passed": true,
+      "message": "last_evidence must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split public_leaderboard=0.500000."
+    },
+    {
+      "code": "physics_prior_bounded",
+      "passed": true,
+      "message": "physics_prior must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split public_leaderboard=0.500000."
+    },
+    {
+      "code": "template_position_bounded",
+      "passed": false,
+      "message": "template_position must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split private_leaderboard=0.578125."
+    },
+    {
+      "code": "no_dominant_trivial_heuristic",
+      "passed": false,
+      "message": "No critical shortcut baseline may dominate the evaluation splits above 0.550000; observed template_position=0.578125 on private_leaderboard."
+    },
+    {
+      "code": "heuristic_subset_separation",
+      "passed": false,
+      "message": "Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.008333, best difficulty gap template_position=0.008333."
+    }
+  ],
+  "passed": false,
+  "comparison_summary": "The repaired benchmark still collapses to shortcut behavior under the R13 gate: template_position must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split private_leaderboard=0.578125.",
+  "validity_note": "Critical shortcut threats: never_update, last_evidence, physics_prior, template_position. Pass requires each named shortcut heuristic to stay at or below 0.550000 on public_leaderboard, private_leaderboard, the best critical heuristic to stay under the same cap, and the audit split to show at least 0.100000 template gap plus 0.100000 difficulty gap across emitted labels. Current status: FAIL. Blocked by template_position must stay at or below 0.550000 on public_leaderboard, private_leaderboard; observed worst split private_leaderboard=0.578125.; No critical shortcut baseline may dominate the evaluation splits above 0.550000; observed template_position=0.578125 on private_leaderboard.; Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.008333, best difficulty gap template_position=0.008333. Hard is still not emitted, so the report intentionally omits hard-slice claims.",
+  "limitations": [
+    "No emitted hard episodes in supplied set; hard slice omitted."
+  ]
+}
