@@ -12,19 +12,19 @@
   "entry_points": {
     "notebook": {
       "path": "packaging/kaggle/iron_find_electric_v1_kaggle_staging.ipynb",
-      "sha256": "c7ad38ff68ad1cf8601f806ffda82b2961f6ee7cca634fb080572ff5ee8bd526"
+      "sha256": "3d869fdaebe66ac286b52b3e4e872f4a68893df6b3b2ed081903a37e604548f6"
     },
     "benchmark_card": {
       "path": "packaging/kaggle/BENCHMARK_CARD.md",
-      "sha256": "f6753e32082b3a8b411921a8fd6795608ea4f3f565485d0bd255bd669d9b414f"
+      "sha256": "adbc03a679008494beab4f4554ad893dcf39f4f3f8fec2909b6c97a1f56a5729"
     },
     "usage": {
       "path": "packaging/kaggle/README.md",
-      "sha256": "dd0798541dc3808e04166ff827fc23bb84016ac468f6de95dbac1e44e368ba1b"
+      "sha256": "961cafdc72203ab394a314f6067af69faf8c6c78f489604ce6345f641fdc9eba"
     },
     "packaging_note": {
       "path": "packaging/kaggle/PACKAGING_NOTE.md",
-      "sha256": "cd2761a21864e461852828c3c2a585c285ac29b1dd20077490e5430786856198"
+      "sha256": "70dff40903ed687b5ae9c87dc20d1f67e5babe338865bce8eafbd00d0f393e76"
     }
   },
   "frozen_split_manifests": {
@@ -57,7 +57,7 @@
     },
     "empirical_reaudit_r15": {
       "path": "tests/fixtures/release_r15_reaudit_report.json",
-      "sha256": "d7718d2edad214463410c4b1d91392440774eafa01f348fbbff3e1d9591290fe"
+      "sha256": "51bfd8f650765e9bee22548fe7843a93691b7f5ab6f81d820f02d99fe775eef0"
     }
   },
   "source_of_truth": [

@@ -15,6 +15,7 @@ This directory packages the repaired benchmark for Kaggle staging without redefi
 2. Open `iron_find_electric_v1_kaggle_staging.ipynb`.
 3. Run the notebook cells that validate the frozen artifact manifest, inspect the benchmark card, and load the frozen split manifests.
 4. Use Binary as the leaderboard-primary path and treat Narrative as the robustness companion.
+5. Keep Binary and Narrative on the same frozen episodes and probe targets; only the Binary score is headline, and only the final four labels are scored in Narrative.
 
 ## Reproducibility Notes
 

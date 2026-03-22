@@ -92,12 +92,16 @@ def test_benchmark_card_matches_current_implementation_state():
     text = _CARD_PATH.read_text(encoding="utf-8")
 
     assert "Iron Find Electric v1" in text
-    assert "cognitive flexibility under hidden rule shift" in text
+    assert "narrow Executive Functions benchmark for cognitive flexibility" in text
+    assert "controlled substrate" in text
+    assert "frozen episodes" in text
     assert "Binary" in text
-    assert "leaderboard-primary" in text
+    assert "only leaderboard-primary" in text
     assert "Narrative" in text
-    assert "robustness companion" in text
+    assert "same frozen episodes and probe targets as Binary" in text
+    assert "only the final four labels are scored" in text
     assert "Post-shift Probe Accuracy" in text
+    assert "Binary task" in text
     assert "`random`" in text
     assert "`never_update`" in text
     assert "`last_evidence`" in text
@@ -122,12 +126,19 @@ def test_packaging_docs_do_not_claim_unsupported_features():
     assert "does **not** claim" in text
 
     explicit_non_claims = (
+        "physics skill",
         "full executive-function decomposition",
         "online detection latency",
         "switch cost",
+        "recovery length",
+        "immediate post-shift drop",
+        "broad agi capability",
     )
     for phrase in explicit_non_claims:
         assert phrase in lowered
+
+    assert "Binary-only Post-shift Probe Accuracy".lower() in lowered
+    assert "Narrative does not change the headline score".lower() in lowered
 
     forbidden_positive_claims = (
         "hard leaderboard slice",
@@ -137,6 +148,8 @@ def test_packaging_docs_do_not_claim_unsupported_features():
         "measures switch cost",
         "measures online detection latency",
         "full executive-function decomposition benchmark",
+        "broad adaptation benchmark",
+        "physics benchmark",
     )
 
     for phrase in forbidden_positive_claims:

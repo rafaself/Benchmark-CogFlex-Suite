@@ -2,15 +2,17 @@
 
 ## Summary
 
-Iron Find Electric v1 is a small, frozen benchmark for **cognitive flexibility under hidden rule shift**. Each episode presents labeled evidence under one binary interaction rule, then switches rules mid-episode without announcing the switch, and finally asks the model to answer four post-shift probes.
+Iron Find Electric v1 is a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
+
+A high v1 score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, or general reasoning ability.
 
 This package is for Kaggle staging only. The implemented local benchmark under `src/`, the frozen split manifests under `src/frozen_splits/`, and the locally produced validation and audit evidence remain the source of truth.
 
 ## Task
 
-- **Binary** is the leaderboard-primary task.
-- **Narrative** is the robustness companion.
-- The target construct is adaptation to a hidden rule change rather than recall of electrostatics facts or a single-step shortcut.
+- **Binary** is the only leaderboard-primary task. It is the scored evaluation path for the v1 claim.
+- **Narrative** is required non-leaderboard robustness evidence. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
+- Electrostatics is only the controlled substrate. The benchmark is not intended to measure physics skill as the primary target.
 
 Each episode contains:
 
@@ -26,9 +28,9 @@ Current rule family:
 
 ## Metric
 
-The primary metric is **Post-shift Probe Accuracy**: the fraction of the four final probe labels that match the benchmark targets after the hidden rule shift.
+The primary metric is **Post-shift Probe Accuracy**: the fraction of final post-shift probe labels answered correctly under the post-shift rule in the Binary task.
 
-Binary is the leaderboard-primary report. Narrative is staged as a robustness companion and should be reviewed alongside Binary, but it does not replace the primary Binary evaluation path.
+Binary is the only headline report. Narrative is reviewed only as same-episode robustness evidence and does not change the headline score.
 
 ## Baselines
 
@@ -65,16 +67,22 @@ Current emitted difficulty labels are `easy` and `medium`. `hard` is reserved an
 
 The benchmark currently claims:
 
-- a reproducible Binary benchmark and Narrative companion over frozen split manifests
-- a primary metric of Post-shift Probe Accuracy
+- a reproducible Binary benchmark and Narrative companion over the same frozen split manifests and probe targets
+- a Binary-only primary metric of Post-shift Probe Accuracy
 - deterministic local replay from the stored seed banks
 - local validity and audit evidence tied to the current repaired implementation
 
 The benchmark explicitly does **not** claim:
 
+- physics skill as the primary measured ability
 - full executive-function decomposition
+- broad adaptation ability
+- broad AGI capability
+- general reasoning ability
 - online detection latency
 - switch cost measurement
+- recovery length
+- immediate post-shift drop
 - emitted `hard` slices
 
 ## Current Evidence
@@ -95,6 +103,7 @@ The same re-audit also says the benchmark is still limited by:
 ## Limitations
 
 - The package does not bundle model predictions or Kaggle submission outputs.
-- Narrative remains a robustness companion, not the primary leaderboard metric.
+- Narrative is not a primary leaderboard task, and only the final four labels are scored.
+- No claim should depend on explanation quality or formatting compliance.
 - No claim here upgrades the local evidence beyond the bundled R13 and R15 reports.
 - Local validation remains authoritative if any staging notebook output diverges from the frozen evidence.
