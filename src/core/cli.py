@@ -16,6 +16,7 @@ from core.gemini_panel import (
 from core.kaggle import validate_kaggle_staging_manifest
 from core.model_execution import ModelMode
 from core.providers.gemini import GeminiConfigurationError
+from core.report_outputs import write_text_with_timestamped_snapshot
 from core.splits import (
     PARTITIONS,
     assert_no_partition_overlap,
@@ -227,6 +228,16 @@ def _command_gemini_first_panel(args: argparse.Namespace) -> int:
             if artifacts.artifact_path is not None
             else None
         ),
+        "snapshot_report_path": (
+            str(artifacts.snapshot_report_path)
+            if artifacts.snapshot_report_path is not None
+            else None
+        ),
+        "snapshot_artifact_path": (
+            str(artifacts.snapshot_artifact_path)
+            if artifacts.snapshot_artifact_path is not None
+            else None
+        ),
     }
     print(json.dumps(payload, indent=2))
     return 0
@@ -277,8 +288,7 @@ def _build_integrity_payload() -> dict[str, Any]:
 def _emit_payload(payload: dict[str, Any], *, output_path: Path | None) -> None:
     text = json.dumps(payload, indent=2) + "\n"
     if output_path is not None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(text, encoding="utf-8")
+        write_text_with_timestamped_snapshot(output_path, text)
     print(text, end="")
 
 

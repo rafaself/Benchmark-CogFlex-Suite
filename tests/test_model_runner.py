@@ -245,3 +245,38 @@ def test_runner_captures_adapter_failures_as_invalid_rows():
         binary_accuracy=1.0,
         narrative_accuracy=0.0,
     )
+
+
+def test_runner_reports_progress_after_each_completed_episode():
+    episodes = (generate_episode(0), generate_episode(1))
+    progress_events: list[tuple[ModelMode, int, int, str]] = []
+    adapter = FakeModelAdapter(
+        {
+            (ModelMode.BINARY, render_binary_prompt(episode)): ModelRawResult.from_request(
+                ModelRequest(
+                    provider_name="fake-provider",
+                    model_name="fake-model",
+                    prompt_text=render_binary_prompt(episode),
+                    mode=ModelMode.BINARY,
+                ),
+                response_text=_binary_labels_for(episode),
+            )
+            for episode in episodes
+        }
+    )
+
+    run_model_benchmark(
+        episodes,
+        adapter,
+        provider_name="fake-provider",
+        model_name="fake-model",
+        modes=(ModelMode.BINARY,),
+        progress_callback=lambda mode, index, total, episode_id: progress_events.append(
+            (mode, index, total, episode_id)
+        ),
+    )
+
+    assert progress_events == [
+        (ModelMode.BINARY, 1, 2, episodes[0].episode_id),
+        (ModelMode.BINARY, 2, 2, episodes[1].episode_id),
+    ]

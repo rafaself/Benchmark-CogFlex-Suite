@@ -39,7 +39,18 @@ def test_reaudit_command_emits_current_release_report(capsys: pytest.CaptureFixt
 def test_integrity_command_can_write_output_file(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ):
+    def fake_write_text_with_timestamped_snapshot(path: Path, text: str):
+        path.write_text(text, encoding="utf-8")
+        snapshot_path = path.parent / f"{path.stem}__20260322_202500{path.suffix}"
+        snapshot_path.write_text(text, encoding="utf-8")
+        return path, snapshot_path
+
+    monkeypatch.setattr(
+        "core.cli.write_text_with_timestamped_snapshot",
+        fake_write_text_with_timestamped_snapshot,
+    )
     output_path = tmp_path / "integrity.json"
 
     exit_code = cli.main(["integrity", "--output", str(output_path)])
@@ -51,6 +62,7 @@ def test_integrity_command_can_write_output_file(
     assert payload["overlap_check_passed"] is True
     assert payload["kaggle_manifest_valid"] is True
     assert payload["audit_issue_count"] == 0
+    assert (tmp_path / "integrity__20260322_202500.json").is_file()
     assert json.loads(captured.out) == payload
 
 
@@ -158,6 +170,8 @@ def test_gemini_first_panel_command_emits_report_metadata(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary"]},
             artifact_path=report_path.with_suffix(".json"),
+            snapshot_report_path=tmp_path / "gemini_first_panel_report__20260322_203000.md",
+            snapshot_artifact_path=tmp_path / "gemini_first_panel_report__20260322_203000.json",
         ),
     )
 
@@ -174,6 +188,12 @@ def test_gemini_first_panel_command_emits_report_metadata(
         "prompt_modes": ["binary"],
         "report_path": str(report_path),
         "artifact_path": str(report_path.with_suffix(".json")),
+        "snapshot_report_path": str(
+            tmp_path / "gemini_first_panel_report__20260322_203000.md"
+        ),
+        "snapshot_artifact_path": str(
+            tmp_path / "gemini_first_panel_report__20260322_203000.json"
+        ),
     }
 
 
@@ -198,6 +218,8 @@ def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary", "narrative"]},
             artifact_path=report_path.with_suffix(".json"),
+            snapshot_report_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md",
+            snapshot_artifact_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.json",
         ),
     )
 
@@ -216,6 +238,9 @@ def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
     assert exit_code == 0
     assert payload["prompt_modes"] == ["binary", "narrative"]
     assert payload["artifact_path"] == str(report_path.with_suffix(".json"))
+    assert payload["snapshot_report_path"] == str(
+        tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md"
+    )
 
 
 def test_main_returns_130_on_keyboard_interrupt(

@@ -42,6 +42,10 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     monkeypatch,
     tmp_path,
 ):
+    monkeypatch.setattr(
+        "core.gemini_panel.current_report_timestamp",
+        lambda: "20260322_201900",
+    )
     episodes_by_split = {
         "dev": (
             generate_episode(0, split=Split.DEV),
@@ -117,7 +121,13 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
 
     assert artifacts.report_path == report_path
     assert artifacts.artifact_path == report_path.with_suffix(".json")
+    assert artifacts.snapshot_report_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.md"
+    assert artifacts.snapshot_artifact_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.json"
     assert artifacts.report_path.read_text(encoding="utf-8") == artifacts.report_markdown
+    assert (
+        artifacts.snapshot_report_path.read_text(encoding="utf-8")
+        == artifacts.report_markdown
+    )
 
     payload = json.loads(artifacts.artifact_path.read_text(encoding="utf-8"))
     assert payload["prompt_modes"] == ["binary", "narrative"]

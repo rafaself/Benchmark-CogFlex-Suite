@@ -25,6 +25,7 @@ __all__ = [
 ]
 
 _MODE_ORDER: tuple[ModelMode, ...] = (ModelMode.BINARY, ModelMode.NARRATIVE)
+RunProgressCallback = Callable[[ModelMode, int, int, str], None]
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,6 +59,7 @@ def run_model_benchmark(
     model_name: str,
     config: ModelRunConfig | None = None,
     modes: Iterable[ModelMode] = _MODE_ORDER,
+    progress_callback: RunProgressCallback | None = None,
 ) -> BenchmarkRunResult:
     normalized_episodes = tuple(episodes)
     normalized_modes = _normalize_modes(modes)
@@ -87,6 +89,7 @@ def run_model_benchmark(
             mode=mode,
             renderer=renderers[mode],
             parser=parsers[mode],
+            progress_callback=progress_callback,
         )
         for mode in normalized_modes
     )
@@ -131,22 +134,27 @@ def _run_mode(
     mode: ModelMode,
     renderer: Callable[[Episode], str],
     parser: Callable[[str], ParsedPrediction],
+    progress_callback: RunProgressCallback | None,
 ) -> BenchmarkModeRunResult:
+    total = len(episodes)
+    rows: list[BenchmarkModeRunRow] = []
+    for index, episode in enumerate(episodes, start=1):
+        row = _run_episode(
+            episode=episode,
+            adapter=adapter,
+            provider_name=provider_name,
+            model_name=model_name,
+            config=config,
+            mode=mode,
+            renderer=renderer,
+            parser=parser,
+        )
+        rows.append(row)
+        if progress_callback is not None:
+            progress_callback(mode, index, total, row.episode_id)
     return BenchmarkModeRunResult(
         mode=mode,
-        rows=tuple(
-            _run_episode(
-                episode=episode,
-                adapter=adapter,
-                provider_name=provider_name,
-                model_name=model_name,
-                config=config,
-                mode=mode,
-                renderer=renderer,
-                parser=parser,
-            )
-            for episode in episodes
-        ),
+        rows=tuple(rows),
     )
 
 

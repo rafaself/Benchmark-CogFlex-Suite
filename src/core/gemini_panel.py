@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 from core.audit import (
     AuditSource,
@@ -20,6 +21,7 @@ from core.model_runner import (
 )
 from core.parser import ParseStatus
 from core.providers.gemini import GeminiAdapter
+from core.report_outputs import current_report_timestamp, write_text_with_timestamped_snapshot
 from core.splits import PARTITIONS, load_frozen_split
 from tasks.iron_find_electric.baselines import (
     last_evidence_baseline,
@@ -68,6 +70,8 @@ class GeminiFirstPanelArtifacts:
     report_path: Path
     artifact_payload: dict[str, object] | None = None
     artifact_path: Path | None = None
+    snapshot_report_path: Path | None = None
+    snapshot_artifact_path: Path | None = None
 
 
 def run_gemini_first_panel(
@@ -99,6 +103,7 @@ def run_gemini_first_panel(
             model_name=model_name,
             config=config,
             modes=normalized_modes,
+            progress_callback=_build_panel_progress_callback(split_name),
         )
         episodes_by_split[split_name] = episodes
         benchmark_results_by_split[split_name] = benchmark_result
@@ -137,11 +142,16 @@ def run_gemini_first_panel(
         DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH if report_path is None else report_path
     )
     resolved_artifact_path = _artifact_path_for_report(resolved_report_path)
-    resolved_report_path.parent.mkdir(parents=True, exist_ok=True)
-    resolved_report_path.write_text(report_markdown, encoding="utf-8")
-    resolved_artifact_path.write_text(
+    report_timestamp = current_report_timestamp()
+    _, snapshot_report_path = write_text_with_timestamped_snapshot(
+        resolved_report_path,
+        report_markdown,
+        timestamp=report_timestamp,
+    )
+    _, snapshot_artifact_path = write_text_with_timestamped_snapshot(
+        resolved_artifact_path,
         json.dumps(artifact_payload, indent=2) + "\n",
-        encoding="utf-8",
+        timestamp=report_timestamp,
     )
 
     return GeminiFirstPanelArtifacts(
@@ -153,7 +163,21 @@ def run_gemini_first_panel(
         report_path=resolved_report_path,
         artifact_payload=artifact_payload,
         artifact_path=resolved_artifact_path,
+        snapshot_report_path=snapshot_report_path,
+        snapshot_artifact_path=snapshot_artifact_path,
     )
+
+
+def _build_panel_progress_callback(split_name: str):
+    def _report_progress(mode: ModelMode, index: int, total: int, episode_id: str) -> None:
+        print(
+            f"[gemini-first-panel] split={split_name} mode={mode.value} "
+            f"episode={index}/{total} id={episode_id}",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    return _report_progress
 
 
 def render_gemini_first_panel_markdown(
