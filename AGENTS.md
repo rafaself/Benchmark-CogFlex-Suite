@@ -24,6 +24,7 @@ Direct entry point if needed: `.venv/bin/python scripts/ife.py <command>`.
 - Preserve determinism, replayability, and frozen split compatibility.
 - Do not change benchmark semantics, validity thresholds, split composition, or task rules unless the user explicitly asks for that.
 - Update tests for behavior changes. Prefer the smallest relevant pytest target first, then run `make evidence-pass` when the change could affect benchmark validity claims.
+- When writing reports or artifacts under `reports/`, preserve prior evidence by keeping timestamped snapshots alongside the latest canonical path. Do not replace the only copy of a past run if a comparison against future runs may be needed.
 
 ## Pointers
 
