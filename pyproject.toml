@@ -7,6 +7,9 @@ name = "iron-find-electric"
 version = "0.0.0"
 description = "Local benchmark tooling for Iron Find Electric."
 requires-python = ">=3.12"
+dependencies = [
+  "google-genai>=1,<2",
+]
 
 [project.scripts]
 ife = "core.cli:entrypoint"

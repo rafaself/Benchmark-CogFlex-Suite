@@ -8,6 +8,8 @@ import sys
 import pytest
 
 from core import cli
+from core.gemini_panel import GeminiFirstPanelArtifacts
+from core.model_execution import ModelMode
 
 
 def test_validity_command_emits_current_gate_report(capsys: pytest.CaptureFixture[str]):
@@ -117,3 +119,54 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
         ["integrity"],
         ["evidence-pass"],
     ]
+
+
+def test_gemini_first_panel_command_fails_clearly_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    exit_code = cli.main(["gemini-first-panel"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "GEMINI_API_KEY" in captured.err
+
+
+def test_gemini_first_panel_command_emits_report_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+):
+    class _StubReport:
+        release_id = "R18"
+
+    report_path = tmp_path / "gemini_first_panel_report.md"
+    monkeypatch.setattr(
+        cli,
+        "run_gemini_first_panel",
+        lambda **_: GeminiFirstPanelArtifacts(
+            provider_name="gemini",
+            model_name="gemini-2.5-flash",
+            prompt_modes=(ModelMode.BINARY,),
+            release_report=_StubReport(),
+            report_markdown="# report\n",
+            report_path=report_path,
+        ),
+    )
+
+    exit_code = cli.main(["gemini-first-panel", "--report-path", str(report_path)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload == {
+        "release_id": "R18",
+        "provider_name": "gemini",
+        "model_name": "gemini-2.5-flash",
+        "prompt_modes": ["binary"],
+        "report_path": str(report_path),
+    }

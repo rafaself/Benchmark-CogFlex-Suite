@@ -8,7 +8,14 @@ import sys
 from typing import Any
 
 from core.audit import run_release_r15_reaudit, serialize_release_r15_reaudit_report
+from core.gemini_panel import (
+    DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH,
+    DEFAULT_GEMINI_MODEL,
+    run_gemini_first_panel,
+)
 from core.kaggle import validate_kaggle_staging_manifest
+from core.model_execution import ModelMode
+from core.providers.gemini import GeminiConfigurationError
 from core.splits import (
     PARTITIONS,
     assert_no_partition_overlap,
@@ -73,6 +80,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_output_argument(evidence_parser)
     evidence_parser.set_defaults(func=_command_evidence_pass)
+
+    gemini_panel_parser = subparsers.add_parser(
+        "gemini-first-panel",
+        help="Run the first real Gemini evaluation panel and write a markdown report.",
+    )
+    gemini_panel_parser.add_argument(
+        "--model",
+        default=DEFAULT_GEMINI_MODEL,
+        help="Gemini model name to run.",
+    )
+    gemini_panel_parser.add_argument(
+        "--report-path",
+        type=Path,
+        default=DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH,
+        help="Markdown report output path.",
+    )
+    gemini_panel_parser.add_argument(
+        "--include-narrative",
+        action="store_true",
+        help="Also run the Narrative prompt mode.",
+    )
+    gemini_panel_parser.set_defaults(func=_command_gemini_first_panel)
 
     return parser
 
@@ -164,6 +193,33 @@ def _command_evidence_pass(args: argparse.Namespace) -> int:
     payload["reaudit"] = serialize_release_r15_reaudit_report(run_release_r15_reaudit())
     payload["integrity"] = _build_integrity_payload()
     _emit_payload(payload, output_path=args.output)
+    return 0
+
+
+def _command_gemini_first_panel(args: argparse.Namespace) -> int:
+    modes = (
+        (ModelMode.BINARY, ModelMode.NARRATIVE)
+        if args.include_narrative
+        else (ModelMode.BINARY,)
+    )
+    try:
+        artifacts = run_gemini_first_panel(
+            model_name=args.model,
+            report_path=args.report_path,
+            modes=modes,
+        )
+    except GeminiConfigurationError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    payload = {
+        "release_id": artifacts.release_report.release_id,
+        "provider_name": artifacts.provider_name,
+        "model_name": artifacts.model_name,
+        "prompt_modes": [mode.value for mode in artifacts.prompt_modes],
+        "report_path": str(artifacts.report_path),
+    }
+    print(json.dumps(payload, indent=2))
     return 0
 
 

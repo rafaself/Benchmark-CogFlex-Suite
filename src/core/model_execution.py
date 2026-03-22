@@ -19,6 +19,10 @@ def _is_nonempty_string(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _is_plain_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 class ModelMode(StrEnum):
     BINARY = "binary"
     NARRATIVE = "narrative"
@@ -27,10 +31,19 @@ class ModelMode(StrEnum):
 @dataclass(frozen=True, slots=True)
 class ModelRunConfig:
     timeout_seconds: float | None = None
+    temperature: float | None = None
+    thinking_budget: int | None = None
 
     def __post_init__(self) -> None:
         if self.timeout_seconds is not None and self.timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive or None")
+        if self.temperature is not None and self.temperature < 0:
+            raise ValueError("temperature must be non-negative or None")
+        if self.thinking_budget is not None:
+            if not _is_plain_int(self.thinking_budget):
+                raise TypeError("thinking_budget must be an int or None")
+            if self.thinking_budget < -1:
+                raise ValueError("thinking_budget must be at least -1 or None")
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +86,9 @@ class ModelRawResult:
     error_type: str | None = None
     error_message: str | None = None
     usage: ModelUsage | None = None
+    response_id: str | None = None
+    provider_model_version: str | None = None
+    finish_reason: str | None = None
 
     def __post_init__(self) -> None:
         if not _is_nonempty_string(self.provider_name):
@@ -90,6 +106,14 @@ class ModelRawResult:
             raise TypeError("error_message must be a string or None")
         if self.usage is not None and not isinstance(self.usage, ModelUsage):
             raise TypeError("usage must be a ModelUsage or None")
+        if self.response_id is not None and not _is_nonempty_string(self.response_id):
+            raise ValueError("response_id must be a non-empty string or None")
+        if self.provider_model_version is not None and not _is_nonempty_string(
+            self.provider_model_version
+        ):
+            raise ValueError("provider_model_version must be a non-empty string or None")
+        if self.finish_reason is not None and not _is_nonempty_string(self.finish_reason):
+            raise ValueError("finish_reason must be a non-empty string or None")
 
     @property
     def succeeded(self) -> bool:
@@ -105,6 +129,9 @@ class ModelRawResult:
         error_type: str | None = None,
         error_message: str | None = None,
         usage: ModelUsage | None = None,
+        response_id: str | None = None,
+        provider_model_version: str | None = None,
+        finish_reason: str | None = None,
     ) -> "ModelRawResult":
         return cls(
             provider_name=request.provider_name,
@@ -115,6 +142,9 @@ class ModelRawResult:
             error_type=error_type,
             error_message=error_message,
             usage=usage,
+            response_id=response_id,
+            provider_model_version=provider_model_version,
+            finish_reason=finish_reason,
         )
 
 
