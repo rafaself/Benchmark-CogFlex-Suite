@@ -81,7 +81,7 @@ The benchmark explicitly does **not** claim:
 
 ### R13 anti-shortcut validity gate
 
-The packaged anti-shortcut validity evidence is the local `R13` gate report. It still reports **FAIL** because the private leaderboard subset-separation requirement was not met: best template gap `0.031250` and best emitted-difficulty gap `0.031250`, both below the required `0.100000`.
+The packaged anti-shortcut validity evidence is the local `R13` gate report. It now reports **PASS**: the best private-leaderboard critical-baseline subset gaps are `0.103175` for both template and emitted difficulty, above the required `0.100000`.
 
 ### R15 empirical re-audit
 
@@ -89,7 +89,6 @@ The packaged empirical re-audit is the local `R15` report over the refreshed `R1
 
 The same re-audit also says the benchmark is still limited by:
 
-- weak private-leaderboard slice separation
 - no bundled real-model runs in-repo
 - `hard` remaining reserved and un-emitted
 

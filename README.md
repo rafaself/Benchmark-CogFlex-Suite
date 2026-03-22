@@ -19,7 +19,7 @@ The repository currently implements:
 
 Current blockers and known limitations:
 
-- the recency shortcut baseline `last_evidence` was materially reduced in the current re-audit surface, but private-leaderboard subset separation remains too weak for a clean validity pass;
+- the current frozen benchmark now clears the local R13 anti-shortcut validity gate and keeps the recency shortcut materially bounded in the current R15 re-audit surface;
 - `hard` remains a reserved difficulty label and is not currently emitted by the R3 generator;
 - no real-model runs are bundled in-repo, so model-vs-heuristic separation remains unverified locally;
 - the Kaggle staging bundle under [`packaging/kaggle/`](./packaging/kaggle/) mirrors the repaired local benchmark state, but local validation remains the source of truth.

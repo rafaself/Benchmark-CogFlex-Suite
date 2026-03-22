@@ -16,7 +16,7 @@
     },
     "benchmark_card": {
       "path": "packaging/kaggle/BENCHMARK_CARD.md",
-      "sha256": "f64b1baebf31630c8e71d72614247811fdd5efb798e7b184ae165f67684b9765"
+      "sha256": "f6753e32082b3a8b411921a8fd6795608ea4f3f565485d0bd255bd669d9b414f"
     },
     "usage": {
       "path": "packaging/kaggle/README.md",
@@ -24,7 +24,7 @@
     },
     "packaging_note": {
       "path": "packaging/kaggle/PACKAGING_NOTE.md",
-      "sha256": "131978f6f88f941c53384b17e262550ab076949fc4044850d25e86537601443e"
+      "sha256": "cd2761a21864e461852828c3c2a585c285ac29b1dd20077490e5430786856198"
     }
   },
   "frozen_split_manifests": {
@@ -44,20 +44,20 @@
     },
     "private_leaderboard": {
       "path": "src/frozen_splits/private_leaderboard.json",
-      "sha256": "30b7ec70b98075bd78b0ba7b4afd631c7735dab9fa40393fe1c9c8a9da6c7c56",
+      "sha256": "5b0ae4650a509a98f03fcba1faced92aeab2e8c1c9164688c2e891c655466be2",
       "manifest_version": "R14",
-      "seed_bank_version": "R14-private-1",
+      "seed_bank_version": "R14-private-2",
       "episode_split": "private"
     }
   },
   "evidence_reports": {
     "anti_shortcut_validity_gate_r13": {
       "path": "tests/fixtures/release_r13_validity_report.json",
-      "sha256": "f479de11d553d39af6cef1920fd92e09a2c45fde73defe6708bf8b583f96e804"
+      "sha256": "3fe18c65cdea63a4121f319a625bb51eabe7c6ce94f391251a5df008c691ef16"
     },
     "empirical_reaudit_r15": {
       "path": "tests/fixtures/release_r15_reaudit_report.json",
-      "sha256": "4e28518ce9f57de1cb58701a244504cb3f918ac9f2f750d2a395952c7d60f790"
+      "sha256": "d7718d2edad214463410c4b1d91392440774eafa01f348fbbff3e1d9591290fe"
     }
   },
   "source_of_truth": [

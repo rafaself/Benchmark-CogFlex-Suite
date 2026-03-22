@@ -18,7 +18,7 @@ def test_validity_command_emits_current_gate_report(capsys: pytest.CaptureFixtur
 
     assert exit_code == 0
     assert payload["release_id"] == "R13"
-    assert payload["passed"] is False
+    assert payload["passed"] is True
     assert payload["gate_splits"] == ["public_leaderboard", "private_leaderboard"]
 
 

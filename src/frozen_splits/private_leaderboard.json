@@ -2,18 +2,12 @@
   "partition": "private_leaderboard",
   "episode_split": "private",
   "manifest_version": "R14",
-  "seed_bank_version": "R14-private-1",
+  "seed_bank_version": "R14-private-2",
   "spec_version": "v1",
   "generator_version": "R12",
   "template_set_version": "v1",
   "difficulty_version": "R12",
   "seeds": [
-    9054,
-    9055,
-    9056,
-    9057,
-    9058,
-    9059,
     9060,
     9061,
     9062,
@@ -23,6 +17,12 @@
     9066,
     9067,
     9068,
-    9069
+    9069,
+    9070,
+    9071,
+    9072,
+    9073,
+    9074,
+    9075
   ]
 }

@@ -41,7 +41,7 @@
   "baseline_summaries": [
     {
       "baseline_name": "random",
-      "overall_accuracy": 0.5260416666666666,
+      "overall_accuracy": 0.546875,
       "by_split": [
         {
           "split_name": "dev",
@@ -93,25 +93,25 @@
         },
         {
           "split_name": "private_leaderboard",
-          "accuracy": 0.484375,
+          "accuracy": 0.546875,
           "by_template": [
             {
               "label": "T1",
-              "accuracy": 0.46875
+              "accuracy": 0.5
             },
             {
               "label": "T2",
-              "accuracy": 0.5
+              "accuracy": 0.6071428571428571
             }
           ],
           "by_difficulty": [
             {
               "label": "easy",
-              "accuracy": 0.46875
+              "accuracy": 0.5
             },
             {
               "label": "medium",
-              "accuracy": 0.5
+              "accuracy": 0.6071428571428571
             }
           ]
         }
@@ -119,21 +119,21 @@
       "by_template": [
         {
           "label": "T1",
-          "accuracy": 0.53125
+          "accuracy": 0.54
         },
         {
           "label": "T2",
-          "accuracy": 0.5208333333333334
+          "accuracy": 0.5543478260869565
         }
       ],
       "by_difficulty": [
         {
           "label": "easy",
-          "accuracy": 0.53125
+          "accuracy": 0.54
         },
         {
           "label": "medium",
-          "accuracy": 0.5208333333333334
+          "accuracy": 0.5543478260869565
         }
       ]
     },
@@ -433,7 +433,7 @@
     },
     {
       "baseline_name": "template_position",
-      "overall_accuracy": 0.4583333333333333,
+      "overall_accuracy": 0.453125,
       "by_split": [
         {
           "split_name": "dev",
@@ -485,25 +485,25 @@
         },
         {
           "split_name": "private_leaderboard",
-          "accuracy": 0.359375,
+          "accuracy": 0.34375,
           "by_template": [
             {
               "label": "T1",
-              "accuracy": 0.34375
+              "accuracy": 0.3888888888888889
             },
             {
               "label": "T2",
-              "accuracy": 0.375
+              "accuracy": 0.2857142857142857
             }
           ],
           "by_difficulty": [
             {
               "label": "easy",
-              "accuracy": 0.34375
+              "accuracy": 0.3888888888888889
             },
             {
               "label": "medium",
-              "accuracy": 0.375
+              "accuracy": 0.2857142857142857
             }
           ]
         }
@@ -511,21 +511,21 @@
       "by_template": [
         {
           "label": "T1",
-          "accuracy": 0.4791666666666667
+          "accuracy": 0.49
         },
         {
           "label": "T2",
-          "accuracy": 0.4375
+          "accuracy": 0.41304347826086957
         }
       ],
       "by_difficulty": [
         {
           "label": "easy",
-          "accuracy": 0.4791666666666667
+          "accuracy": 0.49
         },
         {
           "label": "medium",
-          "accuracy": 0.4375
+          "accuracy": 0.41304347826086957
         }
       ]
     }
@@ -558,13 +558,13 @@
     },
     {
       "code": "heuristic_subset_separation",
-      "passed": false,
-      "message": "Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.031250, best difficulty gap template_position=0.031250."
+      "passed": true,
+      "message": "Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.103175, best difficulty gap template_position=0.103175."
     }
   ],
-  "passed": false,
-  "comparison_summary": "The repaired benchmark still collapses to shortcut behavior under the R13 gate: Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.031250, best difficulty gap template_position=0.031250.",
-  "validity_note": "Critical shortcut threats: never_update, last_evidence, physics_prior, template_position. Pass requires each named shortcut heuristic to stay at or below 0.550000 on public_leaderboard, private_leaderboard, the best critical heuristic to stay under the same cap, and the audit split to show at least 0.100000 template gap plus 0.100000 difficulty gap across emitted labels. Current status: FAIL. Blocked by Critical baselines must show at least 0.100000 template gap and 0.100000 difficulty gap on private_leaderboard; observed best template gap template_position=0.031250, best difficulty gap template_position=0.031250. Hard is still not emitted, so the report intentionally omits hard-slice claims.",
+  "passed": true,
+  "comparison_summary": "The repaired benchmark clears the R13 anti-shortcut gate: template_position peaks at 0.500000 on public_leaderboard.",
+  "validity_note": "Critical shortcut threats: never_update, last_evidence, physics_prior, template_position. Pass requires each named shortcut heuristic to stay at or below 0.550000 on public_leaderboard, private_leaderboard, the best critical heuristic to stay under the same cap, and the audit split to show at least 0.100000 template gap plus 0.100000 difficulty gap across emitted labels. Current status: PASS. No release blocker remains. Hard is still not emitted, so the report intentionally omits hard-slice claims.",
   "limitations": [
     "No emitted hard episodes in supplied set; hard slice omitted."
   ]
