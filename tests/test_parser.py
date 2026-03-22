@@ -21,7 +21,7 @@ def test_narrative_output_parses_final_labels_after_reasoning():
         "\n".join(
             (
                 "The later examples indicate a rule change.",
-                "Final labels: attract, repel, repel, attract",
+                "attract, repel, repel, attract",
             )
         )
     )
@@ -54,14 +54,11 @@ def test_safe_formatting_variants_normalize_to_canonical_labels():
         "\n".join(
             (
                 "Some reasoning here.",
-                "Final labels:",
-                "ATTRACT",
-                "repel",
-                "REPEL",
-                "attract",
+                "ATTRACT, repel, REPEL, attract",
             )
         )
     ) == expected
+    assert parse_narrative_output("Final labels: ATTRACT, repel, REPEL, attract") == expected
 
 
 def test_malformed_outputs_are_rejected_deterministically():
@@ -86,17 +83,42 @@ def test_wrong_length_outputs_use_the_same_invalid_result():
 
     assert parse_binary_output("attract, repel, repel") == invalid
     assert parse_binary_output("attract, repel, repel, attract, attract") == invalid
-    assert parse_narrative_output("Final labels: attract, repel, repel") == invalid
-    assert parse_narrative_output("Final labels: attract, repel, repel, attract, repel") == invalid
+    assert parse_narrative_output("attract, repel, repel") == invalid
+    assert parse_narrative_output("attract, repel, repel, attract, repel") == invalid
 
 
-def test_narrative_parser_uses_the_last_final_labels_block():
+def test_narrative_parser_scores_only_the_last_answer_line():
     parsed = parse_narrative_output(
         "\n".join(
             (
-                "Final labels: repel, repel, repel, repel",
+                "repel, repel, repel, repel",
                 "Updated reasoning after re-checking the post-shift evidence.",
-                "Final labels: attract, repel, repel, attract",
+                "attract, repel, repel, attract",
+            )
+        )
+    )
+
+    assert parsed == ParsedPrediction(
+        labels=(
+            InteractionLabel.ATTRACT,
+            InteractionLabel.REPEL,
+            InteractionLabel.REPEL,
+            InteractionLabel.ATTRACT,
+        ),
+        status=ParseStatus.VALID,
+    )
+
+
+def test_narrative_parser_still_accepts_legacy_final_labels_block():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Reasoning about the revised local rule.",
+                "Final labels:",
+                "attract",
+                "repel",
+                "repel",
+                "attract",
             )
         )
     )

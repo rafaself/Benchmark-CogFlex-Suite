@@ -112,7 +112,7 @@ def test_binary_and_narrative_accuracy_match_when_final_labels_match():
     assert summary.binary_accuracy == summary.narrative_accuracy == 0.875
 
 
-def test_compute_metrics_returns_stable_aggregate_scores_for_mixed_inputs():
+def test_compute_metrics_returns_stable_mixed_mode_scores():
     binary_predictions = (
         _valid_prediction(
             InteractionLabel.ATTRACT,
@@ -159,8 +159,41 @@ def test_compute_metrics_returns_stable_aggregate_scores_for_mixed_inputs():
         narrative_predictions=narrative_predictions,
         narrative_targets=narrative_targets,
     ) == MetricSummary(
-        post_shift_probe_accuracy=7 / 12,
+        post_shift_probe_accuracy=0.5,
         parse_valid_rate=2 / 3,
         binary_accuracy=0.5,
         narrative_accuracy=0.75,
+    )
+
+
+def test_narrative_cannot_change_the_headline_binary_metric():
+    binary_predictions = (
+        _valid_prediction(
+            InteractionLabel.ATTRACT,
+            InteractionLabel.REPEL,
+            InteractionLabel.REPEL,
+            InteractionLabel.ATTRACT,
+        ),
+    )
+    binary_targets = (
+        (
+            InteractionLabel.ATTRACT,
+            InteractionLabel.REPEL,
+            InteractionLabel.REPEL,
+            InteractionLabel.ATTRACT,
+        ),
+    )
+    narrative_predictions = (_invalid_prediction(),)
+    narrative_targets = binary_targets
+
+    assert compute_metrics(
+        binary_predictions=binary_predictions,
+        binary_targets=binary_targets,
+        narrative_predictions=narrative_predictions,
+        narrative_targets=narrative_targets,
+    ) == MetricSummary(
+        post_shift_probe_accuracy=1.0,
+        parse_valid_rate=0.5,
+        binary_accuracy=1.0,
+        narrative_accuracy=0.0,
     )

@@ -69,23 +69,23 @@ def compute_metrics(
     valid_predictions = sum(
         prediction.status is ParseStatus.VALID for prediction in all_predictions
     )
+    binary_accuracy = compute_post_shift_probe_accuracy(
+        normalized_binary_predictions,
+        normalized_binary_targets,
+    )
+    narrative_accuracy = compute_post_shift_probe_accuracy(
+        normalized_narrative_predictions,
+        normalized_narrative_targets,
+    )
 
     return MetricSummary(
-        post_shift_probe_accuracy=compute_post_shift_probe_accuracy(
-            all_predictions,
-            normalized_binary_targets + normalized_narrative_targets,
-        ),
+        # The headline metric is Binary-only Post-shift Probe Accuracy.
+        post_shift_probe_accuracy=binary_accuracy,
         parse_valid_rate=(
             valid_predictions / total_predictions if total_predictions else 0.0
         ),
-        binary_accuracy=compute_post_shift_probe_accuracy(
-            normalized_binary_predictions,
-            normalized_binary_targets,
-        ),
-        narrative_accuracy=compute_post_shift_probe_accuracy(
-            normalized_narrative_predictions,
-            normalized_narrative_targets,
-        ),
+        binary_accuracy=binary_accuracy,
+        narrative_accuracy=narrative_accuracy,
     )
 
 

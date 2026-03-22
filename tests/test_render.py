@@ -155,8 +155,8 @@ def test_output_instructions_explicitly_require_four_ordered_answers():
         "Return exactly 4 labels in order, one per probe. Use only attract or repel."
     ) in binary_prompt
     assert (
-        "Give brief reasoning, then write a final line in the form "
-        "'Final labels: label1, label2, label3, label4'. "
-        "Use exactly 4 labels in order, one per probe. "
-        "Each label must be either attract or repel."
+        "Narrative is robustness evidence over the same probes as Binary. "
+        "Any reasoning is optional and unscored. "
+        "On the final line, return exactly 4 labels in order, one per probe. "
+        "Use only attract or repel."
     ) in narrative_prompt

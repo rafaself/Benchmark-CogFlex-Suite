@@ -40,11 +40,18 @@ def parse_binary_output(text: str) -> ParsedPrediction:
 
 
 def parse_narrative_output(text: str) -> ParsedPrediction:
-    matches = tuple(_FINAL_LABELS_PATTERN.finditer(text))
-    if not matches:
+    normalized_text = text.strip()
+    if not normalized_text:
         return _INVALID_PREDICTION
 
-    return _parse_labels_payload(text[matches[-1].end() :])
+    matches = tuple(_FINAL_LABELS_PATTERN.finditer(text))
+    if matches:
+        return _parse_labels_payload(text[matches[-1].end() :])
+
+    nonempty_lines = tuple(line.strip() for line in normalized_text.splitlines() if line.strip())
+    if not nonempty_lines:
+        return _INVALID_PREDICTION
+    return _parse_labels_payload(nonempty_lines[-1])
 
 
 def _parse_labels_payload(text: str) -> ParsedPrediction:

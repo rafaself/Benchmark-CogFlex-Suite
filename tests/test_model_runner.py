@@ -21,7 +21,7 @@ def _binary_labels_for(episode) -> str:
 
 
 def _narrative_labels_for(episode) -> str:
-    return "Reasoning.\nFinal labels: " + _binary_labels_for(episode)
+    return "Reasoning.\n" + _binary_labels_for(episode)
 
 
 @dataclass
@@ -201,7 +201,7 @@ def test_runner_marks_malformed_raw_outputs_as_invalid_without_changing_scoring_
     assert binary_mode.rows[0].parsed_prediction.status is ParseStatus.VALID
     assert narrative_mode.rows[0].parsed_prediction.status is ParseStatus.INVALID
     assert result.metrics == MetricSummary(
-        post_shift_probe_accuracy=0.5,
+        post_shift_probe_accuracy=1.0,
         parse_valid_rate=0.5,
         binary_accuracy=1.0,
         narrative_accuracy=0.0,
@@ -240,7 +240,7 @@ def test_runner_captures_adapter_failures_as_invalid_rows():
     assert narrative_row.execution.raw_result.error_message == "timed out"
     assert narrative_row.execution.raw_result.response_text is None
     assert result.metrics == MetricSummary(
-        post_shift_probe_accuracy=0.5,
+        post_shift_probe_accuracy=1.0,
         parse_valid_rate=0.5,
         binary_accuracy=1.0,
         narrative_accuracy=0.0,

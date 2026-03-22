@@ -21,10 +21,10 @@ _BINARY_OUTRO = (
     "Use only attract or repel."
 )
 _NARRATIVE_OUTRO = (
-    "Give brief reasoning, then write a final line in the form "
-    "'Final labels: label1, label2, label3, label4'. "
-    "Use exactly 4 labels in order, one per probe. "
-    "Each label must be either attract or repel."
+    "Narrative is robustness evidence over the same probes as Binary. "
+    "Any reasoning is optional and unscored. "
+    "On the final line, return exactly 4 labels in order, one per probe. "
+    "Use only attract or repel."
 )
 
 
