@@ -8,6 +8,7 @@ import sys
 import pytest
 
 from core import cli
+from core.anthropic_panel import AnthropicPanelArtifacts
 from core.gemini_panel import GeminiFirstPanelArtifacts
 from core.model_execution import ModelMode
 
@@ -247,6 +248,81 @@ def test_gemini_first_panel_command_rejects_unpinned_model_ids(
     capsys: pytest.CaptureFixture[str],
 ):
     exit_code = cli.main(["gemini-first-panel", "--model", "gemini-2.5-flash"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "pinned model ID" in captured.err
+
+
+def test_anthropic_panel_command_fails_clearly_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr("core.providers.anthropic._repo_root", lambda: tmp_path)
+
+    exit_code = cli.main(["anthropic-panel"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "ANTHROPIC_API_KEY" in captured.err
+
+
+def test_anthropic_panel_command_emits_report_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+):
+    class _StubReport:
+        release_id = "R18"
+
+    report_path = tmp_path / "anthropic_panel_report.md"
+    monkeypatch.setattr(
+        cli,
+        "run_anthropic_panel",
+        lambda **_: AnthropicPanelArtifacts(
+            provider_name="anthropic",
+            model_name="claude-3-5-haiku-20241022",
+            prompt_modes=(ModelMode.BINARY,),
+            release_report=_StubReport(),
+            report_markdown="# report\n",
+            report_path=report_path,
+            artifact_payload={"prompt_modes": ["binary"]},
+            artifact_path=report_path.with_suffix(".json"),
+            snapshot_report_path=tmp_path / "anthropic_panel_report__20260322_210000.md",
+            snapshot_artifact_path=tmp_path / "anthropic_panel_report__20260322_210000.json",
+        ),
+    )
+
+    exit_code = cli.main(["anthropic-panel", "--report-path", str(report_path)])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload == {
+        "release_id": "R18",
+        "provider_name": "anthropic",
+        "model_name": "claude-3-5-haiku-20241022",
+        "prompt_modes": ["binary"],
+        "report_path": str(report_path),
+        "artifact_path": str(report_path.with_suffix(".json")),
+        "snapshot_report_path": str(
+            tmp_path / "anthropic_panel_report__20260322_210000.md"
+        ),
+        "snapshot_artifact_path": str(
+            tmp_path / "anthropic_panel_report__20260322_210000.json"
+        ),
+    }
+
+
+def test_anthropic_panel_command_rejects_unpinned_model_ids(
+    capsys: pytest.CaptureFixture[str],
+):
+    exit_code = cli.main(["anthropic-panel", "--model", "claude-3-5-haiku-latest"])
 
     captured = capsys.readouterr()
 

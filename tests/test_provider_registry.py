@@ -48,6 +48,55 @@ def test_resolve_provider_model_name_rejects_floating_aliases():
         )
 
 
+def test_registered_anthropic_provider_exposes_expected_metadata():
+    spec = get_provider_spec("anthropic")
+
+    assert spec.provider_name == "anthropic"
+    assert spec.kaggle_supported is False
+    assert spec.local_only is True
+    assert spec.default_benchmark_model == "claude-3-5-haiku-20241022"
+    assert spec.capabilities.supports_json_schema_structured_output is False
+    assert spec.sdk_extra == "anthropic"
+
+
+def test_pinned_model_validation_rejects_floating_anthropic_aliases():
+    spec = get_provider_spec("anthropic")
+
+    assert is_pinned_benchmark_model_id(spec, "claude-3-5-haiku-20241022") is True
+    assert is_pinned_benchmark_model_id(spec, "claude-3-5-haiku-latest") is False
+    assert is_pinned_benchmark_model_id(spec, "claude-3-5-haiku") is False
+
+
+def test_resolve_anthropic_model_name_uses_pinned_default():
+    assert resolve_provider_model_name(
+        "anthropic",
+        surface=ProviderExecutionSurface.LOCAL_BENCHMARK,
+        model_name=None,
+    ) == "claude-3-5-haiku-20241022"
+
+
+def test_resolve_anthropic_model_name_rejects_floating_aliases():
+    with pytest.raises(ProviderSelectionError):
+        resolve_provider_model_name(
+            "anthropic",
+            surface=ProviderExecutionSurface.LOCAL_BENCHMARK,
+            model_name="claude-3-5-haiku-latest",
+        )
+
+
+def test_anthropic_provider_is_blocked_on_kaggle_surface():
+    spec = get_provider_spec("anthropic")
+
+    assert provider_allowed_on_surface(
+        spec,
+        ProviderExecutionSurface.LOCAL_BENCHMARK,
+    ) is True
+    assert provider_allowed_on_surface(
+        spec,
+        ProviderExecutionSurface.KAGGLE_BENCHMARK,
+    ) is False
+
+
 def test_local_only_provider_is_blocked_on_kaggle_surface():
     local_only_spec = build_provider_spec(
         provider_name="openai",

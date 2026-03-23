@@ -5,7 +5,6 @@ from pathlib import Path
 
 from core.audit import (
     AuditSource,
-    ReleaseAuditReport,
     run_release_r15_reaudit,
 )
 from core.model_execution import ModelMode, ModelRunConfig
@@ -20,7 +19,7 @@ from core.panel_runner import (
     build_panel_progress_callback,
     render_panel_markdown,
 )
-from core.providers.gemini import GeminiAdapter
+from core.providers.anthropic import AnthropicAdapter
 from core.providers.registry import (
     ProviderExecutionSurface,
     get_provider_spec,
@@ -35,36 +34,40 @@ from core.splits import PARTITIONS, load_frozen_split
 from tasks.iron_find_electric.schema import Episode
 
 __all__ = [
-    "DEFAULT_GEMINI_MODEL",
-    "DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH",
-    "default_gemini_first_panel_report_path",
-    "GeminiFirstPanelArtifacts",
-    "run_gemini_first_panel",
-    "render_gemini_first_panel_markdown",
+    "DEFAULT_ANTHROPIC_MODEL",
+    "AnthropicPanelArtifacts",
+    "default_anthropic_panel_report_path",
+    "run_anthropic_panel",
 ]
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
-_GEMINI_PROVIDER_SPEC = get_provider_spec("gemini")
-DEFAULT_GEMINI_MODEL = _GEMINI_PROVIDER_SPEC.default_benchmark_model or DEFAULT_GEMINI_MODEL
-DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH = build_latest_report_path(
-    "live",
-    "gemini-first-panel",
-    "binary-only",
-    filename="report.md",
+_ANTHROPIC_PROVIDER_SPEC = get_provider_spec("anthropic")
+DEFAULT_ANTHROPIC_MODEL = (
+    _ANTHROPIC_PROVIDER_SPEC.default_benchmark_model
+    or "claude-3-5-haiku-20241022"
 )
-_REPORT_TITLE = "Gemini First Panel Report"
+_REPORT_TITLE = "Anthropic Panel Report"
 
-GeminiFirstPanelArtifacts = PanelArtifacts
+AnthropicPanelArtifacts = PanelArtifacts
 
 
-def run_gemini_first_panel(
+def default_anthropic_panel_report_path(*, include_narrative: bool) -> Path:
+    target = "binary-vs-narrative" if include_narrative else "binary-only"
+    return build_latest_report_path(
+        "live",
+        "anthropic-panel",
+        target,
+        filename="report.md",
+    )
+
+
+def run_anthropic_panel(
     *,
-    model_name: str = DEFAULT_GEMINI_MODEL,
+    model_name: str = DEFAULT_ANTHROPIC_MODEL,
     report_path: Path | None = None,
     modes: tuple[ModelMode, ...] = DEFAULT_PANEL_MODES,
     config: ModelRunConfig = DEFAULT_PANEL_CONFIG,
-    adapter: GeminiAdapter | None = None,
-) -> GeminiFirstPanelArtifacts:
+    adapter: AnthropicAdapter | None = None,
+) -> AnthropicPanelArtifacts:
     normalized_modes = tuple(ModelMode(mode) for mode in modes)
     if not normalized_modes:
         raise ValueError("modes must not be empty")
@@ -72,18 +75,22 @@ def run_gemini_first_panel(
         raise ValueError("modes must not contain duplicates")
 
     resolved_model_name = resolve_provider_model_name(
-        "gemini",
+        "anthropic",
         surface=ProviderExecutionSurface.LOCAL_BENCHMARK,
         model_name=model_name,
     )
-    active_adapter = GeminiAdapter.from_env() if adapter is None else adapter
+    active_adapter = (
+        AnthropicAdapter.from_env() if adapter is None else adapter
+    )
     episodes_by_split: dict[str, tuple[Episode, ...]] = {}
     benchmark_results_by_split: dict[str, object] = {}
     model_sources_by_split: dict[str, tuple[AuditSource, ...]] = {}
-    provider_name = _GEMINI_PROVIDER_SPEC.provider_name
+    provider_name = _ANTHROPIC_PROVIDER_SPEC.provider_name
 
     for split_name in PARTITIONS:
-        episodes = tuple(record.episode for record in load_frozen_split(split_name))
+        episodes = tuple(
+            record.episode for record in load_frozen_split(split_name)
+        )
         benchmark_result = run_model_benchmark(
             episodes,
             active_adapter,
@@ -92,7 +99,7 @@ def run_gemini_first_panel(
             config=config,
             modes=normalized_modes,
             progress_callback=build_panel_progress_callback(
-                split_name, panel_label="gemini-first-panel"
+                split_name, panel_label="anthropic-panel"
             ),
         )
         episodes_by_split[split_name] = episodes
@@ -100,7 +107,9 @@ def run_gemini_first_panel(
         model_sources_by_split[split_name] = tuple(
             AuditSource.from_parsed_predictions(
                 f"{resolved_model_name} {TASK_MODE_LABELS[mode_result.mode]}",
-                tuple(row.parsed_prediction for row in mode_result.rows),
+                tuple(
+                    row.parsed_prediction for row in mode_result.rows
+                ),
                 task_mode=TASK_MODE_LABELS[mode_result.mode],
                 source_family=resolved_model_name,
                 is_real_model=True,
@@ -130,7 +139,11 @@ def run_gemini_first_panel(
         report_title=_REPORT_TITLE,
     )
     resolved_report_path = (
-        DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH if report_path is None else report_path
+        report_path
+        if report_path is not None
+        else default_anthropic_panel_report_path(
+            include_narrative=ModelMode.NARRATIVE in normalized_modes
+        )
     )
     resolved_artifact_path = artifact_path_for_report(resolved_report_path)
     report_timestamp = current_report_timestamp()
@@ -145,7 +158,7 @@ def run_gemini_first_panel(
         timestamp=report_timestamp,
     )
 
-    return GeminiFirstPanelArtifacts(
+    return AnthropicPanelArtifacts(
         provider_name=provider_name,
         model_name=resolved_model_name,
         prompt_modes=normalized_modes,
@@ -156,32 +169,4 @@ def run_gemini_first_panel(
         artifact_path=resolved_artifact_path,
         snapshot_report_path=snapshot_report_path,
         snapshot_artifact_path=snapshot_artifact_path,
-    )
-
-
-def default_gemini_first_panel_report_path(*, include_narrative: bool) -> Path:
-    target = "binary-vs-narrative" if include_narrative else "binary-only"
-    return build_latest_report_path(
-        "live",
-        "gemini-first-panel",
-        target,
-        filename="report.md",
-    )
-
-
-def render_gemini_first_panel_markdown(
-    release_report: ReleaseAuditReport,
-    *,
-    model_name: str,
-    provider_name: str,
-    prompt_modes: tuple[ModelMode, ...],
-    artifact_payload: dict[str, object] | None = None,
-) -> str:
-    return render_panel_markdown(
-        release_report,
-        model_name=model_name,
-        provider_name=provider_name,
-        prompt_modes=prompt_modes,
-        artifact_payload=artifact_payload,
-        report_title=_REPORT_TITLE,
     )

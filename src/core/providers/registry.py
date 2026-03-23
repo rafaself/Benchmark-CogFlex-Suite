@@ -86,6 +86,15 @@ _REGISTERED_PROVIDERS: Final[dict[str, ProviderSpec]] = {
         pinned_model_pattern=r"^gemini-[a-z0-9.-]+-\d{3}$",
         sdk_extra="gemini",
     ),
+    "anthropic": build_provider_spec(
+        provider_name="anthropic",
+        kaggle_supported=False,
+        local_only=True,
+        default_benchmark_model="claude-3-5-haiku-20241022",
+        supports_json_schema_structured_output=False,
+        pinned_model_pattern=r"^claude-[a-z0-9.-]+-\d{8}$",
+        sdk_extra="anthropic",
+    ),
 }
 
 
