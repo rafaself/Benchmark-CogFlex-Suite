@@ -1,3 +1,19 @@
+# R17 Packaging Note (Phase 3 — Kaggle Execution Hardening)
+
+- Rewrote `iron_find_electric_v1_kbench.ipynb` with the correct `kaggle_benchmarks` API:
+  - `@kbench.task` functions now take `(llm, prompt_binary, probe_targets)` / `(llm, prompt_narrative, probe_targets)` — matching `eval_df` column names, with `llm` injected by kbench at evaluation time.
+  - Model calls use `llm.prompt(...)` (not `kbench.llm(...)`).
+  - Evaluation calls use `task.evaluate(llm=[kbench.llm], evaluation_data=eval_df)` — the correct kbench signature.
+  - Return type annotations `-> tuple[int, int]` added, required by the leaderboard.
+  - Narrative evaluation wrapped in a non-blocking `try/except` so Binary result is never blocked.
+  - Result inspection cell uses `.as_dataframe()` under a guard, non-blocking.
+  - Combined parse/normalize helpers into Cell 6; removed redundant `build_binary_prompt` wrapper.
+- Added `kernel-metadata.json` as the Kaggle kernel submission manifest, declaring `iron_find_electric_v1_kbench.ipynb` as the `code_file`.
+- Updated `frozen_artifacts_manifest.json`: added `kbench_notebook` and `kernel_metadata` entries with SHA-256 hashes; corrected stale `benchmark_card` hash.
+- All manifest hashes re-validated locally (`validate_kaggle_staging_manifest: PASS`).
+- Binary remains the only leaderboard task (`%choose iron_find_electric_v1_binary`).
+- Frozen contract, scoring semantics, split manifests, and evidence reports are unchanged.
+
 # R16 Packaging Note
 
 - Added Kaggle staging artifacts: `iron_find_electric_v1_kaggle_staging.ipynb`, `BENCHMARK_CARD.md`, `README.md`, and `frozen_artifacts_manifest.json`.

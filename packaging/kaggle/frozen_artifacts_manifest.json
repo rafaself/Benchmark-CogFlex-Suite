@@ -14,9 +14,17 @@
       "path": "packaging/kaggle/iron_find_electric_v1_kaggle_staging.ipynb",
       "sha256": "0d3c67c77296dafa550e12d649b3d1ee63e93f7f633a273d7c03679497125603"
     },
+    "kbench_notebook": {
+      "path": "packaging/kaggle/iron_find_electric_v1_kbench.ipynb",
+      "sha256": "d8cfe1ad58b3283bd87bf7bb342c0ee6698641cc00cd7ac9323342ec28dad4e6"
+    },
+    "kernel_metadata": {
+      "path": "packaging/kaggle/kernel-metadata.json",
+      "sha256": "7bd231b91ae062dac2e298b7e98eccaf6d07ec640d248fe6acd0b96a92ab38b6"
+    },
     "benchmark_card": {
       "path": "packaging/kaggle/BENCHMARK_CARD.md",
-      "sha256": "d6f75ef177730f2a4e7028cf068227aa2a3248d2a8f44b56ed67aaf974d28d0b"
+      "sha256": "d0a7c04de6844925396ff626231a198101416e1441b886e9861f4929c6b9f546"
     },
     "usage": {
       "path": "packaging/kaggle/README.md",
@@ -24,7 +32,7 @@
     },
     "packaging_note": {
       "path": "packaging/kaggle/PACKAGING_NOTE.md",
-      "sha256": "5c40175930ab96de025351247664c53d2b6bc41a7921ddcaf4b097eded7fbdf3"
+      "sha256": "f0cabe55ccddafe434645108815469ff90e114278444c7412f50f30d06286bff"
     }
   },
   "frozen_split_manifests": {
