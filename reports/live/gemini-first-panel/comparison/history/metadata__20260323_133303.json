@@ -1,0 +1,57 @@
+{
+  "run_metadata_schema_version": "v1",
+  "comparison_type": "intra_family",
+  "provider": "gemini",
+  "models_compared": [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite"
+  ],
+  "prompt_modes": [
+    "binary",
+    "narrative"
+  ],
+  "release_id": "R18",
+  "benchmark_versions": {
+    "schema_version": "v1",
+    "generator_version": "R12",
+    "template_family_version": "v1",
+    "parser_version": "v1",
+    "metric_version": "v1",
+    "difficulty_version": "R12",
+    "artifact_schema_version": "v1.1"
+  },
+  "frozen_split_hashes": {
+    "dev": "986f750f73549b42b9bcfc728d3d86f80d76ce57bc5013471740ec6e4773f403",
+    "public_leaderboard": "6b884cbfd706db58d1b54925a21065f37daac32bfd128385bed729a816a1defb",
+    "private_leaderboard": "5b0ae4650a509a98f03fcba1faced92aeab2e8c1c9164688c2e891c655466be2"
+  },
+  "run_a": {
+    "provider": "gemini",
+    "requested_model": "gemini-2.5-flash",
+    "served_model": null,
+    "artifact_path": "reports/live/gemini-first-panel/binary-vs-narrative/history/artifact__20260323_120000.json",
+    "metadata_path": "reports/live/gemini-first-panel/binary-vs-narrative/history/metadata__20260323_120000.json",
+    "report_path": "reports/live/gemini-first-panel/binary-vs-narrative/history/report__20260323_120000.md",
+    "execution_timestamp": "20260323_120000"
+  },
+  "run_b": {
+    "provider": "gemini",
+    "requested_model": "gemini-2.5-flash-lite",
+    "served_model": "gemini-2.5-flash-lite",
+    "artifact_path": "reports/live/gemini-first-panel/binary-vs-narrative/latest/artifact.json",
+    "metadata_path": "reports/live/gemini-first-panel/binary-vs-narrative/latest/metadata.json",
+    "report_path": "reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md",
+    "execution_timestamp": "20260323_125335"
+  },
+  "comparison_timestamp": "20260323_133303",
+  "storage": {
+    "report": {
+      "latest": "reports/live/gemini-first-panel/comparison/latest/report.md",
+      "history": "reports/live/gemini-first-panel/comparison/history/report__20260323_133303.md"
+    },
+    "artifact": {
+      "latest": "reports/live/gemini-first-panel/comparison/latest/artifact.json",
+      "history": "reports/live/gemini-first-panel/comparison/history/artifact__20260323_133303.json"
+    }
+  }
+}
