@@ -2,16 +2,16 @@
 
 ## Summary
 
-Iron Find Electric v1 is a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
+Iron Find Electric v1 is a targeted Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
 
-A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, or general reasoning ability.
+A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, broad AGI capability, or general reasoning ability.
 
-This package is for Kaggle staging only. The implemented local benchmark under `src/`, the frozen split manifests under `src/frozen_splits/`, and the locally produced validation and audit evidence remain the source of truth.
+This package is for Kaggle staging only. The implemented local benchmark under `src/`, the frozen split manifests under `src/frozen_splits/`, the reports tree under `reports/`, and the locally produced validation and audit evidence remain the source of truth.
 
-## Task
+## Task Paths
 
-- **Binary** is the only leaderboard-primary task. It is the scored evaluation path for the v1 claim.
-- **Narrative** is required non-leaderboard robustness evidence. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
+- **Binary** is the only leaderboard-primary path. It is the scored evaluation path for the v1 claim.
+- **Narrative** is the required same-episode robustness companion. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
 - Electrostatics is only the controlled substrate. The benchmark is not intended to measure physics skill as the primary target.
 
 Each episode contains:
@@ -26,11 +26,19 @@ Current rule family:
 - `R_std`: same-sign charges repel, opposite-sign charges attract
 - `R_inv`: same-sign charges attract, opposite-sign charges repel
 
-## Metric
+## Headline Metric
 
-The primary metric is **Post-shift Probe Accuracy**: the fraction of final post-shift probe labels answered correctly under the post-shift rule in the Binary task.
+The sole headline metric is **Post-shift Probe Accuracy**: the fraction of final post-shift probe labels answered correctly under the post-shift rule in the Binary path.
 
-Binary is the only headline report. Narrative is reviewed only as same-episode robustness evidence and does not change the headline score.
+Narrative is reviewed only as same-episode robustness evidence and does not change the headline score.
+
+## Split Contract
+
+Frozen split names are exactly:
+
+- `dev`
+- `public_leaderboard`
+- `private_leaderboard`
 
 ## Baselines
 
@@ -42,15 +50,16 @@ Current baseline references carried into the package:
 - `physics_prior`
 - `template_position`
 
-These are the benchmark sanity-check baselines used by the local validity and re-audit workflow. They are included to frame shortcut risk, not to claim any model leaderboard result.
+These are benchmark sanity-check baselines used by the local validity and re-audit workflow. They are included to frame shortcut risk, not to claim any model leaderboard result.
 
 ## Frozen Artifacts And Reproducibility
 
-This Kaggle package references frozen local artifacts rather than regenerating a new benchmark design:
+This Kaggle package references frozen local artifacts rather than regenerating a new benchmark:
 
 - split manifests: `src/frozen_splits/dev.json`, `src/frozen_splits/public_leaderboard.json`, `src/frozen_splits/private_leaderboard.json`
 - anti-shortcut gate evidence: `tests/fixtures/release_r13_validity_report.json`
 - empirical re-audit evidence: `tests/fixtures/release_r15_reaudit_report.json`
+- current Gemini evidence anchor: `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`
 - bundle index and integrity hashes: `packaging/kaggle/frozen_artifacts_manifest.json`
 
 Version metadata currently frozen by the package:
@@ -63,14 +72,15 @@ Version metadata currently frozen by the package:
 
 ## Current Implementation State
 
-Current emitted difficulty labels are `easy` and `medium`. `hard` is reserved and not emitted by the current implementation, so no packaging claim depends on emitted `hard` slices.
+Current emitted difficulty labels are `easy` and `medium`. `hard` is reserved and not emitted by the current implementation, so no benchmark claim depends on emitted `hard` slices.
 
 The benchmark currently claims:
 
 - a reproducible Binary benchmark and Narrative companion over the same frozen split manifests and probe targets
-- a Binary-only primary metric of Post-shift Probe Accuracy
+- Binary as the only leaderboard-primary path
+- Post-shift Probe Accuracy as the sole headline metric
 - deterministic local replay from the stored seed banks
-- local validity and audit evidence tied to the current repaired implementation
+- local validity and audit evidence tied to the current implemented benchmark
 
 The benchmark explicitly does **not** claim:
 
@@ -79,17 +89,27 @@ The benchmark explicitly does **not** claim:
 - broad adaptation ability
 - broad AGI capability
 - general reasoning ability
+- human-level performance
+- cross-provider readiness or cross-provider equivalence
 - online detection latency
 - switch cost measurement
 - recovery length
 - immediate post-shift drop
 - emitted `hard` slices
 
+## Current Readiness Status
+
+- the active v1 readiness evidence path is Gemini;
+- the current anchor evidence is the committed report preserving the requested model label `gemini-2.5-flash`;
+- the next active evidence target is `gemini-2.5-flash-lite`;
+- Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate;
+- current v1 readiness does not require cross-provider evidence.
+
 ## Current Evidence
 
 ### R13 anti-shortcut validity gate
 
-The packaged anti-shortcut validity evidence is the local `R13` gate report. It now reports **PASS**: the best private-leaderboard critical-baseline subset gaps are `0.103175` for both template and emitted difficulty, above the required `0.100000`.
+The packaged anti-shortcut validity evidence is the local `R13` gate report. It reports **PASS**: the best `private_leaderboard` critical-baseline subset gaps are `0.103175` for both template and emitted difficulty, above the required `0.100000`.
 
 ### R15 empirical re-audit
 
@@ -99,13 +119,13 @@ The same re-audit also says the benchmark is still limited by:
 
 - `hard` remaining reserved and un-emitted
 
-### M1 live Gemini panel evidence
+### M1 live Gemini evidence
 
-The current M1 live Gemini panel (requested model label `gemini-2.5-flash`, R18) provides the first real-model evidence. This committed report was resynced in M6 from the original legacy capture; current local runners now require pinned model IDs, but the legacy capture did not record provider-served model-version, token-usage, or duration fields.
+The current anchor evidence is the committed M1 Gemini panel report for requested model label `gemini-2.5-flash`. This committed report was resynced in M6 from the original legacy capture; current local runners now require pinned model IDs, but the legacy capture did not record provider-served model-version, token-usage, or duration fields.
 
-- Binary accuracy: 0.781250 (vs best baseline random = 0.546875)
+- Binary accuracy: 0.781250
 - Narrative accuracy: 0.458333
-- Binary → Narrative delta: 0.322917
+- Binary -> Narrative delta: 0.322917
 - Binary parse-valid: 1.000000
 - Narrative parse-valid: 0.937500
 
@@ -118,8 +138,8 @@ M2 confirms that packaged frozen artifacts load, manifest validation passes, and
 ## Limitations
 
 - The package does not bundle model predictions or Kaggle submission outputs.
-- M1 live Gemini panel evidence exists in the reports tree but is not part of the Kaggle staging package itself.
-- Narrative is not a primary leaderboard task, and only the final four labels are scored.
+- Current readiness evidence is Gemini-only; the package does not require Anthropic or OpenAI evidence for v1 readiness.
+- Narrative is not leaderboard-primary, and only the final four labels are scored.
 - No claim should depend on explanation quality or formatting compliance.
-- No claim here upgrades the local evidence beyond the bundled R13 and R15 reports.
+- No claim here upgrades the local evidence beyond the bundled R13, R15, and committed Gemini evidence surfaces.
 - Local validation remains authoritative if any staging notebook output diverges from the frozen evidence.

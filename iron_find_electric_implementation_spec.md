@@ -2,15 +2,15 @@
 
 ## Concrete Implementation Spec
 
-> Status note: the repository already implements the local benchmark infrastructure for the Iron Find Electric v1 task described here. The R13 anti-shortcut validity gate now passes and the recency shortcut baseline `last_evidence` is bounded. `hard` remains part of the protocol vocabulary but is not emitted by the current generator. M1 live Gemini panel evidence exists (Binary accuracy = 0.781250, Narrative accuracy = 0.458333). M3 has not started. Kaggle staging should follow local validity repair rather than precede it.
+> Status note: the repository already implements the local benchmark pipeline described here. The current frozen benchmark passes the R13 anti-shortcut validity gate, the R15 re-audit keeps `last_evidence` bounded, `hard` remains reserved and un-emitted, and current v1 readiness is anchored to Gemini evidence. Anthropic and OpenAI integrations exist locally but are outside the current v1 readiness gate.
 
 ## 1. Objective
 
-Describe and maintain the implemented local benchmark pipeline for the Iron Find Electric v1 task, a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence in short two-charge binary episodes.
+Describe and maintain the implemented local benchmark pipeline for the Iron Find Electric v1 task, a targeted Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence in short two-charge binary episodes.
 
-The implementation must make the following interpretation defensible:
+The implementation makes the following interpretation defensible:
 
-> A strong v1 score indicates that the model applied an updated latent rule to final post-shift probes after contradictory sparse evidence.
+> A strong v1 Binary score indicates that the model applied an updated latent rule to final post-shift probes after contradictory sparse evidence.
 
 The implementation must prevent high scores from being explained mainly by:
 
@@ -33,8 +33,8 @@ The implementation must prevent high scores from being explained mainly by:
 - one hidden rule after shift;
 - fixed total episode length;
 - deterministic generation;
-- one leaderboard-primary task;
-- one required non-leaderboard robustness companion task.
+- one leaderboard-primary path;
+- one required same-episode robustness companion.
 
 ### Excluded
 
@@ -44,7 +44,8 @@ The implementation must prevent high scores from being explained mainly by:
 - temporal dynamics;
 - trajectory simulation;
 - explanation-based primary scoring;
-- item-level switch-cost or recovery claims.
+- item-level switch-cost or recovery claims;
+- broad AGI, human-level, or cross-provider claims.
 
 ---
 
@@ -185,7 +186,7 @@ The implementation should still compute and store whether each probe is a disagr
 label(R_std, q1, q2) != label(R_inv, q1, q2)
 ```
 
-This flag is for audit and analysis only, not for the v1 headline metric.
+This flag is for audit and analysis only, not for the headline metric.
 
 ### Constraint D - balanced probe labels at dataset level
 Across the full dataset, probe answers under `rule_B` should be approximately balanced between `attract` and `repel`.
@@ -243,17 +244,19 @@ Requirements:
 
 Difficulty assignment must be deterministic from generator metadata, not subjective post hoc judgment.
 
+Current implementation note: emitted difficulties are `easy` and `medium`. `hard` remains reserved in the protocol but is not emitted by the current generator.
+
 ---
 
 ## 7. Episode Data Schema
 
-Each episode should be represented as one structured row in the source dataset.
+Each episode is represented as one structured row in the source dataset.
 
 ## 7.1 Canonical row fields
 
 ```text
 episode_id: string
-split: string                  # dev | public | private
+split: string                  # dev | public_leaderboard | private_leaderboard
 difficulty: string             # easy | medium | hard
 template_id: string            # T1 | T2
 pre_count: integer             # 2 | 3
@@ -312,7 +315,7 @@ This metadata is for evaluation and audit, not for model input.
 
 ## 8. Model Input Format
 
-The benchmark should expose one prompt string or one structured serialized field per episode.
+The benchmark exposes one prompt string or one structured serialized field per episode.
 
 ## 8.1 Canonical Binary rendering
 
@@ -338,7 +341,7 @@ Return exactly four labels in order, each either attract or repel.
 
 ## 8.2 Narrative companion rendering
 
-Required non-leaderboard robustness rendering using the same frozen episodes and probe targets as Binary:
+Required same-episode robustness rendering using the same frozen episodes and probe targets as Binary:
 
 ```text
 Two electric charges were observed interacting in the following sequence.
@@ -357,7 +360,7 @@ Use the pattern best supported by the labeled observations to answer the unlabel
 Any reasoning is optional and unscored. On the final line, return exactly four labels in order, each either attract or repel.
 ```
 
-The benchmark package must include both renderings. Only the Binary task is leaderboard-primary.
+The benchmark package includes both renderings. Only Binary is leaderboard-primary.
 
 ## 8.3 Required output format
 
@@ -367,8 +370,7 @@ Model output must parse into exactly four labels in order:
 attract, repel, repel, attract
 ```
 
-Acceptable parser variants may allow newline-separated outputs, but the benchmark must normalize strictly.
-For Narrative, any preceding reasoning text is unscored; only the final four labels are evaluated.
+Acceptable parser variants may allow newline-separated outputs, but the benchmark normalizes strictly. For Narrative, any preceding reasoning text is unscored; only the final four labels are evaluated.
 
 ---
 
@@ -385,8 +387,8 @@ Example:
 
 ```csv
 episode_id,predictions
-public_000001,"attract,repel,repel,attract"
-public_000002,"repel,attract,repel,attract"
+public_leaderboard_000001,"attract,repel,repel,attract"
+public_leaderboard_000002,"repel,attract,repel,attract"
 ```
 
 Parsed prediction length must equal 4. Invalid outputs count as incorrect for all four probes unless a more granular parser is explicitly versioned. Narrative reasoning text must not receive any score.
@@ -395,7 +397,7 @@ Parsed prediction length must equal 4. Invalid outputs count as incorrect for al
 
 ## 10. Metrics
 
-## 10.1 Primary metric
+## 10.1 Headline metric
 
 ### Post-shift Probe Accuracy
 
@@ -407,7 +409,7 @@ Formula:
 primary_score = correct_probe_predictions / total_probes
 ```
 
-This is the sole headline metric for `Adaptive Rule Updating - Binary`.
+Post-shift Probe Accuracy is the sole headline metric.
 
 ## 10.2 Diagnostic reporting only
 
@@ -437,8 +439,6 @@ Separate scores for emitted difficulties. Under the current generator this means
 - easy
 - medium
 
-If a future release emits `hard`, it can be added back to slice reporting at that point.
-
 ### Format Robustness Comparison (diagnostic only)
 
 Compare Binary and Narrative performance on the same frozen episode set and probe targets. Narrative reasoning is unscored, and only the final four labels count toward the Narrative companion score.
@@ -452,7 +452,7 @@ Use bootstrap on episodes, not individual probes.
 Recommended:
 
 - 1000 bootstrap resamples
-- report 95% interval for primary score
+- report 95% interval for the headline metric
 
 ---
 
@@ -488,7 +488,7 @@ Uniformly sample `attract` or `repel` for each probe with fixed RNG seed.
 
 ## 12. Validation Checks
 
-The generator pipeline must run validation before dataset freeze. Validation must include deterministic replay checks, property tests, and regression tests against frozen reference fixtures.
+The generator pipeline runs validation before dataset freeze. Validation includes deterministic replay checks, property tests, and regression tests against frozen reference fixtures.
 
 ## 12.1 Per-episode checks
 
@@ -517,14 +517,14 @@ For every split, verify:
 - sign categories have coverage;
 - no duplicated episodes exist across splits;
 - baseline performance pattern is sensible;
-- public/private generation logic is identical except for seed bank.
+- generation logic is identical across `dev`, `public_leaderboard`, and `private_leaderboard` except for frozen seed banks.
 
 ## 12.3 Property and regression checks
 
-The codebase must include:
+The codebase includes:
 
 - property tests for rule invariance, parser determinism, metric determinism, and seed replay;
-- regression tests against a small frozen reference fixture dataset;
+- regression tests against frozen reference fixture datasets;
 - schema drift checks so field names and serialized structures cannot silently change.
 
 ## 12.4 Anti-shortcut acceptance criteria
@@ -534,7 +534,7 @@ The benchmark is not accepted unless:
 - physics-prior baseline is clearly below the target model on shift-sensitive slices;
 - never-update baseline fails on shift-sensitive slices;
 - majority-label baseline remains near chance or clearly inferior;
-- the recency shortcut baseline `last_evidence` does not dominate emitted shift-sensitive subsets, and no acceptance claim depends on an unimplemented hard slice;
+- the recency shortcut baseline `last_evidence` does not dominate emitted shift-sensitive subsets, and no acceptance claim depends on an unimplemented `hard` slice;
 - approved templates do not expose the shift boundary solely through end-position counting.
 
 ---
@@ -543,81 +543,66 @@ The benchmark is not accepted unless:
 
 ## 13.1 Split names
 
-Use:
+Use exactly:
 
 - `dev`
-- `public`
-- `private`
+- `public_leaderboard`
+- `private_leaderboard`
 
 ## 13.2 Split purpose
 
 ### dev
 For internal debugging, metric checks, and baseline verification.
 
-### public
-For public leaderboard evaluation.
+### public_leaderboard
+For `public_leaderboard` evaluation.
 
-### private
-For held-out audit and contamination resistance.
+### private_leaderboard
+For `private_leaderboard` evaluation and contamination resistance.
 
 ## 13.3 Seed policy
 
-Each split must use a separate frozen seed list.
-
-Example:
-
-```text
-DEV_SEEDS     = [1001, 1002, ..., 1100]
-PUBLIC_SEEDS  = [2001, 2002, ..., 2600]
-PRIVATE_SEEDS = [9001, 9002, ..., 9600]
-```
-
-Exact values can vary, but must be frozen and versioned.
+Each split uses a separate frozen seed list and manifest payload.
 
 ---
 
-## 14. File Layout
+## 14. Repository Layout
 
-Recommended repository layout:
+Implemented benchmark-facing layout:
 
 ```text
-iron_find_electric/
-  README.md
-  benchmark_card.md
-  pyproject.toml
-  src/
-    rules.py
-    generator.py
-    schema.py
-    render.py
-    parser.py
-    metrics.py
-    baselines.py
-    validate.py
-    splits.py
-  data/
-    dev.csv
-    public.csv
-    private.csv
-    fixtures/
-      reference_dev_fixture.csv
-  notebooks/
-    benchmark.ipynb
-    diagnostics.ipynb
-  tests/
-    test_rules.py
-    test_generator.py
-    test_metrics.py
-    test_parser.py
-    test_validation.py
-    test_regression.py
+README.md
+iron_find_electric_implementation_spec.md
+iron_find_electric_improved_plan.md
+benchmark_design_section_cognitive_flexibility.md
+packaging/
+  kaggle/
+    BENCHMARK_CARD.md
+    PACKAGING_NOTE.md
+    README.md
+    frozen_artifacts_manifest.json
+    iron_find_electric_v1_kaggle_staging.ipynb
+reports/
+  audit/
+  live/
+src/
+  core/
+  frozen_splits/
+    dev.json
+    public_leaderboard.json
+    private_leaderboard.json
+  tasks/
+    iron_find_electric/
+tests/
 ```
+
+This repository layout already exists and is part of the implemented benchmark surface.
 
 ---
 
 ## 15. Module Responsibilities
 
-## `rules.py`
+## `src/tasks/iron_find_electric/rules.py`
 
 Implements:
 
@@ -625,7 +610,7 @@ Implements:
 - `label(rule, q1, q2)`
 - disagreement detection
 
-## `generator.py`
+## `src/tasks/iron_find_electric/generator.py`
 
 Implements:
 
@@ -634,7 +619,7 @@ Implements:
 - difficulty assignment
 - resampling on failed constraints
 
-## `schema.py`
+## `src/tasks/iron_find_electric/schema.py`
 
 Defines:
 
@@ -642,65 +627,72 @@ Defines:
 - item schema
 - probe metadata schema
 
-## `render.py`
+## `src/tasks/iron_find_electric/render.py`
 
 Converts structured episodes into Binary and Narrative model-facing prompt strings.
 
-## `parser.py`
+## `src/core/parser.py`
 
 Parses model outputs into 4-label predictions.
 
-## `metrics.py`
+## `src/core/metrics.py`
 
 Computes:
 
-- primary score
-- secondary scores
+- Post-shift Probe Accuracy
+- diagnostic summaries
 - bootstrap confidence intervals
 
-## `baselines.py`
+## `src/tasks/iron_find_electric/baselines.py`
 
 Implements all benchmark baselines.
 
-## `validate.py`
+## `src/core/validate.py`
 
 Runs per-episode and dataset-level validity checks.
 
-## `splits.py`
+## `src/core/splits.py`
 
-Builds frozen datasets from seed lists and balanced template usage.
+Loads frozen datasets from split manifests and supports overlap checks and audits.
+
+## `src/core/gemini_panel.py`
+
+Runs the active Gemini readiness path and writes canonical live evidence under `reports/live/gemini-first-panel/`.
+
+## `src/core/anthropic_panel.py` and `src/core/openai_panel.py`
+
+Run local-only provider panels that exist in-repo but are outside the current v1 readiness gate.
 
 ---
 
 ## 16. Kaggle Staging Interface
 
-## 16.1 Primary benchmark task name
+## 16.1 Leaderboard-primary path
 
 ```text
-Adaptive Rule Updating - Binary
+Binary
 ```
 
-## 16.2 Required companion task
+## 16.2 Required companion path
 
 ```text
-Adaptive Rule Updating - Narrative
+Narrative
 ```
 
-This task is required for v1 robustness evidence, but it is not leaderboard-primary.
+Narrative is required same-episode robustness evidence, but it is not leaderboard-primary.
 
 ## 16.3 Notebook behavior
 
-Main benchmark notebook must:
+The staging notebook must:
 
 1. load frozen evaluation data;
-2. expose the Binary benchmark task through `%choose`;
+2. expose the Binary benchmark path;
 3. run the required Narrative companion evaluation on the same underlying episodes;
-4. call the participant model on each episode prompt;
-5. parse outputs;
-6. compute primary score and confidence interval;
-7. return numeric evaluation results and robustness comparison.
+4. parse outputs;
+5. compute Post-shift Probe Accuracy;
+6. return numeric evaluation results and robustness comparison.
 
-This staging work belongs after local validity repair, the validity gate, the split re-freeze, and the empirical re-audit.
+The staging notebook is a replay and packaging surface over existing local benchmark artifacts. It is not the place where the benchmark is first created.
 
 ## 16.4 Benchmark card minimum contents
 
@@ -709,8 +701,8 @@ Must state:
 - track: Executive Functions;
 - construct: cognitive flexibility;
 - substrate: simplified two-charge interaction rules;
-- primary metric: Post-shift Probe Accuracy;
-- required companion task: Adaptive Rule Updating - Narrative;
+- headline metric: Post-shift Probe Accuracy;
+- required companion path: Narrative;
 - main limitations;
 - baseline results;
 - reproducibility details.
@@ -742,7 +734,7 @@ At least these invariants:
 
 ## 17.3 Regression tests
 
-Freeze a small reference dataset and expected metric outputs so refactors cannot silently change benchmark logic.
+Freeze reference datasets and expected metric outputs so refactors cannot silently change benchmark logic.
 
 ---
 
@@ -757,77 +749,52 @@ Version all of the following independently:
 - metric version;
 - split seed bank version.
 
-Suggested tag format:
-
-```text
-IFE-v1.0.0
-```
-
 Any change that can alter leaderboard scores requires a version bump.
 
 ---
 
 ## 19. Acceptance Criteria for v1
 
-The v1 benchmark is ready only if all of the following are true:
+The v1 benchmark is readiness-aligned only if all of the following are true:
 
 1. generator is deterministic and validated;
 2. dataset schema is frozen;
 3. the only approved template family is the frozen fixed-length `T1` / `T2` set;
 4. template usage is balanced across splits;
 5. no approved template exposes the shift boundary purely through end-position counting;
-6. primary metric is Post-shift Probe Accuracy;
-7. Binary is the only leaderboard-primary task;
-8. Narrative is included as required non-leaderboard robustness evidence;
-9. public/private splits are frozen and separated by seed bank;
-10. all baselines run end-to-end;
+6. Post-shift Probe Accuracy is the sole headline metric;
+7. Binary is the only leaderboard-primary path;
+8. Narrative is included as the required same-episode robustness companion;
+9. `dev`, `public_leaderboard`, and `private_leaderboard` are frozen and separated by seed bank;
+10. all baselines run end to end;
 11. validity checks pass;
-12. if and when Kaggle staging is attempted, the benchmark notebook runs from frozen assets;
-13. benchmark card states scope, limitations, and v1 protocol boundaries precisely.
+12. current readiness evidence is Gemini-only and does not require Anthropic or OpenAI;
+13. if and when Kaggle staging is attempted, the notebook runs from frozen assets already present in the repo;
+14. benchmark card states scope, limitations, and v1 protocol boundaries precisely.
 
 Phase-level recovery and lag claims remain out of scope unless the protocol is expanded to collect intermediate predictions.
 
 ---
 
-## 20. Active Repair Sequence
+## 20. Active Consolidation Sequence
 
-The repository is past the initial build phase. The active release sequence is:
+The repository is past the build phase. The active sequence is:
 
-### R11
-Documentation realignment.
+### Phase 1
+Documentation and status synchronization.
 
-### R12
-Protocol hardening.
+### Phase 2
+Gemini evidence progression, with current anchor `gemini-2.5-flash` and next target `gemini-2.5-flash-lite`.
 
-### R13
-Validity gate.
-
-### R14
-Split re-freeze.
-
-### R15
-Empirical re-audit.
-
-### R16
-Kaggle staging and packaging.
+### Phase 3
+Packaging and release discipline over frozen local artifacts.
 
 ---
 
 ## 21. Implemented Local Deliverable
 
-The first concrete deliverable is not the full Kaggle notebook.
-
-It is:
+The core deliverable is already present:
 
 > an implemented local benchmark pipeline that generates valid episodes, assigns deterministic difficulty tiers, renders Binary and Narrative prompts, parses 4-label outputs, computes Post-shift Probe Accuracy against frozen targets, and runs baseline sanity checks.
 
-That local benchmark pipeline is now present in the repository and remains the prerequisite for packaging work.
-
-## 21.1 Current Blockers
-
-The main remaining blockers are:
-
-1. keep deterministic generation, validation, and regression fixtures stable under refactor;
-2. reduce the strength of the recency shortcut baseline `last_evidence`;
-3. keep `hard` reserved and not emitted unless a later release can do so without weakening benchmark validity;
-4. package the benchmark notebook and benchmark card only after local validity repair, the validity gate, the split re-freeze, and the empirical re-audit are complete.
+Current remaining work is documentation, evidence progression, and packaging discipline. It is not first-time benchmark implementation.

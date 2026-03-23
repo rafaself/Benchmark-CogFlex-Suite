@@ -1,6 +1,6 @@
 # Reports Layout
 
-`reports/` is organized by context and target.
+`reports/` is the implemented evidence surface for benchmark audits and live provider evidence. It is organized by context and target.
 
 Canonical pattern:
 
@@ -10,8 +10,16 @@ Canonical pattern:
 
 Current top-level groupings:
 
-- `audit/`: deterministic benchmark audits, repairs, and evidence-pass artifacts.
+- `audit/`: deterministic benchmark audits, repairs, optimization summaries, and evidence-pass artifacts.
 - `live/`: real-provider execution reports and provider-side diagnostic captures.
+
+Current readiness interpretation:
+
+- the active v1 readiness evidence path is Gemini;
+- the current anchor evidence lives under `reports/live/gemini-first-panel/binary-vs-narrative/latest/`;
+- the anchor evidence preserves the original requested model label `gemini-2.5-flash`;
+- the next active evidence target is `gemini-2.5-flash-lite`;
+- Anthropic and OpenAI local report paths exist, but they are outside the current v1 readiness gate.
 
 Canonical live evidence should point to the `latest/` report and artifact first. Flat top-level report aliases such as `reports/m1_binary_vs_narrative_robustness_report.*` are convenience mirrors and should stay byte-identical to the canonical `latest/` surfaces they reference.
 

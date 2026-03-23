@@ -1,10 +1,10 @@
 # Iron Find Electric
 
-Iron Find Electric is benchmark infrastructure for the Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository contains the implemented local benchmark environment, frozen split assets, and task-specific logic for a narrow cognitive-flexibility benchmark.
+Iron Find Electric is benchmark infrastructure for the implemented Iron Find Electric v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository already contains the local benchmark code, frozen split assets, Kaggle staging layer, reports tree, and current Gemini evidence for this narrow cognitive-flexibility benchmark.
 
-Iron Find Electric v1 is a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
+Iron Find Electric v1 is a targeted Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
 
-A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, or general reasoning ability.
+A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, broad AGI capability, or general reasoning ability.
 
 ## Current State
 
@@ -19,34 +19,42 @@ The repository currently implements:
 - baselines: heuristic benchmark baselines, including the recency shortcut baseline `last_evidence`;
 - validation: episode, dataset, and regeneration checks;
 - splits: frozen split loading, deterministic replay, and overlap checks;
-- audit: split- and baseline-level audit reporting.
+- audit: split- and baseline-level audit reporting;
+- packaging: Kaggle staging assets under [`packaging/kaggle/`](./packaging/kaggle/);
+- reports: current audit and live-evidence artifacts under [`reports/`](./reports/).
 
-Current blockers and known limitations:
+Current implementation notes:
 
-- the current frozen benchmark now clears the local R13 anti-shortcut validity gate and keeps the recency shortcut materially bounded in the current R15 re-audit surface;
-- `hard` remains a reserved difficulty label and is not currently emitted by the R3 generator. No packaging claim depends on emitted `hard` slices;
-- M1 live Gemini panel evidence now confirms model-vs-heuristic separation (Binary accuracy = 0.781250 vs best baseline = 0.546875). Model predictions are not committed as repo artifacts;
-- the Kaggle staging bundle under [`packaging/kaggle/`](./packaging/kaggle/) mirrors the repaired local benchmark state, but local validation remains the source of truth.
+- the current frozen benchmark clears the local R13 anti-shortcut validity gate and keeps the recency shortcut materially bounded in the current R15 re-audit surface;
+- `hard` remains a reserved difficulty label and is not currently emitted by the generator. No benchmark claim depends on emitted `hard` slices;
+- the repo already contains live Gemini evidence under [`reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`](./reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md), plus the synced convenience alias `reports/m1_binary_vs_narrative_robustness_report.md`;
+- the Kaggle staging bundle under [`packaging/kaggle/`](./packaging/kaggle/) mirrors the current local benchmark state, but local code, frozen assets, and local validation/audit outputs remain the source of truth.
 
 Task and metric boundaries:
 
-- Binary is the only leaderboard-primary task and the scored evaluation path for the v1 claim.
-- Narrative is required non-leaderboard robustness evidence. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
-- The primary metric is Binary-only Post-shift Probe Accuracy.
+- Binary is the only leaderboard-primary path.
+- Narrative is the required same-episode robustness companion. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
+- Post-shift Probe Accuracy is the sole headline metric.
+- Split names are exactly `dev`, `public_leaderboard`, and `private_leaderboard`.
+
+Current v1 readiness status:
+
+- the active v1 readiness evidence path is Gemini;
+- the current anchor evidence is the committed Gemini report for requested model label `gemini-2.5-flash`;
+- the next active evidence target is `gemini-2.5-flash-lite`;
+- Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate and are not required for current v1 readiness;
+- current v1 readiness does not require cross-provider evidence.
 
 Current evidence status:
 
-- **M1 (live Gemini panel)**: Binary accuracy = 0.781250, Narrative accuracy = 0.458333 (delta = 0.322917), Binary parse-valid = 1.000000, Narrative parse-valid = 0.937500. Binary substantially exceeds all heuristic baselines. Narrative is meaningfully lower than Binary on the same frozen episodes, indicating a real surface-form robustness gap. A small Narrative provider/runtime contamination note (overall rate = 0.041667) must be disclosed separately from parse/format and adaptation outcomes. The committed M1 report was resynced in M6 from the original legacy capture and therefore preserves the original requested model label `gemini-2.5-flash`.
+- **M1 (live Gemini panel)**: Binary accuracy = 0.781250, Narrative accuracy = 0.458333 (delta = 0.322917), Binary parse-valid = 1.000000, Narrative parse-valid = 0.937500. Binary substantially exceeds all heuristic baselines. Narrative is meaningfully lower than Binary on the same frozen episodes, indicating a real surface-form robustness gap. A small Narrative provider/runtime contamination note (overall rate = 0.041667) must be disclosed separately from parse/format and adaptation outcomes. The committed M1 report preserves the original requested model label `gemini-2.5-flash`.
 - **M2 (staging dry-run readiness)**: Packaged frozen artifacts load, manifest validation passes, and the staging notebook runs end to end in both Binary and Narrative modes. M2 is packaging-validation evidence only, not live model-evaluation evidence.
-- **M3.1**: Provider-boundary hardening is complete.
-- **M3.2**: Anthropic local-only integration is complete in development; live run pending.
-- **M3.3**: OpenAI local-only integration is complete in development; live run pending.
-- **M6**: The v1.1 optimization pass tightens diagnostic reporting, live-artifact discipline, and release hygiene without changing the benchmark claim, frozen artifacts, or headline metric.
+- **Local provider surfaces**: Gemini, Anthropic, and OpenAI runners exist locally. Only Gemini is part of the current v1 readiness path.
+- **M6**: The v1.1 optimization pass tightened diagnostic reporting, live-artifact discipline, and release hygiene without changing benchmark behavior, frozen artifacts, or the headline metric.
 
 This benchmark does not claim to measure physics skill, broad AGI capability, broad executive-function coverage, switch cost, recovery length, immediate post-shift drop, or online change-detection latency.
 
-Optional real-model execution is available locally through the provider panel runners. It is not part of the deterministic main test gate, requires the matching optional provider SDK extra, and only runs when the relevant API key is configured in the shell environment or in a repo-root `.env` file. Benchmark runs require pinned model IDs. The current committed live evidence was produced with the Gemini runner.
-The committed M1 Gemini evidence predates the current pinned-model provenance capture and therefore preserves the original requested model label rather than a provider-served model-version field.
+Optional real-model execution is available locally through the provider panel runners. It is not part of the deterministic main test gate, requires the matching optional provider SDK extra, and only runs when the relevant API key is configured in the shell environment or in a repo-root `.env` file. Benchmark runs require pinned model IDs. The current committed readiness evidence is Gemini-only.
 
 ## Benchmark Shape
 
@@ -66,9 +74,9 @@ Labels depend only on charge sign, not magnitude, and pair order must not affect
 
 ## Structure
 
-Canonical code now lives in two package areas:
+Canonical code lives in two package areas:
 
-- [`src/core/`](./src/core): benchmark infrastructure shared across parsing, metrics, validation, audits, and split management.
+- [`src/core/`](./src/core): benchmark infrastructure shared across parsing, metrics, validation, audits, providers, panel runners, and split management.
 - [`src/tasks/iron_find_electric/`](./src/tasks/iron_find_electric): Iron Find Electric task logic, including protocol, schema, generation, rendering, and baselines.
 
 Compatibility wrapper modules remain at the top level under [`src/`](./src/) so existing imports like `from generator import generate_episode` still work during the transition.
@@ -78,7 +86,10 @@ src/
 ├── core/
 │   ├── audit.py
 │   ├── metrics.py
+│   ├── panel_runner.py
 │   ├── parser.py
+│   ├── providers/
+│   ├── report_outputs.py
 │   ├── splits.py
 │   └── validate.py
 ├── frozen_splits/
@@ -110,10 +121,11 @@ Primary benchmark-infrastructure interfaces:
 - [`src/core/validate.py`](./src/core/validate.py): validation result dataclasses plus `validate_episode`, `validate_dataset`, and `normalize_episode_payload`.
 - [`src/core/splits.py`](./src/core/splits.py): `FrozenSplitManifest`, frozen split loading, regeneration, and partition audits.
 - [`src/core/audit.py`](./src/core/audit.py): audit summaries and heuristic alignment analysis.
+- [`src/core/gemini_panel.py`](./src/core/gemini_panel.py), [`src/core/anthropic_panel.py`](./src/core/anthropic_panel.py), and [`src/core/openai_panel.py`](./src/core/openai_panel.py): local provider panel runners.
 
 ## Frozen Splits
 
-The repository includes frozen split JSON files under [`src/frozen_splits/`](./src/frozen_splits/). These remain the source for deterministic dev/public/private partitions.
+The repository includes frozen split JSON files under [`src/frozen_splits/`](./src/frozen_splits/). These remain the source for deterministic `dev`, `public_leaderboard`, and `private_leaderboard` partitions.
 
 The split utilities support:
 
@@ -148,8 +160,7 @@ python3 -m pytest
 
 ## Convenience Commands
 
-For local use, the repository now includes thin command wrappers over the existing
-benchmark functions.
+For local use, the repository includes thin command wrappers over the implemented benchmark functions.
 
 Without installing the project:
 
@@ -170,7 +181,7 @@ Or run the script dispatcher directly:
 .venv/bin/python scripts/evidence_pass.py
 ```
 
-To run the Gemini first panel (paired Binary and Narrative), which writes the canonical latest report under `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`:
+To run the current Gemini readiness path (paired Binary and Narrative), which writes the canonical latest report under `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`:
 
 ```bash
 export GEMINI_API_KEY=your_api_key_here
@@ -194,7 +205,7 @@ export OPENAI_API_KEY=your_api_key_here
 .venv/bin/python scripts/ife.py openai-panel --include-narrative --model gpt-5-mini-2025-08-07
 ```
 
-OpenAI support is optional local-only execution. It is not part of the Kaggle staging path.
+Anthropic and OpenAI support are optional local-only execution surfaces. They are not part of the current v1 readiness gate.
 
 ## Reports Layout
 
@@ -209,12 +220,11 @@ Preferred pattern for new report writers:
 Current examples:
 
 - `reports/live/gemini-first-panel/binary-only/` (historical Binary-only evidence)
-- `reports/live/gemini-first-panel/binary-vs-narrative/` (current paired evidence)
+- `reports/live/gemini-first-panel/binary-vs-narrative/` (current paired Gemini evidence and current readiness anchor path)
 - `reports/m1_binary_vs_narrative_robustness_report.md` (synced convenience alias to the canonical paired M1 report)
 - `reports/audit/evidence-pass/`
 
-If you want stable shell commands, install the repo in editable mode from a venv
-that includes the standard packaging backend (`setuptools`):
+If you want stable shell commands, install the repo in editable mode from a venv that includes the standard packaging backend (`setuptools`):
 
 ```bash
 python3 -m pip install -e .
@@ -232,13 +242,13 @@ ife-evidence-pass
 
 ## Source of Truth
 
-The source of truth for the current project state is the implemented local benchmark stack in [`src/`](./src/), the frozen assets in [`src/frozen_splits/`](./src/frozen_splits/), and the local validation, audit, and test suite results. Supporting documents should describe that implemented state honestly; they are not a substitute for the code, frozen assets, and local validity checks.
+The source of truth for the current project state is the implemented local benchmark stack in [`src/`](./src/), the frozen assets in [`src/frozen_splits/`](./src/frozen_splits/), the Kaggle staging layer in [`packaging/kaggle/`](./packaging/kaggle/), and the local validation, audit, and live-evidence outputs in [`reports/`](./reports/). Supporting documents describe that implemented state; they do not replace the code, frozen assets, and local validity checks.
 
 Supporting documents:
 
 - [`iron_find_electric_implementation_spec.md`](./iron_find_electric_implementation_spec.md): behavior and contract reference for the implemented local benchmark pipeline.
-- [`iron_find_electric_improved_plan.md`](./iron_find_electric_improved_plan.md): current repair roadmap and status notes.
+- [`iron_find_electric_improved_plan.md`](./iron_find_electric_improved_plan.md): current consolidation plan and status notes.
 - [`src/README.md`](./src/README.md): source-tree overview and canonical package layout.
 - [`benchmark_design_section_cognitive_flexibility.md`](./benchmark_design_section_cognitive_flexibility.md): benchmark framing and explicit v1 limitations.
-- [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md): Kaggle-facing benchmark card tied to the current repaired implementation and bundled evidence.
+- [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md): Kaggle-facing benchmark card tied to the current implemented benchmark and bundled evidence.
 - [`packaging/kaggle/README.md`](./packaging/kaggle/README.md): concise Kaggle staging flow and reproducibility notes.
