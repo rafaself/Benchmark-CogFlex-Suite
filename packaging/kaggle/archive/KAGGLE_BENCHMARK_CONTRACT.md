@@ -1,7 +1,7 @@
 # Iron Find Electric v1 — Kaggle Benchmark Contract (OBSOLETE)
 
 > **Status: OBSOLETE — Phase 2 archive.**
-> The authoritative benchmark contract is now [`/KAGGLE_BENCHMARK_CONTRACT.md`](../../KAGGLE_BENCHMARK_CONTRACT.md) at the repository root.
+> The authoritative benchmark contract is now [`/KAGGLE_BENCHMARK_CONTRACT.md`](../../../KAGGLE_BENCHMARK_CONTRACT.md) at the repository root.
 > This file is retained as a historical record of the Phase 2 Kaggle integration contract. Do not update it or treat it as authoritative.
 
 **Version:** v1

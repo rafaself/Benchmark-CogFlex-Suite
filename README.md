@@ -25,7 +25,7 @@ The repository currently implements:
 - validation: episode, dataset, and regeneration checks;
 - splits: frozen split loading, deterministic replay, and overlap checks;
 - audit: split- and baseline-level audit reporting;
-- packaging: Kaggle staging assets under [`packaging/kaggle/`](./packaging/kaggle/);
+- packaging: Kaggle packaging assets under [`packaging/kaggle/`](./packaging/kaggle/), with staging-only and archive-only material isolated under subdirectories;
 - reports: current audit and live-evidence artifacts under [`reports/`](./reports/).
 
 Current implementation notes:

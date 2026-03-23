@@ -20,14 +20,14 @@
     },
     "benchmark_card": {
       "path": "packaging/kaggle/BENCHMARK_CARD.md",
-      "sha256": "8cf28ae8b1043724a2ecb6587a6f8cf591e8d7023c3a6cf1b489c2b117b6d741"
+      "sha256": "1cc774f245745f6f3c00dcd54c892728bef67a4c472b5c09e04c7e41053bd874"
     },
     "usage": {
       "path": "packaging/kaggle/README.md",
-      "sha256": "2643aef5b20e9fb8fba44a0334e714e6c45b9419a7cf3e688af4176984d3eeb7"
+      "sha256": "8be16c90e5ed1a68fa131c01746b7aa5144bebfea9bfefe2d99b17c9705327f1"
     },
     "packaging_note": {
-      "path": "packaging/kaggle/PACKAGING_NOTE.md",
+      "path": "packaging/kaggle/archive/PACKAGING_NOTE.md",
       "sha256": "f4e38570c4599b9eea31271feb922af5a0661a5d90f0c4d9771ea02f33fb3683"
     }
   },

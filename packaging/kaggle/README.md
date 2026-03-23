@@ -6,6 +6,8 @@
 
 This directory packages the implemented benchmark for Kaggle. It does not create the benchmark from scratch and does not redefine benchmark semantics locally.
 
+Top-level `packaging/kaggle/` is the active operational surface only. Staging-only and archive-only files live under `staging/` and `archive/`.
+
 ## Official Kaggle Entry Point
 
 - Official leaderboard notebook: `iron_find_electric_v1_kbench.ipynb`
@@ -21,29 +23,34 @@ No other notebook or local runtime path is an official Kaggle leaderboard submis
 
 The supporting comparison material is preserved for history and inspection. It is not a second active readiness anchor and it is not part of the Kaggle submission path.
 
-## Included Artifacts
+## Layout
 
-- `iron_find_electric_v1_kbench.ipynb`: official leaderboard notebook
-- `kernel-metadata.json`: official Kaggle submission manifest pointing to the leaderboard notebook
-- `iron_find_electric_v1_kaggle_staging.ipynb`: staging-only notebook for package validation and dry runs
-- `BENCHMARK_CARD.md`: benchmark description and current evidence summary
-- `PACKAGING_NOTE.md`: short release note for this staging bundle
-- `frozen_artifacts_manifest.json`: explicit frozen paths, versions, and integrity hashes
-- `KAGGLE_BENCHMARK_CONTRACT.md`: obsolete archive copy retained for Phase 2 history only
+Top-level active operational surface:
 
-## Path Status
+- `iron_find_electric_v1_kbench.ipynb`: runtime artifact; official leaderboard notebook
+- `kernel-metadata.json`: metadata; official Kaggle submission manifest pointing to the leaderboard notebook
+- `frozen_artifacts_manifest.json`: metadata; explicit frozen paths, versions, and integrity hashes
+- `README.md`: active operational doc; Kaggle packaging governance and flow
+- `BENCHMARK_CARD.md`: active operational doc; benchmark description and current evidence summary
 
-- `iron_find_electric_v1_kbench.ipynb`: official leaderboard notebook
-- `kernel-metadata.json`: official Kaggle submission path
-- `iron_find_electric_v1_kaggle_staging.ipynb`: staging-only; validates packaged artifacts and dry-run behavior
-- `KAGGLE_BENCHMARK_CONTRACT.md`: archive-only; obsolete Phase 2 contract copy
+Staging-only:
+
+- `staging/iron_find_electric_v1_kaggle_staging.ipynb`: optional package-validation and dry-run notebook
+
+Archive/obsolete:
+
+- `archive/PACKAGING_NOTE.md`: archived release note for prior packaging changes
+- `archive/KAGGLE_BENCHMARK_CONTRACT.md`: obsolete Phase 2 contract copy retained only for history
+
+Non-Kaggle execution surfaces:
+
 - local panel runners under `src/core/*_panel.py` and repo CLI entry points: local-only runtime tools, not Kaggle submission paths
 
 ## Intended Kaggle Flow
 
 1. Upload the repository contents needed by the official notebook, keeping `src/`, `tests/fixtures/`, `reports/`, and `packaging/kaggle/` together.
 2. Submit `iron_find_electric_v1_kbench.ipynb` via `kernel-metadata.json`.
-3. Optionally use `iron_find_electric_v1_kaggle_staging.ipynb` before submission to validate the frozen artifact manifest, inspect packaged resources, and run a dry run over the packaged frozen episodes.
+3. Optionally use `staging/iron_find_electric_v1_kaggle_staging.ipynb` before submission to validate the frozen artifact manifest, inspect packaged resources, and run a dry run over the packaged frozen episodes.
 4. Keep Binary as the only leaderboard-primary path and treat Narrative as the required same-episode robustness companion on the same episode order and probe targets.
 5. Confirm that parsing, scoring, and report rendering complete end to end, with Post-shift Probe Accuracy as the headline metric.
 

@@ -21,11 +21,14 @@ _KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 _CONTRACT_PATH = _REPO_ROOT / "KAGGLE_BENCHMARK_CONTRACT.md"
 _KBENCH_NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kbench.ipynb"
-_STAGING_NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kaggle_staging.ipynb"
+_STAGING_DIR = _KAGGLE_DIR / "staging"
+_ARCHIVE_DIR = _KAGGLE_DIR / "archive"
+_STAGING_NOTEBOOK_PATH = _STAGING_DIR / "iron_find_electric_v1_kaggle_staging.ipynb"
 _KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 _USAGE_PATH = _KAGGLE_DIR / "README.md"
-_PACKAGING_NOTE_PATH = _KAGGLE_DIR / "PACKAGING_NOTE.md"
+_PACKAGING_NOTE_PATH = _ARCHIVE_DIR / "PACKAGING_NOTE.md"
+_ARCHIVE_CONTRACT_PATH = _ARCHIVE_DIR / "KAGGLE_BENCHMARK_CONTRACT.md"
 
 
 def _read_notebook_sources(path: Path) -> str:
@@ -111,11 +114,26 @@ def test_non_official_packaged_paths_are_explicitly_marked_non_active():
     card_text = _CARD_PATH.read_text(encoding="utf-8")
     packaging_note_text = _PACKAGING_NOTE_PATH.read_text(encoding="utf-8")
 
-    assert "`iron_find_electric_v1_kaggle_staging.ipynb`: staging-only" in usage_text
-    assert "`KAGGLE_BENCHMARK_CONTRACT.md`: archive-only" in usage_text
+    assert "`staging/iron_find_electric_v1_kaggle_staging.ipynb`: optional package-validation and dry-run notebook" in usage_text
+    assert "`archive/KAGGLE_BENCHMARK_CONTRACT.md`: obsolete Phase 2 contract copy retained only for history" in usage_text
     assert "staging-only" in card_text
     assert "ARCHIVE RELEASE NOTE" in packaging_note_text
     assert "not an authoritative benchmark contract or an operational runbook" in packaging_note_text
+
+
+def test_kaggle_directory_layout_separates_active_staging_and_archive_files():
+    top_level_files = sorted(path.name for path in _KAGGLE_DIR.iterdir() if path.is_file())
+
+    assert top_level_files == [
+        "BENCHMARK_CARD.md",
+        "README.md",
+        "frozen_artifacts_manifest.json",
+        "iron_find_electric_v1_kbench.ipynb",
+        "kernel-metadata.json",
+    ]
+    assert _STAGING_NOTEBOOK_PATH.is_file()
+    assert _PACKAGING_NOTE_PATH.is_file()
+    assert _ARCHIVE_CONTRACT_PATH.is_file()
 
 
 def test_pyproject_exposes_local_console_entrypoints():
