@@ -133,8 +133,12 @@ def test_run_anthropic_panel_writes_paired_artifact_and_report(
     assert artifacts.model_name == "claude-3-5-haiku-20241022"
     assert artifacts.report_path == report_path
     assert artifacts.artifact_path == report_path.with_suffix(".json")
+    assert artifacts.metadata_path == tmp_path / "anthropic_panel_report.metadata.json"
     assert artifacts.snapshot_report_path == tmp_path / "anthropic_panel_report__20260322_210000.md"
     assert artifacts.snapshot_artifact_path == tmp_path / "anthropic_panel_report__20260322_210000.json"
+    assert artifacts.snapshot_metadata_path == (
+        tmp_path / "anthropic_panel_report.metadata__20260322_210000.json"
+    )
     assert artifacts.sample_path == (
         tmp_path / "samples" / "raw_capture__20260322_210000.json"
     )
@@ -145,7 +149,13 @@ def test_run_anthropic_panel_writes_paired_artifact_and_report(
     )
 
     payload = json.loads(artifacts.artifact_path.read_text(encoding="utf-8"))
+    metadata = json.loads(artifacts.metadata_path.read_text(encoding="utf-8"))
     raw_capture = json.loads(artifacts.sample_path.read_text(encoding="utf-8"))
+    assert metadata["run_metadata_schema_version"] == "v1"
+    assert metadata["provider"] == "anthropic"
+    assert metadata["requested_model_id"] == "claude-3-5-haiku-20241022"
+    assert metadata["invocation"]["surface"] == "python-api"
+    assert metadata["storage"]["sample"]["latest"]["sha256"]
     assert payload["provider_name"] == "anthropic"
     assert payload["model_name"] == "claude-3-5-haiku-20241022"
     assert payload["prompt_modes"] == ["binary", "narrative"]

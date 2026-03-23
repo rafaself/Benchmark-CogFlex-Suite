@@ -5,7 +5,9 @@
 Canonical pattern:
 
 - `reports/<context>/<target>/latest/<stable-name>.<ext>`
+- `reports/<context>/<target>/latest/metadata.json` for canonical run provenance
 - `reports/<context>/<target>/history/<stable-name>__<YYYYMMDD_HHMMSS>.<ext>`
+- `reports/<context>/<target>/history/metadata__<YYYYMMDD_HHMMSS>.json` for immutable provenance snapshots
 - `reports/<context>/<target>/samples/`
 
 Current top-level groupings:
@@ -21,7 +23,7 @@ Current readiness interpretation:
 - the next active evidence target is `gemini-2.5-flash-lite`;
 - Anthropic and OpenAI local report paths exist, but they are outside the current v1 readiness gate.
 
-Canonical live evidence should point to the `latest/` report and artifact first. Flat top-level report aliases such as `reports/m1_binary_vs_narrative_robustness_report.*` are convenience mirrors and should stay byte-identical to the canonical `latest/` surfaces they reference.
+Canonical live evidence should point to the `latest/` report, artifact, and metadata first. Flat top-level report aliases such as `reports/m1_binary_vs_narrative_robustness_report.*` are convenience mirrors and should stay byte-identical to the canonical `latest/` surfaces they reference.
 
 Examples:
 

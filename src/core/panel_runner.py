@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 import sys
 
@@ -10,14 +11,23 @@ from core.audit import (
     ReleaseAuditReport,
     ReleaseAuditSourceSummary,
 )
+from core.metrics import METRIC_VERSION
 from core.model_execution import ModelExecutionOutcome, ModelMode, ModelRunConfig
 from core.model_runner import BenchmarkModeRunRow, BenchmarkRunResult
-from core.parser import ParseStatus
+from core.parser import PARSER_VERSION, ParseStatus
+from core.report_outputs import CANONICAL_RUN_METADATA_SCHEMA_VERSION
+from core.splits import load_split_manifest
 from tasks.iron_find_electric.baselines import (
     last_evidence_baseline,
     never_update_baseline,
 )
-from tasks.iron_find_electric.schema import Episode
+from tasks.iron_find_electric.schema import (
+    DIFFICULTY_VERSION,
+    GENERATOR_VERSION,
+    SPEC_VERSION,
+    TEMPLATE_SET_VERSION,
+    Episode,
+)
 
 __all__ = [
     "DEFAULT_PANEL_CONFIG",
@@ -26,6 +36,7 @@ __all__ = [
     "TASK_MODE_LABELS",
     "artifact_path_for_report",
     "build_panel_artifact",
+    "build_panel_run_metadata",
     "build_panel_raw_capture",
     "build_panel_progress_callback",
     "render_panel_markdown",
@@ -53,6 +64,7 @@ _TRANSITION_ORDER: tuple[str, ...] = (
     "R_inv_to_R_std",
 )
 _ARTIFACT_SCHEMA_VERSION = "v1.1"
+_PANEL_RUN_GENERATOR_VERSION = "v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,8 +77,11 @@ class PanelArtifacts:
     report_path: Path
     artifact_payload: dict[str, object] | None = None
     artifact_path: Path | None = None
+    metadata_payload: dict[str, object] | None = None
+    metadata_path: Path | None = None
     snapshot_report_path: Path | None = None
     snapshot_artifact_path: Path | None = None
+    snapshot_metadata_path: Path | None = None
     sample_path: Path | None = None
 
 
@@ -696,6 +711,55 @@ def build_panel_raw_capture(
     if provenance_note is not None:
         raw_capture["provenance_note"] = provenance_note
     return raw_capture
+
+
+def build_panel_run_metadata(
+    *,
+    provider_name: str,
+    requested_model_name: str,
+    prompt_modes: tuple[ModelMode, ...],
+    release_report: ReleaseAuditReport,
+    benchmark_results_by_split: dict[str, BenchmarkRunResult],
+    execution_timestamp: str,
+    invocation_surface: str,
+    invocation_command: tuple[str, ...] | None = None,
+) -> dict[str, object]:
+    split_names = [
+        split_name for split_name, _episode_count in release_report.split_episode_counts
+    ]
+    served_model_ids = _observed_served_model_ids(
+        benchmark_results_by_split=benchmark_results_by_split,
+    )
+    return {
+        "run_metadata_schema_version": CANONICAL_RUN_METADATA_SCHEMA_VERSION,
+        "run_generator_version": _PANEL_RUN_GENERATOR_VERSION,
+        "release_id": release_report.release_id,
+        "provider": provider_name,
+        "requested_model_id": requested_model_name,
+        "served_model_id": served_model_ids[0] if len(served_model_ids) == 1 else None,
+        "observed_served_model_ids": served_model_ids,
+        "prompt_modes": [mode.value for mode in prompt_modes],
+        "split_set": split_names,
+        "execution_timestamp": execution_timestamp,
+        "invocation": {
+            "surface": invocation_surface,
+            "command": list(invocation_command) if invocation_command is not None else None,
+        },
+        "benchmark_versions": {
+            "schema_version": SPEC_VERSION,
+            "generator_version": GENERATOR_VERSION,
+            "template_family_version": TEMPLATE_SET_VERSION,
+            "parser_version": PARSER_VERSION,
+            "metric_version": METRIC_VERSION,
+            "difficulty_version": DIFFICULTY_VERSION,
+            "artifact_schema_version": _ARTIFACT_SCHEMA_VERSION,
+        },
+        "frozen_artifacts": {
+            "split_manifests": [
+                _build_split_manifest_metadata(split_name) for split_name in split_names
+            ]
+        },
+    }
 
 
 def _build_split_artifact(
@@ -1742,3 +1806,33 @@ def _format_scope_label(row: dict[str, object]) -> str:
     if str(row["scope_type"]) == "overall":
         return "overall"
     return str(row["scope_label"])
+
+
+def _observed_served_model_ids(
+    *,
+    benchmark_results_by_split: dict[str, BenchmarkRunResult],
+) -> list[str]:
+    return sorted(
+        {
+            row.execution.raw_result.provider_model_version
+            for benchmark_result in benchmark_results_by_split.values()
+            for mode_result in benchmark_result.mode_results
+            for row in mode_result.rows
+            if row.execution.raw_result.provider_model_version is not None
+        }
+    )
+
+
+def _build_split_manifest_metadata(split_name: str) -> dict[str, object]:
+    manifest = load_split_manifest(split_name)
+    manifest_path = Path(__file__).resolve().parents[1] / "frozen_splits" / f"{split_name}.json"
+    return {
+        "split_name": split_name,
+        "path": str(
+            manifest_path.resolve().relative_to(Path(__file__).resolve().parents[2])
+        ),
+        "sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+        "manifest_version": manifest.manifest_version,
+        "seed_bank_version": manifest.seed_bank_version,
+        "episode_count": len(manifest.seeds),
+    }

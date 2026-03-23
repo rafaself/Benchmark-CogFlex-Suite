@@ -276,6 +276,11 @@ def _command_gemini_first_panel(args: argparse.Namespace) -> int:
             model_name=args.model,
             report_path=report_path,
             modes=modes,
+            invocation_surface="cli",
+            invocation_command=_build_panel_invocation_command(
+                "gemini-first-panel",
+                args=args,
+            ),
         )
     except (GeminiConfigurationError, ProviderSelectionError) as exc:
         print(str(exc), file=sys.stderr)
@@ -292,6 +297,11 @@ def _command_gemini_first_panel(args: argparse.Namespace) -> int:
             if artifacts.artifact_path is not None
             else None
         ),
+        "metadata_path": (
+            str(artifacts.metadata_path)
+            if artifacts.metadata_path is not None
+            else None
+        ),
         "snapshot_report_path": (
             str(artifacts.snapshot_report_path)
             if artifacts.snapshot_report_path is not None
@@ -300,6 +310,11 @@ def _command_gemini_first_panel(args: argparse.Namespace) -> int:
         "snapshot_artifact_path": (
             str(artifacts.snapshot_artifact_path)
             if artifacts.snapshot_artifact_path is not None
+            else None
+        ),
+        "snapshot_metadata_path": (
+            str(artifacts.snapshot_metadata_path)
+            if artifacts.snapshot_metadata_path is not None
             else None
         ),
     }
@@ -325,6 +340,11 @@ def _command_anthropic_panel(args: argparse.Namespace) -> int:
             model_name=args.model,
             report_path=report_path,
             modes=modes,
+            invocation_surface="cli",
+            invocation_command=_build_panel_invocation_command(
+                "anthropic-panel",
+                args=args,
+            ),
         )
     except (AnthropicConfigurationError, ProviderSelectionError) as exc:
         print(str(exc), file=sys.stderr)
@@ -341,6 +361,11 @@ def _command_anthropic_panel(args: argparse.Namespace) -> int:
             if artifacts.artifact_path is not None
             else None
         ),
+        "metadata_path": (
+            str(artifacts.metadata_path)
+            if artifacts.metadata_path is not None
+            else None
+        ),
         "snapshot_report_path": (
             str(artifacts.snapshot_report_path)
             if artifacts.snapshot_report_path is not None
@@ -349,6 +374,11 @@ def _command_anthropic_panel(args: argparse.Namespace) -> int:
         "snapshot_artifact_path": (
             str(artifacts.snapshot_artifact_path)
             if artifacts.snapshot_artifact_path is not None
+            else None
+        ),
+        "snapshot_metadata_path": (
+            str(artifacts.snapshot_metadata_path)
+            if artifacts.snapshot_metadata_path is not None
             else None
         ),
     }
@@ -374,6 +404,11 @@ def _command_openai_panel(args: argparse.Namespace) -> int:
             model_name=args.model,
             report_path=report_path,
             modes=modes,
+            invocation_surface="cli",
+            invocation_command=_build_panel_invocation_command(
+                "openai-panel",
+                args=args,
+            ),
         )
     except (OpenAIConfigurationError, ProviderSelectionError) as exc:
         print(str(exc), file=sys.stderr)
@@ -390,6 +425,11 @@ def _command_openai_panel(args: argparse.Namespace) -> int:
             if artifacts.artifact_path is not None
             else None
         ),
+        "metadata_path": (
+            str(artifacts.metadata_path)
+            if artifacts.metadata_path is not None
+            else None
+        ),
         "snapshot_report_path": (
             str(artifacts.snapshot_report_path)
             if artifacts.snapshot_report_path is not None
@@ -400,9 +440,28 @@ def _command_openai_panel(args: argparse.Namespace) -> int:
             if artifacts.snapshot_artifact_path is not None
             else None
         ),
+        "snapshot_metadata_path": (
+            str(artifacts.snapshot_metadata_path)
+            if artifacts.snapshot_metadata_path is not None
+            else None
+        ),
     }
     print(json.dumps(payload, indent=2))
     return 0
+
+
+def _build_panel_invocation_command(
+    subcommand: str,
+    *,
+    args: argparse.Namespace,
+) -> tuple[str, ...]:
+    command = ["ife", subcommand]
+    if getattr(args, "include_narrative", False):
+        command.append("--include-narrative")
+    command.extend(["--model", args.model])
+    if getattr(args, "report_path", None) is not None:
+        command.extend(["--report-path", str(args.report_path)])
+    return tuple(command)
 
 
 def _run_pytest(pytest_args: list[str]) -> subprocess.CompletedProcess[str]:

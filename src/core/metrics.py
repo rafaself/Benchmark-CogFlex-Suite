@@ -11,10 +11,13 @@ from tasks.iron_find_electric.protocol import (
 )
 
 __all__ = [
+    "METRIC_VERSION",
     "MetricSummary",
     "compute_post_shift_probe_accuracy",
     "compute_metrics",
 ]
+
+METRIC_VERSION = "v1"
 
 
 @dataclass(frozen=True, slots=True)

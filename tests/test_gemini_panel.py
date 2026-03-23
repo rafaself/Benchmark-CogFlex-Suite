@@ -131,8 +131,12 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
 
     assert artifacts.report_path == report_path
     assert artifacts.artifact_path == report_path.with_suffix(".json")
+    assert artifacts.metadata_path == tmp_path / "m1_binary_vs_narrative_robustness_report.metadata.json"
     assert artifacts.snapshot_report_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.md"
     assert artifacts.snapshot_artifact_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.json"
+    assert artifacts.snapshot_metadata_path == (
+        tmp_path / "m1_binary_vs_narrative_robustness_report.metadata__20260322_201900.json"
+    )
     assert artifacts.sample_path == (
         tmp_path / "samples" / "raw_capture__20260322_201900.json"
     )
@@ -143,7 +147,25 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     )
 
     payload = json.loads(artifacts.artifact_path.read_text(encoding="utf-8"))
+    metadata = json.loads(artifacts.metadata_path.read_text(encoding="utf-8"))
     raw_capture = json.loads(artifacts.sample_path.read_text(encoding="utf-8"))
+    assert metadata["run_metadata_schema_version"] == "v1"
+    assert metadata["provider"] == "gemini"
+    assert metadata["requested_model_id"] == "gemini-2.5-flash-001"
+    assert metadata["served_model_id"] is None
+    assert metadata["prompt_modes"] == ["binary", "narrative"]
+    assert metadata["split_set"] == [
+        "dev",
+        "public_leaderboard",
+        "private_leaderboard",
+    ]
+    assert metadata["invocation"]["surface"] == "python-api"
+    assert metadata["benchmark_versions"]["generator_version"] == "R12"
+    assert metadata["benchmark_versions"]["template_family_version"] == "v1"
+    assert metadata["benchmark_versions"]["parser_version"] == "v1"
+    assert metadata["benchmark_versions"]["metric_version"] == "v1"
+    assert len(metadata["frozen_artifacts"]["split_manifests"]) == 3
+    assert metadata["storage"]["report"]["latest"]["sha256"]
     assert payload["prompt_modes"] == ["binary", "narrative"]
     assert payload["artifact_schema_version"] == "v1.1"
     assert [split["split_name"] for split in payload["splits"]] == [

@@ -17,6 +17,7 @@ from core.model_runner import (
 )
 from core.panel_runner import (
     build_panel_artifact,
+    build_panel_run_metadata,
     build_panel_raw_capture,
     render_panel_markdown,
 )
@@ -325,3 +326,21 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
         raw_capture["splits"][0]["rows"][0]["modes"]["binary"]["response_text"]
         is not None
     )
+
+    metadata = build_panel_run_metadata(
+        provider_name=provider_name,
+        requested_model_name=model_name,
+        prompt_modes=(ModelMode.BINARY, ModelMode.NARRATIVE),
+        release_report=release_report,
+        benchmark_results_by_split={"dev": benchmark_result},
+        execution_timestamp="20260323_120000",
+        invocation_surface="cli",
+        invocation_command=("ife", "diagnostic-panel"),
+    )
+
+    assert metadata["run_metadata_schema_version"] == "v1"
+    assert metadata["requested_model_id"] == model_name
+    assert metadata["served_model_id"] is None
+    assert metadata["invocation"]["surface"] == "cli"
+    assert metadata["benchmark_versions"]["generator_version"] == "R12"
+    assert metadata["frozen_artifacts"]["split_manifests"][0]["split_name"] == "dev"

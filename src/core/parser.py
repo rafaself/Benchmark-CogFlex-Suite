@@ -11,12 +11,14 @@ from tasks.iron_find_electric.protocol import (
 )
 
 __all__ = [
+    "PARSER_VERSION",
     "ParseStatus",
     "ParsedPrediction",
     "parse_binary_output",
     "parse_narrative_output",
 ]
 
+PARSER_VERSION = "v1"
 _FINAL_LABELS_PATTERN = re.compile(r"final labels:", re.IGNORECASE)
 _FINAL_ANSWER_PATTERN = re.compile(r"final answers?:", re.IGNORECASE)
 _SEPARATOR_PATTERN = re.compile(r"[\n,]+")

@@ -6,6 +6,8 @@ from core.report_outputs import (
     build_latest_report_path,
     build_timestamped_sample_path,
     build_timestamped_snapshot_path,
+    metadata_path_for_report,
+    write_canonical_run_outputs,
     write_text_with_timestamped_snapshot,
 )
 
@@ -92,3 +94,55 @@ def test_build_latest_report_path_uses_reports_root(monkeypatch):
         / "latest"
         / "report.md"
     )
+
+
+def test_metadata_path_for_latest_report_uses_canonical_name(tmp_path: Path):
+    report_path = (
+        tmp_path
+        / "reports"
+        / "live"
+        / "gemini-first-panel"
+        / "binary-vs-narrative"
+        / "latest"
+        / "report.md"
+    )
+
+    assert metadata_path_for_report(report_path) == report_path.with_name("metadata.json")
+
+
+def test_write_canonical_run_outputs_writes_metadata_and_history(tmp_path: Path):
+    report_path = (
+        tmp_path
+        / "reports"
+        / "live"
+        / "gemini-first-panel"
+        / "binary-vs-narrative"
+        / "latest"
+        / "report.md"
+    )
+
+    result = write_canonical_run_outputs(
+        report_path=report_path,
+        report_markdown="# report\n",
+        artifact_payload={"artifact_schema_version": "v1.1"},
+        raw_capture_payload={"capture_schema_version": "v1.1"},
+        metadata_payload={
+            "run_metadata_schema_version": "v1",
+            "provider": "gemini",
+        },
+        timestamp="20260323_120000",
+    )
+
+    assert result.metadata_path == report_path.with_name("metadata.json")
+    assert result.snapshot_metadata_path == (
+        tmp_path
+        / "reports"
+        / "live"
+        / "gemini-first-panel"
+        / "binary-vs-narrative"
+        / "history"
+        / "metadata__20260323_120000.json"
+    )
+    metadata = result.metadata_path.read_text(encoding="utf-8")
+    assert '"run_metadata_schema_version": "v1"' in metadata
+    assert '"storage"' in metadata

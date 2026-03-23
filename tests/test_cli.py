@@ -53,6 +53,15 @@ def test_integrity_command_can_write_output_file(
         "core.cli.write_text_with_timestamped_snapshot",
         fake_write_text_with_timestamped_snapshot,
     )
+    monkeypatch.setattr(
+        cli,
+        "_build_integrity_payload",
+        lambda: {
+            "overlap_check_passed": True,
+            "kaggle_manifest_valid": True,
+            "audit_issue_count": 0,
+        },
+    )
     output_path = tmp_path / "integrity.json"
 
     exit_code = cli.main(["integrity", "--output", str(output_path)])
@@ -172,8 +181,10 @@ def test_gemini_first_panel_command_emits_report_metadata(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary"]},
             artifact_path=report_path.with_suffix(".json"),
+            metadata_path=tmp_path / "gemini_first_panel_report.metadata.json",
             snapshot_report_path=tmp_path / "gemini_first_panel_report__20260322_203000.md",
             snapshot_artifact_path=tmp_path / "gemini_first_panel_report__20260322_203000.json",
+            snapshot_metadata_path=tmp_path / "gemini_first_panel_report.metadata__20260322_203000.json",
         ),
     )
 
@@ -190,11 +201,15 @@ def test_gemini_first_panel_command_emits_report_metadata(
         "prompt_modes": ["binary"],
         "report_path": str(report_path),
         "artifact_path": str(report_path.with_suffix(".json")),
+        "metadata_path": str(tmp_path / "gemini_first_panel_report.metadata.json"),
         "snapshot_report_path": str(
             tmp_path / "gemini_first_panel_report__20260322_203000.md"
         ),
         "snapshot_artifact_path": str(
             tmp_path / "gemini_first_panel_report__20260322_203000.json"
+        ),
+        "snapshot_metadata_path": str(
+            tmp_path / "gemini_first_panel_report.metadata__20260322_203000.json"
         ),
     }
 
@@ -220,8 +235,10 @@ def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary", "narrative"]},
             artifact_path=report_path.with_suffix(".json"),
+            metadata_path=tmp_path / "m1_binary_vs_narrative_robustness_report.metadata.json",
             snapshot_report_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md",
             snapshot_artifact_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.json",
+            snapshot_metadata_path=tmp_path / "m1_binary_vs_narrative_robustness_report.metadata__20260322_203500.json",
         ),
     )
 
@@ -240,6 +257,9 @@ def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
     assert exit_code == 0
     assert payload["prompt_modes"] == ["binary", "narrative"]
     assert payload["artifact_path"] == str(report_path.with_suffix(".json"))
+    assert payload["metadata_path"] == str(
+        tmp_path / "m1_binary_vs_narrative_robustness_report.metadata.json"
+    )
     assert payload["snapshot_report_path"] == str(
         tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md"
     )
@@ -293,8 +313,10 @@ def test_anthropic_panel_command_emits_report_metadata(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary"]},
             artifact_path=report_path.with_suffix(".json"),
+            metadata_path=tmp_path / "anthropic_panel_report.metadata.json",
             snapshot_report_path=tmp_path / "anthropic_panel_report__20260322_210000.md",
             snapshot_artifact_path=tmp_path / "anthropic_panel_report__20260322_210000.json",
+            snapshot_metadata_path=tmp_path / "anthropic_panel_report.metadata__20260322_210000.json",
         ),
     )
 
@@ -311,11 +333,15 @@ def test_anthropic_panel_command_emits_report_metadata(
         "prompt_modes": ["binary"],
         "report_path": str(report_path),
         "artifact_path": str(report_path.with_suffix(".json")),
+        "metadata_path": str(tmp_path / "anthropic_panel_report.metadata.json"),
         "snapshot_report_path": str(
             tmp_path / "anthropic_panel_report__20260322_210000.md"
         ),
         "snapshot_artifact_path": str(
             tmp_path / "anthropic_panel_report__20260322_210000.json"
+        ),
+        "snapshot_metadata_path": str(
+            tmp_path / "anthropic_panel_report.metadata__20260322_210000.json"
         ),
     }
 
@@ -368,8 +394,10 @@ def test_openai_panel_command_emits_report_metadata(
             report_path=report_path,
             artifact_payload={"prompt_modes": ["binary"]},
             artifact_path=report_path.with_suffix(".json"),
+            metadata_path=tmp_path / "openai_panel_report.metadata.json",
             snapshot_report_path=tmp_path / "openai_panel_report__20260322_220000.md",
             snapshot_artifact_path=tmp_path / "openai_panel_report__20260322_220000.json",
+            snapshot_metadata_path=tmp_path / "openai_panel_report.metadata__20260322_220000.json",
         ),
     )
 
@@ -386,11 +414,15 @@ def test_openai_panel_command_emits_report_metadata(
         "prompt_modes": ["binary"],
         "report_path": str(report_path),
         "artifact_path": str(report_path.with_suffix(".json")),
+        "metadata_path": str(tmp_path / "openai_panel_report.metadata.json"),
         "snapshot_report_path": str(
             tmp_path / "openai_panel_report__20260322_220000.md"
         ),
         "snapshot_artifact_path": str(
             tmp_path / "openai_panel_report__20260322_220000.json"
+        ),
+        "snapshot_metadata_path": str(
+            tmp_path / "openai_panel_report.metadata__20260322_220000.json"
         ),
     }
 

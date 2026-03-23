@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from core.audit import (
@@ -15,8 +14,8 @@ from core.panel_runner import (
     DEFAULT_PANEL_MODES,
     PanelArtifacts,
     TASK_MODE_LABELS,
-    artifact_path_for_report,
     build_panel_artifact,
+    build_panel_run_metadata,
     build_panel_raw_capture,
     build_panel_progress_callback,
     render_panel_markdown,
@@ -29,10 +28,8 @@ from core.providers.registry import (
 )
 from core.report_outputs import (
     build_latest_report_path,
-    build_timestamped_sample_path,
     current_report_timestamp,
-    write_json_with_timestamped_snapshot,
-    write_text_with_timestamped_snapshot,
+    write_canonical_run_outputs,
 )
 from core.splits import PARTITIONS, load_frozen_split
 from tasks.iron_find_electric.schema import Episode
@@ -67,6 +64,8 @@ def run_gemini_first_panel(
     modes: tuple[ModelMode, ...] = DEFAULT_PANEL_MODES,
     config: ModelRunConfig = DEFAULT_PANEL_CONFIG,
     adapter: GeminiAdapter | None = None,
+    invocation_surface: str = "python-api",
+    invocation_command: tuple[str, ...] | None = None,
 ) -> GeminiFirstPanelArtifacts:
     normalized_modes = tuple(ModelMode(mode) for mode in modes)
     if not normalized_modes:
@@ -143,28 +142,24 @@ def run_gemini_first_panel(
     resolved_report_path = (
         DEFAULT_GEMINI_FIRST_PANEL_REPORT_PATH if report_path is None else report_path
     )
-    resolved_artifact_path = artifact_path_for_report(resolved_report_path)
     report_timestamp = current_report_timestamp()
-    sample_path = build_timestamped_sample_path(
-        resolved_report_path,
-        stem="raw_capture",
-        suffix=".json",
-        timestamp=report_timestamp,
+    metadata_payload = build_panel_run_metadata(
+        provider_name=provider_name,
+        requested_model_name=resolved_model_name,
+        prompt_modes=normalized_modes,
+        release_report=release_report,
+        benchmark_results_by_split=benchmark_results_by_split,
+        execution_timestamp=report_timestamp,
+        invocation_surface=invocation_surface,
+        invocation_command=invocation_command,
     )
-    _, snapshot_report_path = write_text_with_timestamped_snapshot(
-        resolved_report_path,
-        report_markdown,
+    write_result = write_canonical_run_outputs(
+        report_path=resolved_report_path,
+        report_markdown=report_markdown,
+        artifact_payload=artifact_payload,
+        raw_capture_payload=raw_capture_payload,
+        metadata_payload=metadata_payload,
         timestamp=report_timestamp,
-    )
-    _, snapshot_artifact_path = write_json_with_timestamped_snapshot(
-        resolved_artifact_path,
-        json.dumps(artifact_payload, indent=2) + "\n",
-        timestamp=report_timestamp,
-    )
-    sample_path.parent.mkdir(parents=True, exist_ok=True)
-    sample_path.write_text(
-        json.dumps(raw_capture_payload, indent=2) + "\n",
-        encoding="utf-8",
     )
 
     return GeminiFirstPanelArtifacts(
@@ -173,12 +168,15 @@ def run_gemini_first_panel(
         prompt_modes=normalized_modes,
         release_report=release_report,
         report_markdown=report_markdown,
-        report_path=resolved_report_path,
+        report_path=write_result.report_path,
         artifact_payload=artifact_payload,
-        artifact_path=resolved_artifact_path,
-        snapshot_report_path=snapshot_report_path,
-        snapshot_artifact_path=snapshot_artifact_path,
-        sample_path=sample_path,
+        artifact_path=write_result.artifact_path,
+        metadata_payload=metadata_payload,
+        metadata_path=write_result.metadata_path,
+        snapshot_report_path=write_result.snapshot_report_path,
+        snapshot_artifact_path=write_result.snapshot_artifact_path,
+        snapshot_metadata_path=write_result.snapshot_metadata_path,
+        sample_path=write_result.sample_path,
     )
 
 
