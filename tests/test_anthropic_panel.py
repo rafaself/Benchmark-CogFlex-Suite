@@ -166,16 +166,29 @@ def test_run_anthropic_panel_writes_paired_artifact_and_report(
     assert narrative_overall["runtime_error_rate"] > 0.0
     assert narrative_overall["parse_failure_rate"] > 0.0
     assert narrative_overall["adaptation_failure_rate"] > 0.0
+    assert "diagnostic_summary" in payload
+    assert "diagnostic_episode_rows" in payload
+    binary_overall = next(
+        row
+        for row in payload["diagnostic_summary"]
+        if row["scope_type"] == "overall" and row["mode"] == "Binary"
+    )
+    assert "exact_global_recency_overshoot_count" in binary_overall
+    assert "mixed_disagreement_count" in binary_overall
 
     assert "# Anthropic Panel Report" in artifacts.report_markdown
     assert "## Paired Robustness" in artifacts.report_markdown
-    assert "## Failure Taxonomy" in artifacts.report_markdown
+    assert "## Failure Decomposition (diagnostic-only)" in artifacts.report_markdown
+    assert "## Direct Disagreement Diagnostics (diagnostic-only)" in artifacts.report_markdown
+    assert "## Diagnostic Failure Slices (diagnostic-only)" in artifacts.report_markdown
+    assert "## Failure Taxonomy (diagnostic-only)" in artifacts.report_markdown
     assert "| Scope | Mode | Provider/runtime error rate |" in artifacts.report_markdown
     assert "Provider/runtime failures were observed in the live run." in artifacts.report_markdown
     assert (
         "Binary-only headline metric: claude-3-5-haiku-20241022 Binary ="
         in artifacts.report_markdown
     )
+    assert "diagnostic-only" in artifacts.report_markdown
 
 
 def test_default_anthropic_panel_report_paths_are_grouped_by_target():

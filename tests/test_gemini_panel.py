@@ -162,18 +162,33 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     assert narrative_overall["runtime_error_rate"] > 0.0
     assert narrative_overall["parse_failure_rate"] > 0.0
     assert narrative_overall["adaptation_failure_rate"] > 0.0
+    assert "diagnostic_summary" in payload
+    assert "diagnostic_episode_rows" in payload
+    binary_overall = next(
+        row
+        for row in payload["diagnostic_summary"]
+        if row["scope_type"] == "overall" and row["mode"] == "Binary"
+    )
+    assert "exact_global_recency_overshoot_count" in binary_overall
+    assert "mixed_disagreement_count" in binary_overall
 
     first_dev_row = payload["splits"][0]["rows"][0]
     assert first_dev_row["modes"]["binary"]["finish_reason"] is None
+    assert "exact_global_old_rule_persistence" in first_dev_row["modes"]["binary"]
+    assert "disagreement_profile" in first_dev_row["modes"]["binary"]
 
     assert "## Paired Robustness" in artifacts.report_markdown
-    assert "## Failure Taxonomy" in artifacts.report_markdown
+    assert "## Failure Decomposition (diagnostic-only)" in artifacts.report_markdown
+    assert "## Direct Disagreement Diagnostics (diagnostic-only)" in artifacts.report_markdown
+    assert "## Diagnostic Failure Slices (diagnostic-only)" in artifacts.report_markdown
+    assert "## Failure Taxonomy (diagnostic-only)" in artifacts.report_markdown
     assert "| Scope | Mode | Provider/runtime error rate |" in artifacts.report_markdown
     assert "Provider/runtime failures were observed in the live run." in artifacts.report_markdown
     assert (
         "Binary-only headline metric: gemini-2.5-flash-001 Binary ="
         in artifacts.report_markdown
     )
+    assert "diagnostic-only" in artifacts.report_markdown
     assert "Binary vs Narrative comparison is unavailable" not in artifacts.report_markdown
 
 
