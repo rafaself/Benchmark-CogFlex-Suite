@@ -159,10 +159,24 @@ def test_kaggle_runbook_documents_the_minimum_runtime_subset():
     )
 
     assert "minimum packaged subset" in usage_text.lower()
+    assert "kaggle runtime-contract manifest" in usage_text.lower()
     for path in required_runtime_paths:
         assert path in usage_text
     for path in non_runtime_paths:
         assert path in usage_text
+
+
+def test_active_docs_label_frozen_artifacts_manifest_by_runtime_role():
+    texts = (
+        _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8"),
+        _USAGE_PATH.read_text(encoding="utf-8"),
+        _CARD_PATH.read_text(encoding="utf-8"),
+        _CONTRACT_PATH.read_text(encoding="utf-8"),
+    )
+    joined = "\n".join(texts).lower()
+
+    assert "kaggle runtime-contract manifest" in joined
+    assert "frozen artifacts index" not in joined
 
 
 def test_pyproject_exposes_local_console_entrypoints():

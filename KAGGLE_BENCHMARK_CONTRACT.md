@@ -249,7 +249,7 @@ The following are immutable benchmark inputs:
 | Dev split | `src/frozen_splits/dev.json` | R14, seed bank R14-dev-1 |
 | Public leaderboard split | `src/frozen_splits/public_leaderboard.json` | R14, seed bank R14-public-1 |
 | Private leaderboard split | `src/frozen_splits/private_leaderboard.json` | R14, seed bank R14-private-2 |
-| Frozen artifacts index | `packaging/kaggle/frozen_artifacts_manifest.json` | SHA-256 hashes |
+| Kaggle runtime-contract manifest | `packaging/kaggle/frozen_artifacts_manifest.json` | SHA-256 hashes for the official notebook and frozen split inputs |
 | Anti-shortcut gate evidence | `tests/fixtures/release_r13_validity_report.json` | R13 PASS |
 | Empirical re-audit evidence | `tests/fixtures/release_r15_reaudit_report.json` | R15 |
 

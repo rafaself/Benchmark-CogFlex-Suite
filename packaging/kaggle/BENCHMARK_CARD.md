@@ -65,7 +65,7 @@ This Kaggle package references frozen local artifacts rather than regenerating a
 - anti-shortcut gate evidence: `tests/fixtures/release_r13_validity_report.json`
 - empirical re-audit evidence: `tests/fixtures/release_r15_reaudit_report.json`
 - single packaged Gemini readiness anchor: `reports/m1_binary_vs_narrative_robustness_report.md`
-- bundle index and integrity hashes: `packaging/kaggle/frozen_artifacts_manifest.json`
+- Kaggle runtime-contract manifest and integrity hashes: `packaging/kaggle/frozen_artifacts_manifest.json`
 
 Version metadata currently frozen by the package:
 

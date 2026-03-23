@@ -14,7 +14,7 @@ The official Kaggle notebook runs with this minimum packaged subset:
 
 - `packaging/kaggle/iron_find_electric_v1_kbench.ipynb`
 - `packaging/kaggle/kernel-metadata.json`
-- `packaging/kaggle/frozen_artifacts_manifest.json`
+- `packaging/kaggle/frozen_artifacts_manifest.json` as the Kaggle runtime-contract manifest
 - `src/` runtime modules, including `src/kaggle.py` and the imported `src/core/` and `src/tasks/iron_find_electric/` modules
 - `src/frozen_splits/dev.json`
 - `src/frozen_splits/public_leaderboard.json`
@@ -43,7 +43,7 @@ Top-level active operational surface:
 
 - `iron_find_electric_v1_kbench.ipynb`: runtime artifact; official leaderboard notebook
 - `kernel-metadata.json`: metadata; official Kaggle submission manifest pointing to the leaderboard notebook
-- `frozen_artifacts_manifest.json`: metadata; explicit frozen paths, versions, and integrity hashes
+- `frozen_artifacts_manifest.json`: metadata; Kaggle runtime-contract manifest for the official notebook and frozen split inputs
 - `README.md`: active operational doc; Kaggle packaging governance and flow
 - `BENCHMARK_CARD.md`: active operational doc; benchmark description and current evidence summary
 
@@ -72,7 +72,7 @@ Non-Kaggle execution surfaces:
 
 - Resource paths are explicit and relative to the repo root.
 - The notebook relies on the local `src/` modules and the frozen JSON artifacts already present in the repository.
-- The manifest records integrity hashes for the notebook, docs, frozen split manifests, and bundled evidence reports.
+- The runtime-contract manifest records integrity hashes for the official notebook and frozen split manifests.
 - The benchmark contract at the repository root is the source of truth for benchmark definition.
 - The runtime implementation under `src/` and the frozen manifests under `src/frozen_splits/` are the source of truth for executable benchmark behavior.
 - The official Kaggle submission surface is only `iron_find_electric_v1_kbench.ipynb` through `kernel-metadata.json`.
