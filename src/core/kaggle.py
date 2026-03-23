@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from enum import Enum
 import hashlib
 import json
 from pathlib import Path
 from typing import Final
 
+from core.parser import ParseStatus, parse_binary_output, parse_narrative_output
 from core.splits import MANIFEST_VERSION, PARTITIONS, load_split_manifest
+from tasks.iron_find_electric.protocol import PROBE_COUNT, InteractionLabel, parse_label
 from tasks.iron_find_electric.schema import (
     DIFFICULTY_VERSION,
     GENERATOR_VERSION,
@@ -14,9 +18,14 @@ from tasks.iron_find_electric.schema import (
 )
 
 __all__ = [
+    "Label",
+    "BinaryResponse",
     "KAGGLE_STAGING_MANIFEST_PATH",
     "load_kaggle_staging_manifest",
+    "normalize_binary_response",
+    "normalize_narrative_response",
     "resolve_kaggle_artifact_path",
+    "score_episode",
     "validate_kaggle_staging_manifest",
 ]
 
@@ -32,6 +41,27 @@ _EXPECTED_BENCHMARK_VERSIONS: Final[dict[str, str]] = {
     "template_set_version": TEMPLATE_SET_VERSION,
     "difficulty_version": DIFFICULTY_VERSION,
 }
+
+
+class Label(str, Enum):
+    attract = "attract"
+    repel = "repel"
+
+
+@dataclass(frozen=True, slots=True)
+class BinaryResponse:
+    probe_6: Label
+    probe_7: Label
+    probe_8: Label
+    probe_9: Label
+
+    def as_tuple(self) -> tuple[str, str, str, str]:
+        return (
+            self.probe_6.value,
+            self.probe_7.value,
+            self.probe_8.value,
+            self.probe_9.value,
+        )
 
 
 def _repo_root(repo_root: Path | str | None = None) -> Path:
@@ -130,6 +160,46 @@ def validate_kaggle_staging_manifest(
                 )
 
 
+def normalize_binary_response(response: object) -> tuple[str, ...] | None:
+    if isinstance(response, BinaryResponse):
+        return response.as_tuple()
+
+    if isinstance(response, str):
+        parsed = parse_binary_output(response)
+        if parsed.status is ParseStatus.VALID:
+            return tuple(label.value for label in parsed.labels)
+
+    return None
+
+
+def normalize_narrative_response(response: object) -> tuple[str, ...] | None:
+    if isinstance(response, str):
+        parsed = parse_narrative_output(response)
+        if parsed.status is ParseStatus.VALID:
+            return tuple(label.value for label in parsed.labels)
+
+    return None
+
+
+def score_episode(
+    predictions: tuple[str, ...] | tuple[InteractionLabel, ...] | None,
+    probe_targets: tuple[str, ...] | tuple[InteractionLabel, ...],
+) -> tuple[int, int]:
+    normalized_targets = _normalize_labels(probe_targets)
+    if normalized_targets is None:
+        raise ValueError(f"probe_targets must contain exactly {PROBE_COUNT} valid labels")
+
+    normalized_predictions = _normalize_labels(predictions)
+    if normalized_predictions is None:
+        return (0, PROBE_COUNT)
+
+    num_correct = sum(
+        prediction is target
+        for prediction, target in zip(normalized_predictions, normalized_targets)
+    )
+    return (num_correct, PROBE_COUNT)
+
+
 def _require_mapping(
     mapping: dict[str, object],
     key: str,
@@ -138,3 +208,15 @@ def _require_mapping(
     if not isinstance(value, dict):
         raise TypeError(f"{key} must be a mapping")
     return value
+
+
+def _normalize_labels(
+    labels: tuple[str, ...] | tuple[InteractionLabel, ...] | None,
+) -> tuple[InteractionLabel, ...] | None:
+    if labels is None:
+        return None
+
+    normalized_labels = tuple(parse_label(label) for label in labels)
+    if len(normalized_labels) != PROBE_COUNT:
+        return None
+    return normalized_labels

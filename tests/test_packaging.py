@@ -4,21 +4,30 @@ import json
 from pathlib import Path
 import tomllib
 
-from kaggle import load_kaggle_staging_manifest, validate_kaggle_staging_manifest
+from kaggle import (
+    BinaryResponse,
+    Label,
+    load_kaggle_staging_manifest,
+    normalize_binary_response,
+    normalize_narrative_response,
+    score_episode,
+    validate_kaggle_staging_manifest,
+)
 from schema import DIFFICULTY_VERSION, GENERATOR_VERSION, SPEC_VERSION, TEMPLATE_SET_VERSION
 from splits import MANIFEST_VERSION, PARTITIONS, load_split_manifest
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
+_KBENCH_NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kbench.ipynb"
 _NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kaggle_staging.ipynb"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 _USAGE_PATH = _KAGGLE_DIR / "README.md"
 _PACKAGING_NOTE_PATH = _KAGGLE_DIR / "PACKAGING_NOTE.md"
 
 
-def _read_notebook_sources() -> str:
-    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
+def _read_notebook_sources(path: Path) -> str:
+    notebook = json.loads(path.read_text(encoding="utf-8"))
     return "\n".join(
         "".join(cell.get("source", ()))
         for cell in notebook["cells"]
@@ -88,7 +97,7 @@ def test_pyproject_exposes_local_console_entrypoints():
 
 
 def test_kaggle_staging_notebook_points_at_frozen_bundle_artifacts():
-    sources = _read_notebook_sources()
+    sources = _read_notebook_sources(_NOTEBOOK_PATH)
 
     assert "frozen_artifacts_manifest.json" in sources
     assert "benchmark_card" in sources
@@ -137,7 +146,7 @@ def test_packaging_docs_do_not_claim_unsupported_features():
         path.read_text(encoding="utf-8")
         for path in (_CARD_PATH, _USAGE_PATH, _PACKAGING_NOTE_PATH)
     )
-    text += "\n" + _read_notebook_sources()
+    text += "\n" + _read_notebook_sources(_NOTEBOOK_PATH)
     lowered = text.lower()
 
     assert "does **not** claim" in text
@@ -181,9 +190,50 @@ def test_kaggle_packaging_text_keeps_optional_provider_sdks_out_of_base_path():
 
 
 def test_kaggle_staging_path_does_not_depend_on_openai_runtime():
-    notebook_text = _read_notebook_sources().lower()
+    notebook_text = _read_notebook_sources(_NOTEBOOK_PATH).lower()
     usage_text = _USAGE_PATH.read_text(encoding="utf-8").lower()
 
     assert "openai_api_key" not in notebook_text
     assert "ife openai-panel" not in notebook_text
     assert "openai_api_key" not in usage_text
+
+
+def test_official_kbench_notebook_imports_package_owned_benchmark_logic():
+    sources = _read_notebook_sources(_KBENCH_NOTEBOOK_PATH)
+
+    assert "from kaggle import BinaryResponse, normalize_binary_response, normalize_narrative_response, score_episode" in sources
+    assert "def normalize_binary_response(" not in sources
+    assert "def normalize_narrative_response(" not in sources
+    assert "def score_binary_episode(" not in sources
+    assert "class Label(" not in sources
+    assert "class BinaryResponse:" not in sources
+
+
+def test_kaggle_package_helpers_preserve_binary_and_narrative_scoring_contract():
+    structured = BinaryResponse(
+        Label.attract,
+        Label.repel,
+        Label.repel,
+        Label.attract,
+    )
+
+    assert normalize_binary_response(structured) == (
+        "attract",
+        "repel",
+        "repel",
+        "attract",
+    )
+    assert normalize_binary_response("attract, repel, repel, attract") == (
+        "attract",
+        "repel",
+        "repel",
+        "attract",
+    )
+    assert normalize_narrative_response(
+        "Reasoning about the later rule.\nattract, repel, repel, attract"
+    ) == ("attract", "repel", "repel", "attract")
+    assert score_episode(
+        ("attract", "repel", "repel", "attract"),
+        ("attract", "repel", "repel", "attract"),
+    ) == (4, 4)
+    assert score_episode(None, ("attract", "repel", "repel", "attract")) == (0, 4)
