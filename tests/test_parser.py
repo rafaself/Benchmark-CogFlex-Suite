@@ -132,3 +132,156 @@ def test_narrative_parser_still_accepts_legacy_final_labels_block():
         ),
         status=ParseStatus.VALID,
     )
+
+
+def test_narrative_parser_extracts_four_bare_trailing_labels():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "The charges follow an inverted rule.",
+                "6. repel",
+                "7. repel",
+                "8. repel",
+                "9. attract",
+                "",
+                "repel",
+                "repel",
+                "repel",
+                "attract",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.REPEL,
+        InteractionLabel.REPEL,
+        InteractionLabel.REPEL,
+        InteractionLabel.ATTRACT,
+    )
+
+
+def test_narrative_parser_extracts_labels_after_final_answer_marker():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Reasoning about the rule shift.",
+                "Final Answer:",
+                "repel",
+                "attract",
+                "attract",
+                "attract",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.REPEL,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.ATTRACT,
+    )
+
+
+def test_narrative_parser_extracts_numbered_labels_after_final_answers_marker():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Some analysis.",
+                "**Final Answers:**",
+                "6. attract",
+                "7. repel",
+                "8. attract",
+                "9. repel",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.ATTRACT,
+        InteractionLabel.REPEL,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.REPEL,
+    )
+
+
+def test_narrative_parser_extracts_case_variant_trailing_labels():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Analysis complete.",
+                "Repel",
+                "Attract",
+                "Attract",
+                "Repel",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.REPEL,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.REPEL,
+    )
+
+
+def test_narrative_parser_extracts_numbered_trailing_labels_without_marker():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "The revised rule means like charges attract.",
+                "6. attract",
+                "7. attract",
+                "8. repel",
+                "9. repel",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.ATTRACT,
+        InteractionLabel.ATTRACT,
+        InteractionLabel.REPEL,
+        InteractionLabel.REPEL,
+    )
+
+
+def test_narrative_parser_rejects_prose_only_even_with_final_answer_marker():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Final Answer:",
+                "The charges follow the standard rule of electrostatics.",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.INVALID
+
+
+def test_narrative_parser_falls_through_final_answer_to_trailing_lines():
+    parsed = parse_narrative_output(
+        "\n".join(
+            (
+                "Final Answer:",
+                "Based on my analysis, here are the predictions:",
+                "attract",
+                "repel",
+                "repel",
+                "attract",
+            )
+        )
+    )
+
+    assert parsed.status == ParseStatus.VALID
+    assert parsed.labels == (
+        InteractionLabel.ATTRACT,
+        InteractionLabel.REPEL,
+        InteractionLabel.REPEL,
+        InteractionLabel.ATTRACT,
+    )
