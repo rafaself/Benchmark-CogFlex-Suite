@@ -256,9 +256,7 @@ The source of truth for the current project state is the implemented local bench
 
 Supporting documents:
 
-- [`iron_find_electric_implementation_spec.md`](./iron_find_electric_implementation_spec.md): behavior and contract reference for the implemented local benchmark pipeline.
-- [`iron_find_electric_improved_plan.md`](./iron_find_electric_improved_plan.md): current consolidation plan and status notes.
+- [`KAGGLE_BENCHMARK_CONTRACT.md`](./KAGGLE_BENCHMARK_CONTRACT.md): authoritative benchmark contract — single source of truth for benchmark identity, metric, splits, scoring, prompt invariants, and claim boundaries.
 - [`src/README.md`](./src/README.md): source-tree overview and canonical package layout.
-- [`benchmark_design_section_cognitive_flexibility.md`](./benchmark_design_section_cognitive_flexibility.md): benchmark framing and explicit v1 limitations.
 - [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md): Kaggle-facing benchmark card tied to the current implemented benchmark and bundled evidence.
 - [`packaging/kaggle/README.md`](./packaging/kaggle/README.md): concise Kaggle staging flow and reproducibility notes.
