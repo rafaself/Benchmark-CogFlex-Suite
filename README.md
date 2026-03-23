@@ -42,7 +42,7 @@ Current evidence status:
 
 This benchmark does not claim to measure physics skill, broad AGI capability, broad executive-function coverage, switch cost, recovery length, immediate post-shift drop, or online change-detection latency.
 
-Optional real-model execution is available locally through the Gemini first-panel runner. It is not part of the deterministic main test gate, requires the optional Gemini SDK extra, and only runs when `GEMINI_API_KEY` is configured, either in the shell environment or in a repo-root `.env` file. Benchmark runs now require pinned model IDs; the default Gemini panel model is pinned. The current M1 evidence was produced via this runner.
+Optional real-model execution is available locally through the provider panel runners. It is not part of the deterministic main test gate, requires the matching optional provider SDK extra, and only runs when the relevant API key is configured in the shell environment or in a repo-root `.env` file. Benchmark runs require pinned model IDs. The current committed live evidence was produced with the Gemini runner.
 
 ## Benchmark Shape
 
@@ -173,7 +173,15 @@ export GEMINI_API_KEY=your_api_key_here
 .venv/bin/python scripts/ife.py gemini-first-panel
 ```
 
-Or place `GEMINI_API_KEY=...` in a repo-root `.env` file and run the same command.
+Or place the local provider keys you need in a repo-root `.env` file:
+
+```dotenv
+GEMINI_API_KEY=your_gemini_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+Then run the matching local panel command.
 
 OpenAI local-only runs follow the same paired Binary/Narrative reporting surface and require the pinned snapshot model:
 
