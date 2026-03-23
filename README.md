@@ -40,14 +40,17 @@ Task and metric boundaries:
 Current v1 readiness status:
 
 - the active v1 readiness evidence path is Gemini;
-- the current anchor evidence is the committed Gemini report for requested model label `gemini-2.5-flash`;
-- the next active evidence target is `gemini-2.5-flash-lite`;
+- the current anchor evidence is the committed paired Gemini report for requested model label `gemini-2.5-flash` at `reports/live/gemini-first-panel/binary-vs-narrative/history/report__20260323_120000.md`;
+- the current paired Gemini Flash-Lite run is canonical at `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`;
+- the direct Flash vs Flash-Lite comparison is canonical at `reports/live/gemini-first-panel/comparison/latest/report.md`;
 - Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate and are not required for current v1 readiness;
 - current v1 readiness does not require cross-provider evidence.
 
 Current evidence status:
 
 - **M1 (live Gemini panel)**: Binary accuracy = 0.781250, Narrative accuracy = 0.458333 (delta = 0.322917), Binary parse-valid = 1.000000, Narrative parse-valid = 0.937500. Binary substantially exceeds all heuristic baselines. Narrative is meaningfully lower than Binary on the same frozen episodes, indicating a real surface-form robustness gap. A small Narrative provider/runtime contamination note (overall rate = 0.041667) must be disclosed separately from parse/format and adaptation outcomes. The committed M1 report preserves the original requested model label `gemini-2.5-flash`.
+- **M1b (live Gemini Flash-Lite panel)**: Binary accuracy = 0.687500, Narrative accuracy = 0.276042 (delta = 0.411458), Binary parse-valid = 0.958333, Narrative parse-valid = 0.520833. The run uses the same frozen splits and benchmark versions as M1 and is the current canonical `latest/` paired Gemini run.
+- **M1c (intra-Gemini comparison)**: The canonical Flash vs Flash-Lite comparison confirms matching benchmark versions and frozen split hashes, so the current Gemini anchor run and Flash-Lite run are directly comparable without widening the claim beyond the Gemini readiness path.
 - **M2 (staging dry-run readiness)**: Packaged frozen artifacts load, manifest validation passes, and the staging notebook runs end to end in both Binary and Narrative modes. M2 is packaging-validation evidence only, not live model-evaluation evidence.
 - **Local provider surfaces**: Gemini, Anthropic, and OpenAI runners exist locally. Only Gemini is part of the current v1 readiness path.
 - **M6**: The v1.1 optimization pass tightened diagnostic reporting, live-artifact discipline, and release hygiene without changing benchmark behavior, frozen artifacts, or the headline metric.

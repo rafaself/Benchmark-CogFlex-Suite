@@ -2,7 +2,7 @@
 
 ## Summary
 
-Iron Find Electric v1 is a targeted Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
+Iron Find Electric v1 is a narrow Executive Functions benchmark for cognitive flexibility. It uses electrostatics only as a controlled substrate for evaluating final post-shift rule application after sparse contradictory evidence.
 
 A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, broad AGI capability, or general reasoning ability.
 
@@ -10,7 +10,7 @@ This package is for Kaggle staging only. The implemented local benchmark under `
 
 ## Task Paths
 
-- **Binary** is the only leaderboard-primary path. It is the scored evaluation path for the v1 claim.
+- **Binary** is the only leaderboard-primary path. The Binary task is the scored evaluation path for the v1 claim.
 - **Narrative** is the required same-episode robustness companion. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored.
 - Electrostatics is only the controlled substrate. The benchmark is not intended to measure physics skill as the primary target.
 
@@ -100,8 +100,9 @@ The benchmark explicitly does **not** claim:
 ## Current Readiness Status
 
 - the active v1 readiness evidence path is Gemini;
-- the current anchor evidence is the committed report preserving the requested model label `gemini-2.5-flash`;
-- the next active evidence target is `gemini-2.5-flash-lite`;
+- the current anchor evidence is the committed paired report preserving the requested model label `gemini-2.5-flash`;
+- the current paired Gemini Flash-Lite run is canonical at `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`;
+- the direct Flash vs Flash-Lite comparison is canonical at `reports/live/gemini-first-panel/comparison/latest/report.md`;
 - Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate;
 - current v1 readiness does not require cross-provider evidence.
 

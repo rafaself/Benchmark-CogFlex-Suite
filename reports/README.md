@@ -18,9 +18,9 @@ Current top-level groupings:
 Current readiness interpretation:
 
 - the active v1 readiness evidence path is Gemini;
-- the current anchor evidence lives under `reports/live/gemini-first-panel/binary-vs-narrative/latest/`;
-- the anchor evidence preserves the original requested model label `gemini-2.5-flash`;
-- the next active evidence target is `gemini-2.5-flash-lite`;
+- the current anchor evidence preserves the original requested model label `gemini-2.5-flash` at `reports/live/gemini-first-panel/binary-vs-narrative/history/report__20260323_120000.md`;
+- the current paired Gemini Flash-Lite run is canonical under `reports/live/gemini-first-panel/binary-vs-narrative/latest/`;
+- the direct Flash vs Flash-Lite comparison is canonical under `reports/live/gemini-first-panel/comparison/latest/`;
 - Anthropic and OpenAI local report paths exist, but they are outside the current v1 readiness gate.
 
 Canonical live evidence should point to the `latest/` report, artifact, and metadata first. Flat top-level report aliases such as `reports/m1_binary_vs_narrative_robustness_report.*` are convenience mirrors and should stay byte-identical to the canonical `latest/` surfaces they reference.

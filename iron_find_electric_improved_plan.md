@@ -34,7 +34,8 @@ Current v1 readiness policy:
 
 - the active v1 readiness evidence path is Gemini;
 - the current anchor evidence is the committed Gemini panel report for requested model label `gemini-2.5-flash`;
-- the next active evidence target is `gemini-2.5-flash-lite`;
+- the current paired Gemini Flash-Lite run is canonical at `reports/live/gemini-first-panel/binary-vs-narrative/latest/`;
+- the direct Flash vs Flash-Lite comparison is canonical at `reports/live/gemini-first-panel/comparison/latest/`;
 - Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate;
 - current v1 readiness does not require cross-provider evidence.
 
@@ -213,7 +214,7 @@ The benchmark is implemented. The active plan is consolidation, evidence progres
 
 2. **Phase 2: Gemini evidence progression**
    - keep the current anchor evidence tied to the committed `gemini-2.5-flash` report;
-   - run the next active Gemini evidence target on `gemini-2.5-flash-lite`;
+   - keep the current canonical `gemini-2.5-flash-lite` paired run and direct comparison aligned to the same frozen assets and benchmark versions as the `gemini-2.5-flash` anchor;
    - keep Binary primary and Narrative as required same-episode robustness evidence.
 
 3. **Phase 3: packaging and release discipline**
@@ -303,7 +304,8 @@ The implemented local benchmark stack is already present in the repository:
 - the benchmark is already implemented;
 - the active readiness evidence path is Gemini;
 - the current anchor evidence is the committed `gemini-2.5-flash` report;
-- the next active evidence target is `gemini-2.5-flash-lite`;
+- the current canonical paired `gemini-2.5-flash-lite` run is present;
+- the direct Flash vs Flash-Lite comparison is present;
 - Anthropic and OpenAI integrations are present locally but outside the current v1 readiness gate;
 - Binary is the only leaderboard-primary path;
 - Narrative is the required same-episode robustness companion;
