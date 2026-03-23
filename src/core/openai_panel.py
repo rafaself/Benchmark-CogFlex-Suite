@@ -16,6 +16,7 @@ from core.panel_runner import (
     TASK_MODE_LABELS,
     artifact_path_for_report,
     build_panel_artifact,
+    build_panel_raw_capture,
     build_panel_progress_callback,
     render_panel_markdown,
 )
@@ -27,7 +28,9 @@ from core.providers.registry import (
 )
 from core.report_outputs import (
     build_latest_report_path,
+    build_timestamped_sample_path,
     current_report_timestamp,
+    write_json_with_timestamped_snapshot,
     write_text_with_timestamped_snapshot,
 )
 from core.splits import PARTITIONS, load_frozen_split
@@ -128,6 +131,14 @@ def run_openai_panel(
         episodes_by_split=episodes_by_split,
         benchmark_results_by_split=benchmark_results_by_split,
     )
+    raw_capture_payload = build_panel_raw_capture(
+        provider_name=provider_name,
+        model_name=resolved_model_name,
+        prompt_modes=normalized_modes,
+        release_report=release_report,
+        episodes_by_split=episodes_by_split,
+        benchmark_results_by_split=benchmark_results_by_split,
+    )
     report_markdown = render_panel_markdown(
         release_report,
         model_name=resolved_model_name,
@@ -145,15 +156,26 @@ def run_openai_panel(
     )
     resolved_artifact_path = artifact_path_for_report(resolved_report_path)
     report_timestamp = current_report_timestamp()
+    sample_path = build_timestamped_sample_path(
+        resolved_report_path,
+        stem="raw_capture",
+        suffix=".json",
+        timestamp=report_timestamp,
+    )
     _, snapshot_report_path = write_text_with_timestamped_snapshot(
         resolved_report_path,
         report_markdown,
         timestamp=report_timestamp,
     )
-    _, snapshot_artifact_path = write_text_with_timestamped_snapshot(
+    _, snapshot_artifact_path = write_json_with_timestamped_snapshot(
         resolved_artifact_path,
         json.dumps(artifact_payload, indent=2) + "\n",
         timestamp=report_timestamp,
+    )
+    sample_path.parent.mkdir(parents=True, exist_ok=True)
+    sample_path.write_text(
+        json.dumps(raw_capture_payload, indent=2) + "\n",
+        encoding="utf-8",
     )
 
     return OpenAIPanelArtifacts(
@@ -167,4 +189,5 @@ def run_openai_panel(
         artifact_path=resolved_artifact_path,
         snapshot_report_path=snapshot_report_path,
         snapshot_artifact_path=snapshot_artifact_path,
+        sample_path=sample_path,
     )

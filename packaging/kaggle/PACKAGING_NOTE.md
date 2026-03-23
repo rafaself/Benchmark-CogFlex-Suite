@@ -6,4 +6,5 @@
 - The sole headline metric is Binary-only Post-shift Probe Accuracy; Narrative does not change the headline score, and only the final four labels are scored.
 - The package explicitly does not claim physics skill, broad executive-function coverage, broad AGI capability, switch cost measurement, recovery length, immediate post-shift drop, online change-detection latency, or emitted `hard` slices.
 - M1 live Gemini panel evidence now exists in the reports tree (Binary accuracy = 0.781250, Narrative accuracy = 0.458333, delta = 0.322917). The Kaggle staging package itself validates packaged assets and does not perform live inference.
+- The committed M1 Gemini evidence was resynced in M6 from the original legacy capture and therefore preserves the original requested model label `gemini-2.5-flash`; it should not be read as a newer live rerun.
 - `hard` remains reserved and is not emitted.

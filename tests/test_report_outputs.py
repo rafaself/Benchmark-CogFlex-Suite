@@ -4,6 +4,7 @@ from pathlib import Path
 
 from core.report_outputs import (
     build_latest_report_path,
+    build_timestamped_sample_path,
     build_timestamped_snapshot_path,
     write_text_with_timestamped_snapshot,
 )
@@ -40,6 +41,35 @@ def test_snapshot_for_non_latest_path_stays_beside_canonical_file(tmp_path: Path
     )
 
     assert snapshot_path == tmp_path / "integrity__20260322_210500.json"
+
+
+def test_sample_path_for_latest_path_is_written_to_samples_directory(tmp_path: Path):
+    report_path = (
+        tmp_path
+        / "reports"
+        / "live"
+        / "gemini-first-panel"
+        / "binary-only"
+        / "latest"
+        / "report.md"
+    )
+
+    sample_path = build_timestamped_sample_path(
+        report_path,
+        stem="raw_capture",
+        suffix=".json",
+        timestamp="20260323_010000",
+    )
+
+    assert sample_path == (
+        tmp_path
+        / "reports"
+        / "live"
+        / "gemini-first-panel"
+        / "binary-only"
+        / "samples"
+        / "raw_capture__20260323_010000.json"
+    )
 
 
 def test_build_latest_report_path_uses_reports_root(monkeypatch):

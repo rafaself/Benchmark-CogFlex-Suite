@@ -133,6 +133,9 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     assert artifacts.artifact_path == report_path.with_suffix(".json")
     assert artifacts.snapshot_report_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.md"
     assert artifacts.snapshot_artifact_path == tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_201900.json"
+    assert artifacts.sample_path == (
+        tmp_path / "samples" / "raw_capture__20260322_201900.json"
+    )
     assert artifacts.report_path.read_text(encoding="utf-8") == artifacts.report_markdown
     assert (
         artifacts.snapshot_report_path.read_text(encoding="utf-8")
@@ -140,7 +143,9 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     )
 
     payload = json.loads(artifacts.artifact_path.read_text(encoding="utf-8"))
+    raw_capture = json.loads(artifacts.sample_path.read_text(encoding="utf-8"))
     assert payload["prompt_modes"] == ["binary", "narrative"]
+    assert payload["artifact_schema_version"] == "v1.1"
     assert [split["split_name"] for split in payload["splits"]] == [
         "dev",
         "public_leaderboard",
@@ -176,8 +181,14 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     assert first_dev_row["modes"]["binary"]["finish_reason"] is None
     assert "exact_global_old_rule_persistence" in first_dev_row["modes"]["binary"]
     assert "disagreement_profile" in first_dev_row["modes"]["binary"]
+    assert "response_text" not in first_dev_row["modes"]["binary"]
+    assert (
+        raw_capture["splits"][0]["rows"][0]["modes"]["binary"]["response_text"]
+        is not None
+    )
 
     assert "## Paired Robustness" in artifacts.report_markdown
+    assert "## Execution Provenance (diagnostic-only)" in artifacts.report_markdown
     assert "## Failure Decomposition (diagnostic-only)" in artifacts.report_markdown
     assert "## Direct Disagreement Diagnostics (diagnostic-only)" in artifacts.report_markdown
     assert "## Diagnostic Failure Slices (diagnostic-only)" in artifacts.report_markdown

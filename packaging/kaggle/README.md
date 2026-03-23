@@ -24,6 +24,7 @@ This directory packages the repaired benchmark for Kaggle staging without redefi
 - The notebook relies on the local `src/` modules and the frozen JSON artifacts already produced before staging.
 - The manifest records integrity hashes for the notebook, docs, frozen split manifests, and bundled evidence reports.
 - The local validation and audit outputs remain the source of truth; Kaggle staging is a clean replay layer over those artifacts.
+- The separate M1 Gemini live evidence in `reports/` is preserved from a legacy local capture and is disclosed for context only; Kaggle staging does not rerun or reinterpret that live evidence.
 
 ## Environment Assumptions
 

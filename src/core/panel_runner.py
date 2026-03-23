@@ -10,7 +10,7 @@ from core.audit import (
     ReleaseAuditReport,
     ReleaseAuditSourceSummary,
 )
-from core.model_execution import ModelMode, ModelRunConfig
+from core.model_execution import ModelExecutionOutcome, ModelMode, ModelRunConfig
 from core.model_runner import BenchmarkModeRunRow, BenchmarkRunResult
 from core.parser import ParseStatus
 from tasks.iron_find_electric.baselines import (
@@ -26,6 +26,7 @@ __all__ = [
     "TASK_MODE_LABELS",
     "artifact_path_for_report",
     "build_panel_artifact",
+    "build_panel_raw_capture",
     "build_panel_progress_callback",
     "render_panel_markdown",
 ]
@@ -51,6 +52,7 @@ _TRANSITION_ORDER: tuple[str, ...] = (
     "R_std_to_R_inv",
     "R_inv_to_R_std",
 )
+_ARTIFACT_SCHEMA_VERSION = "v1.1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +67,7 @@ class PanelArtifacts:
     artifact_path: Path | None = None
     snapshot_report_path: Path | None = None
     snapshot_artifact_path: Path | None = None
+    sample_path: Path | None = None
 
 
 def build_panel_progress_callback(
@@ -561,6 +564,8 @@ def render_panel_markdown(
                     "All views in this section are diagnostic-only. They use the frozen probe metadata already bundled with each episode and do not replace the Binary-only headline metric.",
                 ]
             )
+        lines.extend(_build_execution_provenance_lines(artifact_payload))
+        lines.extend(_build_provenance_note_lines(artifact_payload))
 
     lines.extend(
         [
@@ -623,6 +628,7 @@ def build_panel_artifact(
     release_report: ReleaseAuditReport,
     episodes_by_split: dict[str, tuple[Episode, ...]],
     benchmark_results_by_split: dict[str, BenchmarkRunResult],
+    provenance_note: str | None = None,
 ) -> dict[str, object]:
     split_payloads = [
         _build_split_artifact(
@@ -633,12 +639,18 @@ def build_panel_artifact(
         )
         for split_name, _episode_count in release_report.split_episode_counts
     ]
-    return {
+    artifact_payload = {
+        "artifact_schema_version": _ARTIFACT_SCHEMA_VERSION,
         "release_id": release_report.release_id,
         "provider_name": provider_name,
         "model_name": model_name,
         "prompt_modes": [mode.value for mode in prompt_modes],
         "splits": split_payloads,
+        "execution_summary": _build_execution_summary(
+            release_report=release_report,
+            benchmark_results_by_split=benchmark_results_by_split,
+            prompt_modes=prompt_modes,
+        ),
         "failure_taxonomy": _build_failure_taxonomy(
             split_payloads, prompt_modes
         ),
@@ -649,6 +661,41 @@ def build_panel_artifact(
             split_payloads, prompt_modes
         ),
     }
+    if provenance_note is not None:
+        artifact_payload["provenance_note"] = provenance_note
+    return artifact_payload
+
+
+def build_panel_raw_capture(
+    *,
+    provider_name: str,
+    model_name: str,
+    prompt_modes: tuple[ModelMode, ...],
+    release_report: ReleaseAuditReport,
+    episodes_by_split: dict[str, tuple[Episode, ...]],
+    benchmark_results_by_split: dict[str, BenchmarkRunResult],
+    provenance_note: str | None = None,
+) -> dict[str, object]:
+    split_payloads = [
+        _build_split_raw_capture(
+            split_name=split_name,
+            episodes=episodes_by_split[split_name],
+            benchmark_result=benchmark_results_by_split[split_name],
+            prompt_modes=prompt_modes,
+        )
+        for split_name, _episode_count in release_report.split_episode_counts
+    ]
+    raw_capture = {
+        "capture_schema_version": _ARTIFACT_SCHEMA_VERSION,
+        "release_id": release_report.release_id,
+        "provider_name": provider_name,
+        "model_name": model_name,
+        "prompt_modes": [mode.value for mode in prompt_modes],
+        "splits": split_payloads,
+    }
+    if provenance_note is not None:
+        raw_capture["provenance_note"] = provenance_note
+    return raw_capture
 
 
 def _build_split_artifact(
@@ -797,9 +844,60 @@ def _build_mode_row_payload(
         "recency_overshoot_error_probe_count": recency_overshoot_error_probe_count,
         "disagreement_profile": disagreement_profile,
         "error_type": row.execution.raw_result.error_type,
-        "error_message": row.execution.raw_result.error_message,
-        "response_text": row.execution.raw_result.response_text,
         "finish_reason": row.execution.raw_result.finish_reason,
+    }
+
+
+def _build_split_raw_capture(
+    *,
+    split_name: str,
+    episodes: tuple[Episode, ...],
+    benchmark_result: BenchmarkRunResult,
+    prompt_modes: tuple[ModelMode, ...],
+) -> dict[str, object]:
+    mode_rows = {
+        mode_result.mode: mode_result.rows
+        for mode_result in benchmark_result.mode_results
+    }
+    rows: list[dict[str, object]] = []
+    for index, episode in enumerate(episodes):
+        mode_payloads: dict[str, object] = {}
+        for mode in prompt_modes:
+            if mode not in mode_rows:
+                continue
+            row = mode_rows[mode][index]
+            mode_payloads[mode.value] = {
+                "parse_status": row.parsed_prediction.status.value,
+                "predicted_labels": [
+                    label.value for label in row.parsed_prediction.labels
+                ],
+                "error_type": row.execution.raw_result.error_type,
+                "error_message": row.execution.raw_result.error_message,
+                "response_text": row.execution.raw_result.response_text,
+                "duration_seconds": row.execution.raw_result.duration_seconds,
+                "response_id": row.execution.raw_result.response_id,
+                "provider_model_version": (
+                    row.execution.raw_result.provider_model_version
+                ),
+                "finish_reason": row.execution.raw_result.finish_reason,
+                "usage": _serialize_usage(row.execution.raw_result.usage),
+            }
+        rows.append(
+            {
+                "episode_id": episode.episode_id,
+                "template_id": episode.template_id.value,
+                "difficulty": episode.difficulty.value,
+                "transition": episode.transition.value,
+                "probe_targets": [
+                    label.value for label in episode.probe_targets
+                ],
+                "modes": mode_payloads,
+            }
+        )
+    return {
+        "split_name": split_name,
+        "episode_count": len(episodes),
+        "rows": rows,
     }
 
 
@@ -891,6 +989,122 @@ def _build_failure_taxonomy_for_scope(
             }
         )
     return scope_rows
+
+
+def _build_execution_summary(
+    *,
+    release_report: ReleaseAuditReport,
+    benchmark_results_by_split: dict[str, BenchmarkRunResult],
+    prompt_modes: tuple[ModelMode, ...],
+) -> list[dict[str, object]]:
+    summary_rows = _build_execution_summary_for_scope(
+        scope_type="overall",
+        scope_label="overall",
+        benchmark_results=tuple(
+            benchmark_results_by_split[split_name]
+            for split_name, _episode_count in release_report.split_episode_counts
+        ),
+        prompt_modes=prompt_modes,
+    )
+    for split_name, _episode_count in release_report.split_episode_counts:
+        summary_rows.extend(
+            _build_execution_summary_for_scope(
+                scope_type="split",
+                scope_label=split_name,
+                benchmark_results=(benchmark_results_by_split[split_name],),
+                prompt_modes=prompt_modes,
+            )
+        )
+    return summary_rows
+
+
+def _build_execution_summary_for_scope(
+    *,
+    scope_type: str,
+    scope_label: str,
+    benchmark_results: tuple[BenchmarkRunResult, ...],
+    prompt_modes: tuple[ModelMode, ...],
+) -> list[dict[str, object]]:
+    summary_rows: list[dict[str, object]] = []
+    for mode in prompt_modes:
+        rows = tuple(
+            row
+            for benchmark_result in benchmark_results
+            for mode_result in benchmark_result.mode_results
+            if mode_result.mode is mode
+            for row in mode_result.rows
+        )
+        episode_count = len(rows)
+        if episode_count == 0:
+            continue
+
+        provider_failure_count = sum(
+            row.execution.raw_result.execution_outcome
+            is ModelExecutionOutcome.PROVIDER_FAILURE
+            for row in rows
+        )
+        completed_count = episode_count - provider_failure_count
+        observed_duration_count = sum(
+            row.execution.raw_result.duration_seconds is not None for row in rows
+        )
+        total_duration_seconds = sum(
+            row.execution.raw_result.duration_seconds or 0.0 for row in rows
+        )
+        usage_rows = tuple(
+            row.execution.raw_result.usage
+            for row in rows
+            if row.execution.raw_result.usage is not None
+        )
+        provider_model_versions = tuple(
+            sorted(
+                {
+                    row.execution.raw_result.provider_model_version
+                    for row in rows
+                    if row.execution.raw_result.provider_model_version is not None
+                }
+            )
+        )
+        finish_reason_counts: dict[str, int] = {}
+        for row in rows:
+            finish_reason = row.execution.raw_result.finish_reason
+            if finish_reason is None:
+                continue
+            finish_reason_counts[finish_reason] = (
+                finish_reason_counts.get(finish_reason, 0) + 1
+            )
+        summary_rows.append(
+            {
+                "scope_type": scope_type,
+                "scope_label": scope_label,
+                "mode": TASK_MODE_LABELS[mode],
+                "episode_count": episode_count,
+                "completed_count": completed_count,
+                "provider_failure_count": provider_failure_count,
+                "provider_model_versions": list(provider_model_versions),
+                "observed_duration_count": observed_duration_count,
+                "total_duration_seconds": total_duration_seconds,
+                "mean_duration_seconds": (
+                    total_duration_seconds / observed_duration_count
+                    if observed_duration_count
+                    else None
+                ),
+                "response_id_count": sum(
+                    row.execution.raw_result.response_id is not None for row in rows
+                ),
+                "usage_observed_count": len(usage_rows),
+                "input_tokens": sum(
+                    usage.input_tokens or 0 for usage in usage_rows
+                ),
+                "output_tokens": sum(
+                    usage.output_tokens or 0 for usage in usage_rows
+                ),
+                "total_tokens": sum(
+                    usage.total_tokens or 0 for usage in usage_rows
+                ),
+                "finish_reason_counts": dict(sorted(finish_reason_counts.items())),
+            }
+        )
+    return summary_rows
 
 
 def _build_disagreement_diagnostics(
@@ -1277,8 +1491,116 @@ def _build_live_execution_notes(
             notes.extend(["", "## Live Execution Review", ""])
         notes.append(
             "At least one prompt mode has parse-valid outputs that still miss post-shift probes. Those misses are diagnostic-only adaptation evidence, not new benchmark scoring."
-        )
+    )
     return notes
+
+
+def _build_execution_provenance_lines(
+    artifact_payload: dict[str, object],
+) -> list[str]:
+    execution_rows = tuple(artifact_payload.get("execution_summary", ()))
+    if not execution_rows:
+        return []
+
+    filtered_rows = tuple(
+        row
+        for row in execution_rows
+        if isinstance(row, dict)
+        and row.get("scope_type") in {"overall", "split"}
+    )
+    if not filtered_rows:
+        return []
+
+    lines = [
+        "",
+        "## Execution Provenance (diagnostic-only)",
+        "",
+        "| Scope | Mode | Completed | Provider failures | Provider model versions | Mean duration (s) | Usage rows | Total tokens | Finish reasons |",
+        "| --- | --- | --- | --- | --- | ---: | --- | ---: | --- |",
+    ]
+    for row in sorted(
+        filtered_rows,
+        key=lambda item: (
+            0 if item["scope_type"] == "overall" else 1,
+            str(item["scope_label"]),
+            str(item["mode"]),
+        ),
+    ):
+        lines.append(
+            "| {scope} | {mode} | {completed} | {provider_failures} | "
+            "{provider_model_versions} | {mean_duration} | {usage_rows} | "
+            "{total_tokens} | {finish_reasons} |".format(
+                scope=_format_scope_label(row),
+                mode=row["mode"],
+                completed=_format_count_rate(
+                    int(row["completed_count"]),
+                    int(row["episode_count"]),
+                ),
+                provider_failures=_format_count_rate(
+                    int(row["provider_failure_count"]),
+                    int(row["episode_count"]),
+                ),
+                provider_model_versions=(
+                    ", ".join(row["provider_model_versions"])
+                    if row["provider_model_versions"]
+                    else "legacy-unavailable"
+                ),
+                mean_duration=(
+                    f"{float(row['mean_duration_seconds']):.6f}"
+                    if row["mean_duration_seconds"] is not None
+                    else "n/a"
+                ),
+                usage_rows=_format_count_rate(
+                    int(row["usage_observed_count"]),
+                    int(row["episode_count"]),
+                ),
+                total_tokens=int(row["total_tokens"]),
+                finish_reasons=_format_finish_reason_counts(
+                    row["finish_reason_counts"]
+                ),
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "Execution provenance is diagnostic-only operational context. It does not change scoring or add a new benchmark metric.",
+        ]
+    )
+    return lines
+
+
+def _build_provenance_note_lines(
+    artifact_payload: dict[str, object],
+) -> list[str]:
+    provenance_note = artifact_payload.get("provenance_note")
+    if not isinstance(provenance_note, str) or not provenance_note.strip():
+        return []
+    return [
+        "",
+        "## Provenance Note (diagnostic-only)",
+        "",
+        provenance_note.strip(),
+    ]
+
+
+def _serialize_usage(usage: object) -> dict[str, int | None] | None:
+    if usage is None:
+        return None
+    return {
+        "input_tokens": getattr(usage, "input_tokens", None),
+        "output_tokens": getattr(usage, "output_tokens", None),
+        "total_tokens": getattr(usage, "total_tokens", None),
+    }
+
+
+def _format_finish_reason_counts(
+    counts: dict[str, object],
+) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(
+        f"{reason}={count}" for reason, count in counts.items()
+    )
 
 
 def _format_count_rate(count: int, total: int) -> str:

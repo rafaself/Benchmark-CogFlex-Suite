@@ -36,13 +36,17 @@ Task and metric boundaries:
 
 Current evidence status:
 
-- **M1 (live Gemini panel)**: Binary accuracy = 0.781250, Narrative accuracy = 0.458333 (delta = 0.322917), Binary parse-valid = 1.000000, Narrative parse-valid = 0.937500. Binary substantially exceeds all heuristic baselines. Narrative is meaningfully lower than Binary on the same frozen episodes, indicating a real surface-form robustness gap. A small Narrative provider/runtime contamination note (overall rate = 0.041667) must be disclosed separately from parse/format and adaptation outcomes.
+- **M1 (live Gemini panel)**: Binary accuracy = 0.781250, Narrative accuracy = 0.458333 (delta = 0.322917), Binary parse-valid = 1.000000, Narrative parse-valid = 0.937500. Binary substantially exceeds all heuristic baselines. Narrative is meaningfully lower than Binary on the same frozen episodes, indicating a real surface-form robustness gap. A small Narrative provider/runtime contamination note (overall rate = 0.041667) must be disclosed separately from parse/format and adaptation outcomes. The committed M1 report was resynced in M6 from the original legacy capture and therefore preserves the original requested model label `gemini-2.5-flash`.
 - **M2 (staging dry-run readiness)**: Packaged frozen artifacts load, manifest validation passes, and the staging notebook runs end to end in both Binary and Narrative modes. M2 is packaging-validation evidence only, not live model-evaluation evidence.
-- **M3**: Not started.
+- **M3.1**: Provider-boundary hardening is complete.
+- **M3.2**: Anthropic local-only integration is complete in development; live run pending.
+- **M3.3**: OpenAI local-only integration is complete in development; live run pending.
+- **M6**: The v1.1 optimization pass tightens diagnostic reporting, live-artifact discipline, and release hygiene without changing the benchmark claim, frozen artifacts, or headline metric.
 
 This benchmark does not claim to measure physics skill, broad AGI capability, broad executive-function coverage, switch cost, recovery length, immediate post-shift drop, or online change-detection latency.
 
 Optional real-model execution is available locally through the provider panel runners. It is not part of the deterministic main test gate, requires the matching optional provider SDK extra, and only runs when the relevant API key is configured in the shell environment or in a repo-root `.env` file. Benchmark runs require pinned model IDs. The current committed live evidence was produced with the Gemini runner.
+The committed M1 Gemini evidence predates the current pinned-model provenance capture and therefore preserves the original requested model label rather than a provider-served model-version field.
 
 ## Benchmark Shape
 
@@ -206,7 +210,7 @@ Current examples:
 
 - `reports/live/gemini-first-panel/binary-only/` (historical Binary-only evidence)
 - `reports/live/gemini-first-panel/binary-vs-narrative/` (current paired evidence)
-- `reports/m1_binary_vs_narrative_robustness_report.md` (current M1 evidence reference)
+- `reports/m1_binary_vs_narrative_robustness_report.md` (synced convenience alias to the canonical paired M1 report)
 - `reports/audit/evidence-pass/`
 
 If you want stable shell commands, install the repo in editable mode from a venv

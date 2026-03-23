@@ -15,7 +15,11 @@ from core.model_runner import (
     BenchmarkModeRunRow,
     BenchmarkRunResult,
 )
-from core.panel_runner import build_panel_artifact, render_panel_markdown
+from core.panel_runner import (
+    build_panel_artifact,
+    build_panel_raw_capture,
+    render_panel_markdown,
+)
 from generator import generate_episode
 from parser import ParseStatus, ParsedPrediction
 from protocol import Split
@@ -227,6 +231,9 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
         benchmark_results_by_split={"dev": benchmark_result},
     )
 
+    assert artifact["artifact_schema_version"] == "v1.1"
+    assert "execution_summary" in artifact
+
     binary_overall = next(
         row
         for row in artifact["diagnostic_summary"]
@@ -258,6 +265,18 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
     assert narrative_overall["old_rule_error_probe_count"] == 1
     assert narrative_overall["error_probe_count"] == 1
 
+    first_binary_mode = artifact["splits"][0]["rows"][0]["modes"]["binary"]
+    assert "response_text" not in first_binary_mode
+    assert "error_message" not in first_binary_mode
+
+    execution_overall = next(
+        row
+        for row in artifact["execution_summary"]
+        if row["scope_type"] == "overall" and row["mode"] == "Binary"
+    )
+    assert execution_overall["provider_failure_count"] == 0
+    assert execution_overall["completed_count"] == 3
+
     drilldown_rows = artifact["diagnostic_episode_rows"]
     assert any(
         row["mode"] == "Binary"
@@ -280,6 +299,7 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
     )
 
     assert "Binary-only headline metric: diagnostic-model Binary =" in markdown
+    assert "## Execution Provenance (diagnostic-only)" in markdown
     assert "## Failure Decomposition (diagnostic-only)" in markdown
     assert "## Direct Disagreement Diagnostics (diagnostic-only)" in markdown
     assert "## Diagnostic Failure Slices (diagnostic-only)" in markdown
@@ -290,3 +310,18 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
         in markdown
     )
     assert "new benchmark scoring" in markdown
+
+    raw_capture = build_panel_raw_capture(
+        provider_name=provider_name,
+        model_name=model_name,
+        prompt_modes=(ModelMode.BINARY, ModelMode.NARRATIVE),
+        release_report=release_report,
+        episodes_by_split={"dev": episodes},
+        benchmark_results_by_split={"dev": benchmark_result},
+    )
+
+    assert raw_capture["capture_schema_version"] == "v1.1"
+    assert (
+        raw_capture["splits"][0]["rows"][0]["modes"]["binary"]["response_text"]
+        is not None
+    )

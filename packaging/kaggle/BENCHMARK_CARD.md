@@ -101,7 +101,7 @@ The same re-audit also says the benchmark is still limited by:
 
 ### M1 live Gemini panel evidence
 
-The current M1 live Gemini panel (gemini-2.5-flash, R18) provides the first real-model evidence:
+The current M1 live Gemini panel (requested model label `gemini-2.5-flash`, R18) provides the first real-model evidence. This committed report was resynced in M6 from the original legacy capture; current local runners now require pinned model IDs, but the legacy capture did not record provider-served model-version, token-usage, or duration fields.
 
 - Binary accuracy: 0.781250 (vs best baseline random = 0.546875)
 - Narrative accuracy: 0.458333

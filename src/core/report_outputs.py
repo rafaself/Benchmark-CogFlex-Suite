@@ -5,14 +5,17 @@ from pathlib import Path
 
 __all__ = [
     "build_timestamped_snapshot_path",
+    "build_timestamped_sample_path",
     "build_latest_report_path",
     "current_report_timestamp",
+    "write_json_with_timestamped_snapshot",
     "write_text_with_timestamped_snapshot",
 ]
 
 _TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 _LATEST_DIRNAME = "latest"
 _HISTORY_DIRNAME = "history"
+_SAMPLES_DIRNAME = "samples"
 
 
 def current_report_timestamp() -> str:
@@ -39,6 +42,26 @@ def build_timestamped_snapshot_path(path: Path, *, timestamp: str) -> Path:
         counter += 1
 
 
+def build_timestamped_sample_path(
+    path: Path,
+    *,
+    stem: str,
+    suffix: str,
+    timestamp: str,
+) -> Path:
+    samples_dir = _samples_directory_for(path)
+    sample_path = samples_dir / f"{stem}__{timestamp}{suffix}"
+    if not sample_path.exists():
+        return sample_path
+
+    counter = 1
+    while True:
+        candidate = samples_dir / f"{stem}__{timestamp}_{counter:02d}{suffix}"
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+
 def write_text_with_timestamped_snapshot(
     path: Path,
     text: str,
@@ -55,10 +78,29 @@ def write_text_with_timestamped_snapshot(
     return path, snapshot_path
 
 
+def write_json_with_timestamped_snapshot(
+    path: Path,
+    payload: str,
+    *,
+    timestamp: str | None = None,
+) -> tuple[Path, Path]:
+    return write_text_with_timestamped_snapshot(
+        path,
+        payload,
+        timestamp=timestamp,
+    )
+
+
 def _snapshot_directory_for(path: Path) -> Path:
     if path.parent.name == _LATEST_DIRNAME:
         return path.parent.parent / _HISTORY_DIRNAME
     return path.parent
+
+
+def _samples_directory_for(path: Path) -> Path:
+    if path.parent.name == _LATEST_DIRNAME:
+        return path.parent.parent / _SAMPLES_DIRNAME
+    return path.parent / _SAMPLES_DIRNAME
 
 
 def _reports_root() -> Path:

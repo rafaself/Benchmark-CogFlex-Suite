@@ -16,15 +16,15 @@
     },
     "benchmark_card": {
       "path": "packaging/kaggle/BENCHMARK_CARD.md",
-      "sha256": "b95c587ec68e1a99ddc78941a3cf0884cb79c633481f07572392ee563197e8de"
+      "sha256": "b57827b726572b2811dd31c82c6e5163ab1b965df31b4e97d34e827e89d52936"
     },
     "usage": {
       "path": "packaging/kaggle/README.md",
-      "sha256": "d3da27568816fd56f1abd6541dcb01410cc409acb4af066583696bcf919fb802"
+      "sha256": "b80e8738477e635605e8042c6f0bc080c5dc46a96d95db9e0b509d9bdefab260"
     },
     "packaging_note": {
       "path": "packaging/kaggle/PACKAGING_NOTE.md",
-      "sha256": "17e8b611df7166c3bfd9dad69632836c7c2c1af61db174a459bea54a99ec0110"
+      "sha256": "6aa20e4747b14668ad5a79d1a4f75f2335cb6f2b4ebe62916bc04b1809aad38b"
     }
   },
   "frozen_split_manifests": {
