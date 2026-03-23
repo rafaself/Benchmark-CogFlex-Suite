@@ -13,6 +13,14 @@ This directory packages the implemented benchmark for Kaggle. It does not create
 
 No other notebook or local runtime path is an official Kaggle leaderboard submission surface.
 
+## Official Packaged Evidence Anchor
+
+- Official packaged readiness anchor: the committed paired Gemini report preserving the requested model label `gemini-2.5-flash`
+- Supporting alias for that anchor: `reports/m1_binary_vs_narrative_robustness_report.md`
+- Supporting comparison-only material: `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md` and `reports/live/gemini-first-panel/comparison/latest/report.md`
+
+The supporting comparison material is preserved for history and inspection. It is not a second active readiness anchor and it is not part of the Kaggle submission path.
+
 ## Included Artifacts
 
 - `iron_find_electric_v1_kbench.ipynb`: official leaderboard notebook

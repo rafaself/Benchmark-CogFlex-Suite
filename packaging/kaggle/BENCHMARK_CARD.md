@@ -106,8 +106,8 @@ The benchmark explicitly does **not** claim:
 
 - the active v1 readiness evidence path is Gemini;
 - the current anchor evidence is the committed paired report preserving the requested model label `gemini-2.5-flash`;
-- the current paired Gemini Flash-Lite run is canonical at `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`;
-- the direct Flash vs Flash-Lite comparison is canonical at `reports/live/gemini-first-panel/comparison/latest/report.md`;
+- the supporting alias for that anchor is `reports/m1_binary_vs_narrative_robustness_report.md`;
+- the paired Gemini Flash-Lite `latest/` run and the direct Flash vs Flash-Lite comparison are preserved as supporting comparison material, not as a second active readiness anchor;
 - Anthropic and OpenAI integrations already exist locally, but they are outside the current v1 readiness gate;
 - current v1 readiness does not require cross-provider evidence.
 

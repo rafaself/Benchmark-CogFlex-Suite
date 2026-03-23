@@ -19,8 +19,10 @@ from splits import MANIFEST_VERSION, PARTITIONS, load_split_manifest
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
+_CONTRACT_PATH = _REPO_ROOT / "KAGGLE_BENCHMARK_CONTRACT.md"
 _KBENCH_NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kbench.ipynb"
 _NOTEBOOK_PATH = _KAGGLE_DIR / "iron_find_electric_v1_kaggle_staging.ipynb"
+_KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 _USAGE_PATH = _KAGGLE_DIR / "README.md"
 _PACKAGING_NOTE_PATH = _KAGGLE_DIR / "PACKAGING_NOTE.md"
@@ -36,6 +38,10 @@ def _read_notebook_sources(path: Path) -> str:
 
 def _load_pyproject() -> dict[str, object]:
     return tomllib.loads(_PYPROJECT_PATH.read_text(encoding="utf-8"))
+
+
+def _load_kernel_metadata() -> dict[str, object]:
+    return json.loads(_KERNEL_METADATA_PATH.read_text(encoding="utf-8"))
 
 
 def test_kaggle_staging_manifest_resolves_current_frozen_artifacts():
@@ -70,6 +76,28 @@ def test_kaggle_staging_manifest_resolves_current_frozen_artifacts():
         assert artifact["manifest_version"] == split_manifest.manifest_version
         assert artifact["seed_bank_version"] == split_manifest.seed_bank_version
         assert artifact["episode_split"] == split_manifest.episode_split.value
+
+
+def test_official_kaggle_submission_flow_is_consistent_across_surface():
+    manifest = load_kaggle_staging_manifest()
+    kernel_metadata = _load_kernel_metadata()
+    readme_text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8")
+    contract_text = _CONTRACT_PATH.read_text(encoding="utf-8")
+    usage_text = _USAGE_PATH.read_text(encoding="utf-8")
+    card_text = _CARD_PATH.read_text(encoding="utf-8")
+
+    official_notebook_relpath = "packaging/kaggle/iron_find_electric_v1_kbench.ipynb"
+    official_notebook_name = "iron_find_electric_v1_kbench.ipynb"
+
+    assert manifest["entry_points"]["kbench_notebook"]["path"] == official_notebook_relpath
+    assert manifest["entry_points"]["kernel_metadata"]["path"] == "packaging/kaggle/kernel-metadata.json"
+    assert kernel_metadata["code_file"] == official_notebook_name
+    assert official_notebook_relpath in readme_text
+    assert official_notebook_name in usage_text
+    assert official_notebook_relpath in card_text
+    assert official_notebook_relpath in contract_text
+    assert 'code_file = "iron_find_electric_v1_kbench.ipynb"' in contract_text
+    assert "No other notebook or local runtime path is an official Kaggle leaderboard submission surface." in usage_text
 
 
 def test_pyproject_exposes_local_console_entrypoints():
@@ -139,6 +167,22 @@ def test_benchmark_card_matches_current_implementation_state():
     assert "recency shortcut was materially reduced" in text
     assert "R13 anti-shortcut validity gate" in text
     assert "R15 empirical re-audit" in text
+
+
+def test_active_docs_identify_one_official_packaged_readiness_anchor():
+    texts = (
+        _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8"),
+        _USAGE_PATH.read_text(encoding="utf-8"),
+        _CARD_PATH.read_text(encoding="utf-8"),
+    )
+    joined = "\n".join(texts)
+    lowered = joined.lower()
+
+    assert "gemini-2.5-flash" in joined
+    assert "reports/m1_binary_vs_narrative_robustness_report.md" in joined
+    assert "not a second active readiness anchor" in lowered
+    assert "current paired Gemini Flash-Lite run is canonical".lower() not in lowered
+    assert "direct Flash vs Flash-Lite comparison is canonical".lower() not in lowered
 
 
 def test_packaging_docs_do_not_claim_unsupported_features():
