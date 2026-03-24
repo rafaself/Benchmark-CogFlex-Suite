@@ -3,14 +3,11 @@ set -euo pipefail
 # Determine whether to create or version a Kaggle dataset.
 # Requires env: DATASET_ID, GITHUB_OUTPUT
 
-OWNER="${DATASET_ID%%/*}"
-SLUG="${DATASET_ID##*/}"
-
 rm -rf /tmp/kaggle-meta-check
 mkdir -p /tmp/kaggle-meta-check
 
 set +e
-kaggle datasets metadata -o "${OWNER}" -d "${SLUG}" -p /tmp/kaggle-meta-check >/tmp/kaggle-meta.stdout 2>/tmp/kaggle-meta.stderr
+kaggle datasets metadata "${DATASET_ID}" -p /tmp/kaggle-meta-check >/tmp/kaggle-meta.stdout 2>/tmp/kaggle-meta.stderr
 STATUS=$?
 set -e
 
