@@ -20,7 +20,7 @@ if verify_dir.exists():
 verify_dir.mkdir(parents=True)
 
 subprocess.run(
-    ["kaggle", "kernels", "pull", "-p", str(verify_dir), "-k", kernel_id, "-m"],
+    ["kaggle", "kernels", "pull", kernel_id, "-p", str(verify_dir), "-m"],
     check=True,
 )
 
