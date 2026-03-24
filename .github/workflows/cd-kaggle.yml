@@ -1,0 +1,336 @@
+name: CD — Kaggle Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_mode:
+        description: 'Dataset publish mode'
+        required: true
+        type: choice
+        options:
+          - version
+          - create
+        default: version
+      dataset_version_message:
+        description: 'Dataset version message (used with "version"; defaults to commit SHA)'
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kaggle-publish
+  cancel-in-progress: false
+
+jobs:
+  preflight-build:
+    name: Preflight and build deploy artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      dataset_id: ${{ steps.capture.outputs.dataset_id }}
+      kernel_id: ${{ steps.capture.outputs.kernel_id }}
+      notebook_file: ${{ steps.capture.outputs.notebook_file }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+          pip install "pandas>=2.0,<3.0"
+          pip install kaggle
+
+      - name: Check Kaggle secrets are configured
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          test -n "$KAGGLE_USERNAME" || { echo "ERROR: KAGGLE_USERNAME secret is not set" >&2; exit 1; }
+          test -n "$KAGGLE_KEY" || { echo "ERROR: KAGGLE_KEY secret is not set" >&2; exit 1; }
+          echo "Kaggle credentials present."
+
+      - name: Validate packaging contract
+        run: python -m pytest tests/test_packaging.py -v
+
+      - name: Validate notebook contract
+        run: python -m pytest tests/test_kbench_notebook.py -v
+
+      - name: Build deploy artifacts
+        run: python scripts/build_deploy.py
+
+      - name: Verify deploy artifacts exist
+        run: |
+          test -f deploy/kaggle-notebook/ruleshift_benchmark_v1_kbench.ipynb \
+            || { echo "ERROR: notebook artifact missing" >&2; exit 1; }
+          test -f deploy/kaggle-runtime/dataset-metadata.json \
+            || { echo "ERROR: dataset-metadata.json missing" >&2; exit 1; }
+          test -f deploy/kaggle-runtime/packaging/kaggle/frozen_artifacts_manifest.json \
+            || { echo "ERROR: frozen_artifacts_manifest.json missing" >&2; exit 1; }
+          test -d deploy/kaggle-runtime/src/frozen_splits \
+            || { echo "ERROR: frozen_splits/ missing" >&2; exit 1; }
+
+      - name: Patch publish metadata from canonical sources
+        id: patch_meta
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          username = os.environ["KAGGLE_USERNAME"]
+
+          dataset_path = Path("deploy/kaggle-runtime/dataset-metadata.json")
+          notebook_src_path = Path("packaging/kaggle/kernel-metadata.json")
+          notebook_dst_path = Path("deploy/kaggle-notebook/kernel-metadata.json")
+
+          dataset_meta = json.loads(dataset_path.read_text())
+          dataset_meta["id"] = f"{username}/ruleshift-runtime"
+          dataset_path.write_text(json.dumps(dataset_meta, indent=2) + "\n")
+
+          kernel_meta = json.loads(notebook_src_path.read_text())
+          kernel_slug = kernel_meta["id"].split("/")[-1]
+          kernel_meta["id"] = f"{username}/{kernel_slug}"
+          kernel_meta["dataset_sources"] = [dataset_meta["id"]]
+          notebook_dst_path.write_text(json.dumps(kernel_meta, indent=2) + "\n")
+
+          print(f"dataset id: {dataset_meta['id']}")
+          print(f"kernel id: {kernel_meta['id']}")
+          print(f"code_file: {kernel_meta['code_file']}")
+          print(f"dataset_sources: {kernel_meta['dataset_sources']}")
+          PY
+
+      - name: Validate publish-ready metadata
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          errors = []
+
+          km = json.loads(Path("deploy/kaggle-notebook/kernel-metadata.json").read_text())
+          dm = json.loads(Path("deploy/kaggle-runtime/dataset-metadata.json").read_text())
+
+          expected_notebook = "ruleshift_benchmark_v1_kbench.ipynb"
+
+          if km.get("kernel_type") != "notebook":
+              errors.append(f"kernel_type={km.get('kernel_type')!r}, expected 'notebook'")
+
+          if km.get("code_file") != expected_notebook:
+              errors.append(f"code_file={km.get('code_file')!r}, expected {expected_notebook!r}")
+
+          if "/" not in km.get("id", ""):
+              errors.append(f"kernel id is not fully qualified: {km.get('id')!r}")
+
+          if not km.get("dataset_sources"):
+              errors.append("dataset_sources is empty")
+
+          if "YOUR_USERNAME" in dm.get("id", ""):
+              errors.append(f"dataset id still has placeholder: {dm.get('id')!r}")
+
+          for field in ("title", "id", "licenses"):
+              if not dm.get(field):
+                  errors.append(f"dataset-metadata.json missing {field!r}")
+
+          ds = km.get("dataset_sources", [])
+          if ds and dm.get("id") not in ds:
+              errors.append(
+                  f"kernel dataset_sources {ds!r} does not reference dataset id {dm.get('id')!r}"
+              )
+
+          notebook_path = Path("deploy/kaggle-notebook") / km["code_file"]
+          if not notebook_path.exists():
+              errors.append(f"notebook file missing: {notebook_path}")
+
+          if errors:
+              print("Metadata validation FAILED:", file=sys.stderr)
+              for err in errors:
+                  print(f"  - {err}", file=sys.stderr)
+              sys.exit(1)
+
+          print("Metadata validation passed.")
+          PY
+
+      - name: Capture metadata outputs
+        id: capture
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          km = json.loads(Path("deploy/kaggle-notebook/kernel-metadata.json").read_text())
+          dm = json.loads(Path("deploy/kaggle-runtime/dataset-metadata.json").read_text())
+          out = Path(os.environ["GITHUB_OUTPUT"])
+
+          with out.open("a") as f:
+              print(f"dataset_id={dm['id']}", file=f)
+              print(f"kernel_id={km['id']}", file=f)
+              print(f"notebook_file={km['code_file']}", file=f)
+          PY
+
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaggle-runtime
+          path: deploy/kaggle-runtime
+          if-no-files-found: error
+
+      - name: Upload notebook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaggle-notebook
+          path: deploy/kaggle-notebook
+          if-no-files-found: error
+
+      - name: Write preflight summary
+        run: |
+          {
+            echo "## Kaggle preflight summary"
+            echo ""
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Dataset target: \`${{ steps.capture.outputs.dataset_id }}\`"
+            echo "- Notebook target: \`${{ steps.capture.outputs.kernel_id }}\`"
+            echo "- Notebook file: \`${{ steps.capture.outputs.notebook_file }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-dataset:
+    name: Publish Kaggle dataset
+    runs-on: ubuntu-latest
+    needs: preflight-build
+    environment: kaggle-prod
+
+    steps:
+      - name: Download runtime artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kaggle-runtime
+          path: deploy/kaggle-runtime
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Kaggle CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install kaggle
+
+      - name: Check Kaggle secrets are configured
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          test -n "$KAGGLE_USERNAME" || { echo "ERROR: KAGGLE_USERNAME secret is not set" >&2; exit 1; }
+          test -n "$KAGGLE_KEY" || { echo "ERROR: KAGGLE_KEY secret is not set" >&2; exit 1; }
+
+      - name: Publish dataset to Kaggle
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+          DATASET_VERSION_MESSAGE: ${{ inputs.dataset_version_message }}
+        run: |
+          if [ "${{ inputs.dataset_mode }}" = "create" ]; then
+            echo "Creating dataset ${{ needs.preflight-build.outputs.dataset_id }}"
+            kaggle datasets create -p deploy/kaggle-runtime
+          else
+            VERSION_MSG="${DATASET_VERSION_MESSAGE:-Update from ${{ github.sha }}}"
+            echo "Versioning dataset ${{ needs.preflight-build.outputs.dataset_id }}: $VERSION_MSG"
+            kaggle datasets version -p deploy/kaggle-runtime -m "$VERSION_MSG"
+          fi
+
+      - name: Write dataset publish summary
+        run: |
+          {
+            echo "## Dataset publish"
+            echo ""
+            echo "- Dataset: \`${{ needs.preflight-build.outputs.dataset_id }}\`"
+            echo "- Mode: \`${{ inputs.dataset_mode }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-notebook:
+    name: Publish Kaggle notebook
+    runs-on: ubuntu-latest
+    needs:
+      - preflight-build
+      - publish-dataset
+    environment: kaggle-prod
+
+    steps:
+      - name: Download notebook artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kaggle-notebook
+          path: deploy/kaggle-notebook
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Kaggle CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install kaggle
+
+      - name: Check Kaggle secrets are configured
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          test -n "$KAGGLE_USERNAME" || { echo "ERROR: KAGGLE_USERNAME secret is not set" >&2; exit 1; }
+          test -n "$KAGGLE_KEY" || { echo "ERROR: KAGGLE_KEY secret is not set" >&2; exit 1; }
+
+      - name: Verify notebook publish payload
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          km = json.loads(Path("deploy/kaggle-notebook/kernel-metadata.json").read_text())
+          notebook_path = Path("deploy/kaggle-notebook") / km["code_file"]
+
+          assert km["kernel_type"] == "notebook", km
+          assert notebook_path.exists(), notebook_path
+          assert km.get("dataset_sources"), km
+
+          print("Notebook payload verified.")
+          print(f"Kernel id: {km['id']}")
+          print(f"Code file: {km['code_file']}")
+          print(f"Dataset sources: {km['dataset_sources']}")
+          PY
+
+      - name: Publish notebook to Kaggle
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          echo "Pushing notebook ${{ needs.preflight-build.outputs.kernel_id }}"
+          kaggle kernels push -p deploy/kaggle-notebook
+
+      - name: Write notebook publish summary
+        run: |
+          {
+            echo "## Notebook publish"
+            echo ""
+            echo "- Notebook: \`${{ needs.preflight-build.outputs.kernel_id }}\`"
+            echo "- Notebook file: \`${{ needs.preflight-build.outputs.notebook_file }}\`"
+            echo "- Runtime dataset: \`${{ needs.preflight-build.outputs.dataset_id }}\`"
+            echo "- Triggered by: \`${{ github.actor }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
