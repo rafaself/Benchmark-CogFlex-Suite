@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ruleshift-benchmark"
 version = "0.0.0"
 description = "Local benchmark tooling for RuleShift Benchmark."
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
 ]
 
