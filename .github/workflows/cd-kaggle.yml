@@ -18,7 +18,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.11"
-  KAGGLE_CLI_VERSION: "1.7.4.5"
+  KAGGLE_CLI_VERSION: "1.8.4"
   KAGGLE_DATASET_DIR_MODE: "zip"
   DEPLOY_RUNTIME_DIR: "deploy/kaggle-runtime"
   DEPLOY_NOTEBOOK_DIR: "deploy/kaggle-notebook"
@@ -69,10 +69,11 @@ jobs:
             exit 1
           }
           python -c "
-          from kaggle.api.kaggle_api_extended import KaggleApiExtended as KaggleApi
-          api = KaggleApi()
-          api.authenticate()
-          print('Kaggle env-based auth OK')
+          from kagglesdk.kaggle_env import get_access_token_from_env
+          token, source = get_access_token_from_env()
+          assert token, 'KAGGLE_API_TOKEN was not resolved by kagglesdk'
+          assert source == 'KAGGLE_API_TOKEN', f'unexpected auth source: {source}'
+          print(f'Kaggle env-based auth OK (source={source})')
           "
 
       - name: Validate packaging contract
@@ -174,10 +175,11 @@ jobs:
             exit 1
           }
           python -c "
-          from kaggle.api.kaggle_api_extended import KaggleApiExtended as KaggleApi
-          api = KaggleApi()
-          api.authenticate()
-          print('Kaggle env-based auth OK')
+          from kagglesdk.kaggle_env import get_access_token_from_env
+          token, source = get_access_token_from_env()
+          assert token, 'KAGGLE_API_TOKEN was not resolved by kagglesdk'
+          assert source == 'KAGGLE_API_TOKEN', f'unexpected auth source: {source}'
+          print(f'Kaggle env-based auth OK (source={source})')
           "
 
       - name: Verify dataset publish payload
@@ -269,10 +271,11 @@ jobs:
             exit 1
           }
           python -c "
-          from kaggle.api.kaggle_api_extended import KaggleApiExtended as KaggleApi
-          api = KaggleApi()
-          api.authenticate()
-          print('Kaggle env-based auth OK')
+          from kagglesdk.kaggle_env import get_access_token_from_env
+          token, source = get_access_token_from_env()
+          assert token, 'KAGGLE_API_TOKEN was not resolved by kagglesdk'
+          assert source == 'KAGGLE_API_TOKEN', f'unexpected auth source: {source}'
+          print(f'Kaggle env-based auth OK (source={source})')
           "
 
       - name: Verify notebook publish payload
