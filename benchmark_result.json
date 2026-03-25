@@ -1,0 +1,42 @@
+{
+  "primary_result": {
+    "score": 0.0,
+    "numerator": 0,
+    "denominator": 128,
+    "total_episodes": 32,
+    "confidence_interval": {
+      "mean": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "level": 0.95,
+      "margin": 0.0
+    }
+  },
+  "narrative_result": {
+    "score": 0.0,
+    "numerator": 0,
+    "denominator": 128,
+    "total_episodes": 32,
+    "confidence_interval": {
+      "mean": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "level": 0.95,
+      "margin": 0.0
+    }
+  },
+  "comparison": {
+    "binary_score": 0.0,
+    "narrative_score": 0.0,
+    "delta": 0.0,
+    "episode_count_aligned": true,
+    "binary_total_episodes": 32,
+    "narrative_total_episodes": 32,
+    "binary_denominator": 128,
+    "narrative_denominator": 128
+  },
+  "slices": {},
+  "metadata": {
+    "benchmark_version": "R14"
+  }
+}
