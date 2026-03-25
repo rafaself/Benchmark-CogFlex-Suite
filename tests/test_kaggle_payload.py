@@ -167,6 +167,26 @@ def test_build_kaggle_payload_missing_columns():
         build_kaggle_payload(df, nar_df)
 
 
+def test_build_kaggle_payload_score0_score1_columns():
+    """Real kaggle_benchmarks as_dataframe() may use score_0/score_1 column names."""
+    n = 16
+    bin_df = pd.DataFrame([{"score_0": 3, "score_1": 4}] * n)
+    nar_df = pd.DataFrame([{"score_0": 2, "score_1": 4}] * n)
+    payload = build_kaggle_payload(bin_df, nar_df)
+    assert payload["primary_result"]["numerator"] == 3 * n
+    assert payload["primary_result"]["denominator"] == 4 * n
+
+
+def test_build_kaggle_payload_integer_indexed_columns():
+    """Real kaggle_benchmarks as_dataframe() may use integer 0/1 column names."""
+    n = 16
+    bin_df = pd.DataFrame([{0: 3, 1: 4}] * n)
+    nar_df = pd.DataFrame([{0: 2, 1: 4}] * n)
+    payload = build_kaggle_payload(bin_df, nar_df)
+    assert payload["primary_result"]["numerator"] == 3 * n
+    assert payload["primary_result"]["denominator"] == 4 * n
+
+
 def test_build_kaggle_payload_invalid_type():
     nar_df = _make_narrative_df()
     with pytest.raises(TypeError, match="must be a pandas DataFrame"):

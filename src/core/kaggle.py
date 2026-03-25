@@ -542,6 +542,27 @@ def verify_remote_hashes(
     return results
 
 
+def _normalize_result_df(df: Any) -> Any:
+    """Normalize a kbench result dataframe to use 'num_correct'/'total' columns.
+
+    The real kaggle_benchmarks framework may name the two tuple return values
+    differently from the local shim. Known alternative column name conventions:
+      - score_0 / score_1  (position-based, likely default)
+      - 0 / 1              (integer-indexed)
+    If 'num_correct'/'total' are already present, the dataframe is returned as-is.
+    """
+    if "num_correct" in df.columns and "total" in df.columns:
+        return df
+    rename_map: dict = {}
+    if "score_0" in df.columns and "score_1" in df.columns:
+        rename_map = {"score_0": "num_correct", "score_1": "total"}
+    elif 0 in df.columns and 1 in df.columns:
+        rename_map = {0: "num_correct", 1: "total"}
+    if rename_map:
+        return df.rename(columns=rename_map)
+    return df
+
+
 def build_kaggle_payload(
     binary_df: Any,
     narrative_df: Any,
@@ -577,6 +598,8 @@ def build_kaggle_payload(
     if binary_df.empty:
         raise ValueError("binary_df cannot be empty; evaluation results are required")
 
+    binary_df = _normalize_result_df(binary_df)
+
     if "num_correct" not in binary_df.columns or "total" not in binary_df.columns:
         raise ValueError(
             "binary_df must contain 'num_correct' and 'total' columns"
@@ -596,6 +619,8 @@ def build_kaggle_payload(
         raise ValueError(
             "narrative_df cannot be empty; Narrative evaluation results are required"
         )
+
+    narrative_df = _normalize_result_df(narrative_df)
 
     if "num_correct" not in narrative_df.columns or "total" not in narrative_df.columns:
         raise ValueError(
