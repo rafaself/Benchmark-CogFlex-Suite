@@ -104,6 +104,10 @@ _TASK_PATTERN = re.compile(
     re.DOTALL,
 )
 _CHOOSE_PATTERN = re.compile(r'^%choose\s+(\S+)', re.MULTILINE)
+# Detect the Narrative companion as a plain function (not a @kbench.task).
+_NARRATIVE_FN_PATTERN = re.compile(
+    r'def\s+ruleshift_benchmark_v1_narrative\s*\('
+)
 
 
 def materialize_task_definition(repo_root: Path | str | None = None) -> dict[str, Any]:
@@ -128,6 +132,23 @@ def materialize_task_definition(repo_root: Path | str | None = None) -> dict[str
         description = "".join(desc_parts)
         role = "leaderboard_primary" if "binary" in name else "companion"
         tasks.append({"name": name, "description": description, "role": role})
+
+    # Narrative is intentionally a plain function (not @kbench.task) but is
+    # still a contract companion.  Detect it via its function definition.
+    registered_names = {t["name"] for t in tasks}
+    if (
+        CANONICAL_NARRATIVE_TASK_NAME not in registered_names
+        and _NARRATIVE_FN_PATTERN.search(sources)
+    ):
+        tasks.append({
+            "name": CANONICAL_NARRATIVE_TASK_NAME,
+            "description": (
+                "Narrative companion for RuleShift Benchmark v1. Same "
+                "episodes as Binary, natural-language prompt format. "
+                "Robustness evidence only — not leaderboard-scored."
+            ),
+            "role": "companion",
+        })
 
     choose_match = _CHOOSE_PATTERN.search(sources)
     chosen_task = choose_match.group(1) if choose_match else None

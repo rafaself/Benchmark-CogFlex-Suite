@@ -279,7 +279,7 @@ def test_packaging_docs_do_not_claim_unsupported_features():
 
     assert "post-shift probe accuracy as the sole headline metric" in lowered
     assert "binary as the only leaderboard-primary path" in lowered
-    assert "narrative is the required same-episode robustness companion" in lowered
+    assert "narrative" in lowered and "supplementary same-episode robustness evidence" in lowered
     assert "only the final four labels are scored" in lowered
 
     forbidden_positive_claims = (
