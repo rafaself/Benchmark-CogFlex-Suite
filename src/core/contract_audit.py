@@ -1,7 +1,7 @@
 """P0 contract audit — validates public Kaggle artifact contract end-to-end.
 
 Checks for drift between:
-  1. Benchmark contract (KAGGLE_BENCHMARK_CONTRACT.md)
+  1. Implemented benchmark state (code and frozen assets)
   2. Official Kaggle notebook + metadata
   3. Serialized task definition (materialized from notebook)
   4. Serialized run artifact (artifact.json from panel runs)

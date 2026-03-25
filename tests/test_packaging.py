@@ -19,7 +19,6 @@ from splits import MANIFEST_VERSION, PARTITIONS, load_split_manifest
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
-_CONTRACT_PATH = _REPO_ROOT / "KAGGLE_BENCHMARK_CONTRACT.md"
 _KBENCH_NOTEBOOK_PATH = _KAGGLE_DIR / "ruleshift_notebook_task.ipynb"
 _STAGING_DIR = _KAGGLE_DIR / "staging"
 _ARCHIVE_DIR = _KAGGLE_DIR / "archive"
@@ -28,7 +27,6 @@ _KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 _USAGE_PATH = _KAGGLE_DIR / "README.md"
 _PACKAGING_NOTE_PATH = _ARCHIVE_DIR / "PACKAGING_NOTE.md"
-_ARCHIVE_CONTRACT_PATH = _ARCHIVE_DIR / "KAGGLE_BENCHMARK_CONTRACT.md"
 
 
 def _read_notebook_sources(path: Path) -> str:
@@ -86,7 +84,6 @@ def test_official_kaggle_submission_flow_is_consistent_across_surface():
     manifest = load_kaggle_staging_manifest()
     kernel_metadata = _load_kernel_metadata()
     readme_text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8")
-    contract_text = _CONTRACT_PATH.read_text(encoding="utf-8")
     usage_text = _USAGE_PATH.read_text(encoding="utf-8")
     card_text = _CARD_PATH.read_text(encoding="utf-8")
 
@@ -105,8 +102,6 @@ def test_official_kaggle_submission_flow_is_consistent_across_surface():
     assert official_notebook_relpath in readme_text
     assert official_notebook_name in usage_text
     assert official_notebook_relpath in card_text
-    assert official_notebook_relpath in contract_text
-    assert 'code_file = "ruleshift_notebook_task.ipynb"' in contract_text
     assert "No other notebook or local runtime path is an official Kaggle leaderboard submission surface." in usage_text
 
 
@@ -116,7 +111,6 @@ def test_non_official_packaged_paths_are_explicitly_marked_non_active():
     packaging_note_text = _PACKAGING_NOTE_PATH.read_text(encoding="utf-8")
 
     assert "`staging/ruleshift_benchmark_v1_kaggle_staging.ipynb`: optional package-validation and dry-run notebook" in usage_text
-    assert "`archive/KAGGLE_BENCHMARK_CONTRACT.md`: obsolete Phase 2 contract copy retained only for history" in usage_text
     assert "staging-only" in card_text
     assert "ARCHIVE RELEASE NOTE" in packaging_note_text
     assert "not an authoritative benchmark contract or an operational runbook" in packaging_note_text
@@ -134,7 +128,6 @@ def test_kaggle_directory_layout_separates_active_staging_and_archive_files():
     ]
     assert _STAGING_NOTEBOOK_PATH.is_file()
     assert _PACKAGING_NOTE_PATH.is_file()
-    assert _ARCHIVE_CONTRACT_PATH.is_file()
 
 
 def test_kaggle_runbook_documents_the_minimum_runtime_subset():
@@ -173,7 +166,6 @@ def test_active_docs_label_frozen_artifacts_manifest_by_runtime_role():
         _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8"),
         _USAGE_PATH.read_text(encoding="utf-8"),
         _CARD_PATH.read_text(encoding="utf-8"),
-        _CONTRACT_PATH.read_text(encoding="utf-8"),
     )
     joined = "\n".join(texts).lower()
 

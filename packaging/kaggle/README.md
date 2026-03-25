@@ -2,7 +2,7 @@
 
 > **Status: AUTHORITATIVE KAGGLE RUNBOOK**
 > This is the single authoritative operational path description for Kaggle packaging, staging, and submission in this repository.
-> It does not redefine the benchmark contract; contract questions defer to [`../../KAGGLE_BENCHMARK_CONTRACT.md`](../../KAGGLE_BENCHMARK_CONTRACT.md).
+> For benchmark description and current evidence summary, use [`BENCHMARK_CARD.md`](./BENCHMARK_CARD.md).
 
 This directory packages the implemented benchmark for Kaggle. It does not create the benchmark from scratch and does not redefine benchmark semantics locally.
 
@@ -54,7 +54,6 @@ Staging-only:
 Archive/obsolete:
 
 - `archive/PACKAGING_NOTE.md`: archived release note for prior packaging changes
-- `archive/KAGGLE_BENCHMARK_CONTRACT.md`: obsolete Phase 2 contract copy retained only for history
 
 Non-Kaggle execution surfaces:
 
@@ -73,7 +72,6 @@ Non-Kaggle execution surfaces:
 - Resource paths are explicit and relative to the repo root.
 - The notebook relies on the local `src/` modules and the frozen JSON artifacts already present in the repository.
 - The runtime-contract manifest records integrity hashes for the official notebook and frozen split manifests.
-- The benchmark contract at the repository root is the source of truth for benchmark definition.
 - The runtime implementation under `src/` and the frozen manifests under `src/frozen_splits/` are the source of truth for executable benchmark behavior.
 - The official Kaggle submission surface is only `ruleshift_notebook_task.ipynb` through `kernel-metadata.json`.
 - Kaggle staging is a clean replay layer over those frozen artifacts and local evidence; it is not an independent benchmark definition.

@@ -2,7 +2,7 @@
 
 > **Status: SUPPORTING OVERVIEW**
 > This README is a project guide, not a normative benchmark specification.
-> For binding benchmark rules, use [`KAGGLE_BENCHMARK_CONTRACT.md`](./KAGGLE_BENCHMARK_CONTRACT.md).
+> For benchmark description and current evidence summary, use [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md).
 > For Kaggle submission and staging steps, use [`packaging/kaggle/README.md`](./packaging/kaggle/README.md).
 
 RuleShift Benchmark is benchmark infrastructure for the implemented RuleShift Benchmark v1 task in the Executive Functions track of the Measuring Progress Toward AGI challenge. The repository already contains the local benchmark code, frozen split assets, Kaggle staging layer, reports tree, and current Gemini evidence for this narrow cognitive-flexibility benchmark.
@@ -258,19 +258,18 @@ ruleshift-benchmark-evidence-pass
 
 The repository governance model is:
 
-- benchmark contract: [`KAGGLE_BENCHMARK_CONTRACT.md`](./KAGGLE_BENCHMARK_CONTRACT.md) is the single authoritative contract for benchmark identity, metric, splits, scoring, prompt invariants, and claim boundaries;
-- runtime implementation: [`src/`](./src/) and the frozen manifests under [`src/frozen_splits/`](./src/frozen_splits/) are the single executable source of truth for benchmark behavior;
+- benchmark definition: [`src/`](./src/) and the frozen manifests under [`src/frozen_splits/`](./src/frozen_splits/) are the single executable source of truth for benchmark behavior;
+- benchmark card: [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md) is the descriptive benchmark summary and current evidence record;
 - Kaggle runbook: [`packaging/kaggle/README.md`](./packaging/kaggle/README.md) is the single authoritative operational path description for Kaggle packaging, staging, and submission;
 - Kaggle leaderboard entry point: [`packaging/kaggle/ruleshift_notebook_task.ipynb`](./packaging/kaggle/ruleshift_notebook_task.ipynb) is the single official Kaggle leaderboard notebook, wired by [`packaging/kaggle/kernel-metadata.json`](./packaging/kaggle/kernel-metadata.json);
 - minimum Kaggle runtime package: the official notebook, [`packaging/kaggle/kernel-metadata.json`](./packaging/kaggle/kernel-metadata.json), [`packaging/kaggle/frozen_artifacts_manifest.json`](./packaging/kaggle/frozen_artifacts_manifest.json) as the Kaggle runtime-contract manifest, [`src/`](./src/), and [`src/frozen_splits/`](./src/frozen_splits/);
 - Kaggle staging materials: the rest of [`packaging/kaggle/`](./packaging/kaggle/) is packaging support only and does not redefine benchmark semantics or runtime behavior;
-- evidence and audits: [`reports/`](./reports/) and the bundled validation/audit fixtures record evidence about the implemented benchmark, but they do not override the contract or runtime.
+- evidence and audits: [`reports/`](./reports/) and the bundled validation/audit fixtures record evidence about the implemented benchmark.
 
-Supporting documents describe that implemented state; they do not replace the contract, code, frozen assets, or local validity checks.
+Supporting documents describe that implemented state; they do not override the code, frozen assets, or local validity checks.
 
 Key documents:
 
-- [`KAGGLE_BENCHMARK_CONTRACT.md`](./KAGGLE_BENCHMARK_CONTRACT.md): authoritative benchmark contract — single source of truth for benchmark identity, metric, splits, scoring, prompt invariants, and claim boundaries.
 - [`src/README.md`](./src/README.md): source-tree overview and canonical package layout.
 - [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md): Kaggle-facing benchmark card tied to the current implemented benchmark and bundled evidence.
 - [`packaging/kaggle/README.md`](./packaging/kaggle/README.md): Kaggle packaging governance, official leaderboard notebook, and staging-only path labels.

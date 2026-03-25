@@ -27,4 +27,3 @@ Repo-wide defaults only. Child `AGENTS.md` files may add local deltas for their 
 ## Pointers
 - `README.md`
 - `src/README.md`
-- `KAGGLE_BENCHMARK_CONTRACT.md`
