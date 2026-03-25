@@ -33,13 +33,6 @@
       "manifest_version": "R14",
       "seed_bank_version": "R14-public-1",
       "episode_split": "public"
-    },
-    "private_leaderboard": {
-      "path": "src/frozen_splits/private_leaderboard.json",
-      "sha256": "5b0ae4650a509a98f03fcba1faced92aeab2e8c1c9164688c2e891c655466be2",
-      "manifest_version": "R14",
-      "seed_bank_version": "R14-private-2",
-      "episode_split": "private"
     }
   },
   "source_of_truth": [

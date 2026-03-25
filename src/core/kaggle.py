@@ -44,6 +44,10 @@ _RUNTIME_ENTRY_POINTS: Final[tuple[str, ...]] = (
     "kbench_notebook",
     "kernel_metadata",
 )
+_MANIFEST_PARTITIONS: Final[tuple[str, ...]] = (
+    "dev",
+    "public_leaderboard",
+)
 _EXPECTED_BENCHMARK_VERSIONS: Final[dict[str, str]] = {
     "manifest_version": MANIFEST_VERSION,
     "spec_version": SPEC_VERSION,
@@ -146,10 +150,10 @@ def validate_kaggle_staging_manifest(
     )
     if tuple(entry_points) != _RUNTIME_ENTRY_POINTS:
         raise ValueError("entry_points must contain only the official runtime submission paths")
-    if tuple(frozen_split_manifests) != PARTITIONS:
+    if tuple(frozen_split_manifests) != _MANIFEST_PARTITIONS:
         raise ValueError("frozen_split_manifests must follow the canonical partition order")
 
-    for partition in PARTITIONS:
+    for partition in _MANIFEST_PARTITIONS:
         artifact = _require_mapping(frozen_split_manifests, partition)
         split_manifest = load_split_manifest(partition)
         if artifact.get("manifest_version") != split_manifest.manifest_version:

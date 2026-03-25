@@ -63,12 +63,14 @@ def test_kaggle_staging_manifest_resolves_current_frozen_artifacts():
         "difficulty_version": DIFFICULTY_VERSION,
     }
 
-    assert tuple(manifest["frozen_split_manifests"]) == PARTITIONS
+    _RUNTIME_PARTITIONS = ("dev", "public_leaderboard")
+    assert tuple(manifest["frozen_split_manifests"]) == _RUNTIME_PARTITIONS
+    assert "private_leaderboard" not in manifest["frozen_split_manifests"]
     assert tuple(manifest["entry_points"]) == ("kbench_notebook", "kernel_metadata")
     assert manifest["current_emitted_difficulty_labels"] == ["easy", "medium"]
     assert manifest["reserved_difficulty_labels"] == ["hard"]
 
-    for partition in PARTITIONS:
+    for partition in _RUNTIME_PARTITIONS:
         artifact = manifest["frozen_split_manifests"][partition]
         manifest_path = _REPO_ROOT / artifact["path"]
         split_manifest = load_split_manifest(partition)
@@ -356,3 +358,16 @@ def test_kaggle_package_helpers_preserve_binary_and_narrative_scoring_contract()
         ("attract", "repel", "repel", "attract"),
     ) == (4, 4)
     assert score_episode(None, ("attract", "repel", "repel", "attract")) == (0, 4)
+
+
+def test_kaggle_runtime_deploy_does_not_contain_private_leaderboard():
+    """Guardrail: private_leaderboard.json must never appear in the runtime package."""
+    deploy_runtime = _REPO_ROOT / "deploy" / "kaggle-runtime"
+    if not deploy_runtime.exists():
+        import pytest
+        pytest.skip("deploy/kaggle-runtime/ not yet built; run scripts/build_deploy.py first")
+    private_files = list(deploy_runtime.rglob("private_leaderboard.json"))
+    assert private_files == [], (
+        f"private_leaderboard.json must not be shipped in deploy/kaggle-runtime/; "
+        f"found: {[str(p) for p in private_files]}"
+    )

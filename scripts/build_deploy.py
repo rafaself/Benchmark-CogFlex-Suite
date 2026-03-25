@@ -127,8 +127,13 @@ def build_kaggle_runtime() -> None:
     )
     print(f"  src/tasks/ruleshift_benchmark/")
 
-    # src/frozen_splits/
-    shutil.copytree(SRC_DIR / "frozen_splits", runtime_src / "frozen_splits")
+    # src/frozen_splits/ -- dev and public_leaderboard only; private split is not shipped
+    frozen_splits_dst = runtime_src / "frozen_splits"
+    frozen_splits_dst.mkdir()
+    for split_name in ("dev", "public_leaderboard"):
+        src_file = SRC_DIR / "frozen_splits" / f"{split_name}.json"
+        shutil.copy2(src_file, frozen_splits_dst / src_file.name)
+        print(f"  src/frozen_splits/{src_file.name}")
     print(f"  src/frozen_splits/")
 
     # packaging/kaggle/frozen_artifacts_manifest.json
