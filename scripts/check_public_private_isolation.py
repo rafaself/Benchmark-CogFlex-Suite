@@ -22,6 +22,7 @@ FORBIDDEN_FILENAMES = (
     "private_leaderboard.json",
     "private_episodes.json",
 )
+_IGNORED_REPO_DIRS = {".git", ".venv", ".pytest_cache", "__pycache__", "deploy"}
 
 
 def _collect_public_location_errors() -> list[str]:
@@ -41,6 +42,12 @@ def _collect_public_location_errors() -> list[str]:
         for filename in FORBIDDEN_FILENAMES:
             for path in search_root.rglob(filename):
                 errors.append(f"forbidden filename in public location: {path.relative_to(REPO_ROOT)}")
+
+    for filename in FORBIDDEN_FILENAMES:
+        for path in REPO_ROOT.rglob(filename):
+            if any(part in _IGNORED_REPO_DIRS for part in path.parts):
+                continue
+            errors.append(f"forbidden filename committed to repo: {path.relative_to(REPO_ROOT)}")
 
     manifest_path = KAGGLE_DIR / "frozen_artifacts_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

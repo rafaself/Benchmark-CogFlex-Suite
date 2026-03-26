@@ -54,7 +54,7 @@ def test_frozen_split_records_preserve_manifest_metadata(partition: str):
     assert all(record.seed_bank_version == manifest.seed_bank_version for record in split_records)
     assert all(record.episode.split is manifest.episode_split for record in split_records)
     assert manifest.manifest_version == "R14"
-    assert manifest.seed_bank_version.startswith("R14-")
+    assert manifest.seed_bank_version
 
 
 def test_partition_names_remain_external_to_episode_schema():

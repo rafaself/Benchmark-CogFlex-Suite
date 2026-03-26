@@ -3,18 +3,21 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
 from private_split import (
     PRIVATE_DATASET_ROOT_ENV_VAR,
     PRIVATE_EPISODES_FILENAME,
+    PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION,
+    build_private_split_artifact,
     load_private_split,
     load_private_split_manifest_info,
 )
 from splits import generate_frozen_split, load_frozen_split, load_split_manifest
 from tasks.ruleshift_benchmark.protocol import InteractionLabel, Split
-from validate import normalize_episode_payload
 
 
 def test_load_private_split_returns_episodes(
@@ -54,20 +57,10 @@ def test_load_private_split_manifest_metadata_matches_manifest_interface():
         assert record.seed_bank_version == manifest.seed_bank_version
 
 
-def test_load_private_split_matches_generated_episodes():
+def test_private_split_cannot_be_regenerated_from_manifest():
     manifest = load_split_manifest("private_leaderboard")
-    generated = generate_frozen_split(manifest)
-    loaded = load_private_split()
-
-    assert len(loaded) == len(generated)
-    for generated_record, loaded_record in zip(generated, loaded):
-        assert generated_record.seed == loaded_record.seed
-        assert generated_record.partition == loaded_record.partition
-        assert generated_record.manifest_version == loaded_record.manifest_version
-        assert generated_record.seed_bank_version == loaded_record.seed_bank_version
-        assert normalize_episode_payload(generated_record.episode) == normalize_episode_payload(
-            loaded_record.episode
-        )
+    with pytest.raises(ValueError, match="runtime regeneration is disabled"):
+        generate_frozen_split(manifest)
 
 
 def test_load_frozen_split_uses_private_loader_for_private_partition():
@@ -87,8 +80,10 @@ def test_private_split_probe_targets_are_valid():
 def test_private_manifest_info_comes_from_private_episodes_payload():
     payload = load_private_split_manifest_info()
 
-    assert payload["manifest_version"] == "R14"
-    assert payload["seed_bank_version"] == "R14-private-mounted-test"
+    assert payload["benchmark_version"] == "R14"
+    assert payload["schema_version"] == PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION
+    assert isinstance(payload["artifact_checksum"], str)
+    assert payload["artifact_checksum"]
     assert payload["episode_split"] == "private"
     assert len(payload["seeds"]) == 16
 
@@ -125,7 +120,7 @@ def test_load_private_split_wrong_partition_raises(
             load_private_split(Path(tmpdir))
 
 
-def test_load_private_split_wrong_manifest_version_raises(
+def test_load_private_split_wrong_benchmark_version_raises(
     mounted_private_dataset_root: Path,
 ):
     data = json.loads(
@@ -133,11 +128,11 @@ def test_load_private_split_wrong_manifest_version_raises(
             encoding="utf-8"
         )
     )
-    data["manifest_version"] = "R99"
+    data["benchmark_version"] = "R99"
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_path = Path(tmpdir) / PRIVATE_EPISODES_FILENAME
         bad_path.write_text(json.dumps(data), encoding="utf-8")
-        with pytest.raises(ValueError, match="manifest_version"):
+        with pytest.raises(ValueError, match="benchmark_version"):
             load_private_split(Path(tmpdir))
 
 
@@ -155,3 +150,86 @@ def test_load_private_split_empty_episodes_raises(
         bad_path.write_text(json.dumps(data), encoding="utf-8")
         with pytest.raises(ValueError, match="episodes"):
             load_private_split(Path(tmpdir))
+
+
+def test_load_private_split_rejects_checksum_mismatch(
+    mounted_private_dataset_root: Path,
+):
+    data = json.loads(
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(
+            encoding="utf-8"
+        )
+    )
+    data["artifact_checksum"] = "bad-checksum"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        bad_path = Path(tmpdir) / PRIVATE_EPISODES_FILENAME
+        bad_path.write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(ValueError, match="artifact_checksum"):
+            load_private_split(Path(tmpdir))
+
+
+def test_offline_generation_script_writes_private_artifact(tmp_path: Path):
+    seeds_path = tmp_path / "private_seeds.json"
+    output_path = tmp_path / "mounted-private" / PRIVATE_EPISODES_FILENAME
+    seeds = [31000, 31001, 31002, 31003]
+    seeds_path.write_text(json.dumps(seeds), encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "scripts/generate_private_split_artifact.py",
+            "--benchmark-version",
+            "R14",
+            "--seeds-file",
+            str(seeds_path),
+            "--output",
+            str(output_path),
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr or completed.stdout
+    assert Path(completed.stdout.strip()) == output_path
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["benchmark_version"] == "R14"
+    assert payload["schema_version"] == PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION
+    assert payload["artifact_checksum"]
+    assert tuple(row["seed"] for row in payload["episodes"]) == tuple(seeds)
+    assert len(load_private_split(output_path.parent)) == len(seeds)
+
+
+def test_offline_generation_script_rejects_repo_local_output(tmp_path: Path):
+    seeds_path = tmp_path / "private_seeds.json"
+    seeds_path.write_text(json.dumps([32000, 32001]), encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "scripts/generate_private_split_artifact.py",
+            "--benchmark-version",
+            "R14",
+            "--seeds-file",
+            str(seeds_path),
+            "--output",
+            "packaging/kaggle/private_episodes.json",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert completed.returncode != 0
+    assert "outside the public repository tree" in (completed.stderr or completed.stdout)
+
+
+def test_build_private_split_artifact_requires_unique_seeds():
+    with pytest.raises(ValueError, match="unique"):
+        build_private_split_artifact(
+            benchmark_version="R14",
+            seeds=(1, 1),
+        )

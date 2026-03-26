@@ -145,8 +145,11 @@ The split utilities support:
 
 - loading manifest-backed frozen partitions;
 - regenerating the public partitions from stored seed banks;
+- generating the held-out private artifact offline for a fixed benchmark version;
 - checking partition overlap;
 - auditing within-partition and cross-partition distribution gaps.
+
+The held-out private artifact is generated offline with `scripts/generate_private_split_artifact.py` and then mounted into the private runtime as `private_episodes.json`. Runtime code does not regenerate `private_leaderboard`.
 
 ## Local Setup
 

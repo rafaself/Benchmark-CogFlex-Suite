@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import hashlib
 from typing import Final
 
 from core.splits import FrozenSplitEpisode, MANIFEST_VERSION
@@ -29,6 +30,9 @@ from tasks.ruleshift_benchmark.schema import (
 __all__ = [
     "PRIVATE_EPISODES_FILENAME",
     "PRIVATE_DATASET_ROOT_ENV_VAR",
+    "PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION",
+    "build_private_split_artifact",
+    "write_private_split_artifact",
     "load_private_split",
     "load_private_split_manifest_info",
     "resolve_private_dataset_root",
@@ -36,8 +40,68 @@ __all__ = [
 
 PRIVATE_EPISODES_FILENAME: Final[str] = "private_episodes.json"
 PRIVATE_DATASET_ROOT_ENV_VAR: Final[str] = "RULESHIFT_PRIVATE_DATASET_ROOT"
+PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION: Final[str] = "private_split_artifact.v1"
 _EXPECTED_PARTITION: Final[str] = "private_leaderboard"
+_EXPECTED_EPISODE_SPLIT: Final[str] = "private"
 _KAGGLE_PRIVATE_SEARCH_ROOTS: Final[tuple[Path, ...]] = (Path("/kaggle/input"),)
+
+
+def build_private_split_artifact(
+    *,
+    benchmark_version: str,
+    seeds: tuple[int, ...] | list[int],
+) -> dict[str, object]:
+    """Build the canonical private split artifact payload."""
+    normalized_seeds = tuple(seeds)
+    if benchmark_version != MANIFEST_VERSION:
+        raise ValueError(
+            f"benchmark_version must equal {MANIFEST_VERSION!r}, got {benchmark_version!r}"
+        )
+    if not normalized_seeds:
+        raise ValueError("seeds must not be empty")
+    if any(not isinstance(seed, int) or isinstance(seed, bool) for seed in normalized_seeds):
+        raise ValueError("seeds must contain only integer values")
+    if len(set(normalized_seeds)) != len(normalized_seeds):
+        raise ValueError("seeds must contain unique values")
+
+    episodes = [
+        {
+            "seed": seed,
+            "episode": _normalize_generated_private_episode(seed),
+        }
+        for seed in normalized_seeds
+    ]
+    payload = {
+        "partition": _EXPECTED_PARTITION,
+        "episode_split": _EXPECTED_EPISODE_SPLIT,
+        "benchmark_version": benchmark_version,
+        "schema_version": PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION,
+        "episodes": episodes,
+    }
+    return {
+        **payload,
+        "artifact_checksum": _compute_private_artifact_checksum(payload),
+    }
+
+
+def write_private_split_artifact(
+    output_path: Path | str,
+    *,
+    benchmark_version: str,
+    seeds: tuple[int, ...] | list[int],
+) -> Path:
+    """Materialize a private split artifact to disk."""
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    payload = build_private_split_artifact(
+        benchmark_version=benchmark_version,
+        seeds=seeds,
+    )
+    destination.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return destination
 
 
 def load_private_split(
@@ -73,9 +137,10 @@ def load_private_split_manifest_info(
     records = _parse_private_episodes(payload)
 
     return {
-        "manifest_version": payload.get("manifest_version"),
-        "seed_bank_version": payload.get("seed_bank_version"),
-        "episode_split": payload.get("episode_split", "private"),
+        "benchmark_version": payload.get("benchmark_version"),
+        "schema_version": payload.get("schema_version"),
+        "artifact_checksum": payload.get("artifact_checksum"),
+        "episode_split": payload.get("episode_split", _EXPECTED_EPISODE_SPLIT),
         "seeds": tuple(record.seed for record in records),
     }
 
@@ -142,31 +207,65 @@ def _parse_private_episodes(payload: object) -> tuple[FrozenSplitEpisode, ...]:
             f"partition must equal {_EXPECTED_PARTITION!r}, got {partition!r}"
         )
 
-    manifest_version = payload.get("manifest_version")
-    if manifest_version != MANIFEST_VERSION:
+    episode_split = payload.get("episode_split")
+    if episode_split != _EXPECTED_EPISODE_SPLIT:
         raise ValueError(
-            f"manifest_version must equal {MANIFEST_VERSION!r}, got {manifest_version!r}"
+            f"episode_split must equal {_EXPECTED_EPISODE_SPLIT!r}, got {episode_split!r}"
         )
 
-    seed_bank_version = payload.get("seed_bank_version")
-    if not isinstance(seed_bank_version, str) or not seed_bank_version:
-        raise ValueError("seed_bank_version must be a non-empty string")
-
-    retired = payload.get("retired_seed_bank_versions", [])
-    if isinstance(retired, list) and seed_bank_version in retired:
+    benchmark_version = payload.get("benchmark_version")
+    if benchmark_version != MANIFEST_VERSION:
         raise ValueError(
-            f"seed_bank_version {seed_bank_version!r} is listed as retired; "
-            "this private_episodes.json has not been rotated to the active version"
+            f"benchmark_version must equal {MANIFEST_VERSION!r}, got {benchmark_version!r}"
         )
+
+    schema_version = payload.get("schema_version")
+    if schema_version != PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION:
+        raise ValueError(
+            "schema_version must equal "
+            f"{PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION!r}, got {schema_version!r}"
+        )
+
+    artifact_checksum = payload.get("artifact_checksum")
+    if not isinstance(artifact_checksum, str) or not artifact_checksum:
+        raise ValueError("artifact_checksum must be a non-empty string")
 
     episodes_raw = payload.get("episodes")
     if not isinstance(episodes_raw, list) or not episodes_raw:
         raise ValueError("episodes must be a non-empty list")
 
+    if artifact_checksum != _compute_private_artifact_checksum(
+        {
+            "partition": partition,
+            "episode_split": episode_split,
+            "benchmark_version": benchmark_version,
+            "schema_version": schema_version,
+            "episodes": episodes_raw,
+        }
+    ):
+        raise ValueError("artifact_checksum does not match the private artifact payload")
+
     return tuple(
-        _parse_episode_row(row, manifest_version, seed_bank_version)
+        _parse_episode_row(row, benchmark_version, artifact_checksum)
         for row in episodes_raw
     )
+
+
+def _normalize_generated_private_episode(seed: int) -> dict[str, object]:
+    from core.validate import normalize_episode_payload
+    from tasks.ruleshift_benchmark.generator import generate_episode
+    from tasks.ruleshift_benchmark.protocol import Split
+
+    return normalize_episode_payload(generate_episode(seed, split=Split.PRIVATE))
+
+
+def _compute_private_artifact_checksum(payload: dict[str, object]) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _parse_episode_row(

@@ -21,6 +21,7 @@ The official Kaggle notebook runs with this minimum packaged subset:
 
 Private evaluation data is loaded from a separate private-only dataset (`private_episodes.json`) and is not part of the public runtime package.
 Private evaluation data must come from an authorized private dataset mount. The public repo and public runtime package do not provide a repo-local fallback.
+Generate that private artifact offline before publication with `scripts/generate_private_split_artifact.py`, then attach it as the authorized private dataset mount.
 
 The active runtime contract does not require `BENCHMARK_CARD.md`, this runbook, staging notebooks, archive files, `reports/`, or `tests/fixtures/`.
 

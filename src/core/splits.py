@@ -218,6 +218,11 @@ def load_split_manifest(partition: str) -> FrozenSplitManifest:
 def generate_frozen_split(
     manifest: FrozenSplitManifest,
 ) -> tuple[FrozenSplitEpisode, ...]:
+    if manifest.partition == "private_leaderboard":
+        raise ValueError(
+            "private_leaderboard must be loaded from the authorized private artifact; "
+            "runtime regeneration is disabled"
+        )
     return tuple(
         FrozenSplitEpisode(
             partition=manifest.partition,
@@ -252,8 +257,8 @@ def _load_private_split_manifest() -> FrozenSplitManifest:
     return FrozenSplitManifest(
         partition="private_leaderboard",
         episode_split=payload["episode_split"],
-        manifest_version=payload["manifest_version"],
-        seed_bank_version=payload["seed_bank_version"],
+        manifest_version=payload["benchmark_version"],
+        seed_bank_version=payload["artifact_checksum"],
         spec_version=SPEC_VERSION,
         generator_version=GENERATOR_VERSION,
         template_set_version=TEMPLATE_SET_VERSION,
