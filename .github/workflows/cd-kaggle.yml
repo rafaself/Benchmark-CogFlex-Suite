@@ -82,6 +82,9 @@ jobs:
       - name: Validate notebook contract
         run: python -m pytest tests/test_kbench_notebook.py -v
 
+      - name: Enforce private split isolation in public repo
+        run: python scripts/check_public_private_isolation.py
+
       - name: Build deploy artifacts
         run: python scripts/build_deploy.py
 

@@ -3,22 +3,19 @@
 Loads the private leaderboard split from a materialized episodes file
 (`private_episodes.json`) rather than reconstructing it from seeds.
 
-The private dataset is kept separate from the public runtime package.
-On Kaggle it is attached as a second input dataset.  Locally it lives at
-`packaging/kaggle/private/private_episodes.json` inside the repo.
+The private dataset is kept separate from the public runtime package and must
+be attached explicitly in the private evaluation environment.
 
-Entry point for callers:
-    load_private_split(private_dataset_root) -> tuple[FrozenSplitEpisode, ...]
-
-`private_dataset_root` is the directory that contains `private_episodes.json`.
-On Kaggle this will be the dataset root (e.g.
-`/kaggle/input/ruleshift-private-evaluation/`).  Locally it defaults to
-`packaging/kaggle/private/` inside the repo.
+Entry points:
+    resolve_private_dataset_root(...)
+    load_private_split(...)
+    load_private_split_manifest_info(...)
 """
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Final
 
@@ -31,11 +28,16 @@ from tasks.ruleshift_benchmark.schema import (
 
 __all__ = [
     "PRIVATE_EPISODES_FILENAME",
+    "PRIVATE_DATASET_ROOT_ENV_VAR",
     "load_private_split",
+    "load_private_split_manifest_info",
+    "resolve_private_dataset_root",
 ]
 
 PRIVATE_EPISODES_FILENAME: Final[str] = "private_episodes.json"
+PRIVATE_DATASET_ROOT_ENV_VAR: Final[str] = "RULESHIFT_PRIVATE_DATASET_ROOT"
 _EXPECTED_PARTITION: Final[str] = "private_leaderboard"
+_KAGGLE_PRIVATE_SEARCH_ROOTS: Final[tuple[Path, ...]] = (Path("/kaggle/input"),)
 
 
 def load_private_split(
@@ -45,7 +47,8 @@ def load_private_split(
 
     Args:
         private_dataset_root: Directory containing ``private_episodes.json``.
-            Defaults to ``packaging/kaggle/private/`` relative to the repo root.
+            When omitted, the loader resolves the private dataset from the
+            private evaluation environment.
 
     Returns:
         A tuple of :class:`~core.splits.FrozenSplitEpisode` records, one per
@@ -61,29 +64,72 @@ def load_private_split(
     return _parse_private_episodes(payload)
 
 
+def load_private_split_manifest_info(
+    private_dataset_root: Path | str | None = None,
+) -> dict[str, object]:
+    """Return manifest-equivalent metadata from ``private_episodes.json``."""
+    episodes_path = _resolve_private_episodes_path(private_dataset_root)
+    payload = json.loads(episodes_path.read_text(encoding="utf-8"))
+    records = _parse_private_episodes(payload)
+
+    return {
+        "manifest_version": payload.get("manifest_version"),
+        "seed_bank_version": payload.get("seed_bank_version"),
+        "episode_split": payload.get("episode_split", "private"),
+        "seeds": tuple(record.seed for record in records),
+    }
+
+
+def resolve_private_dataset_root(
+    private_dataset_root: Path | str | None = None,
+) -> Path:
+    """Resolve the mounted private dataset directory.
+
+    Resolution order:
+      1. Explicit ``private_dataset_root`` argument
+      2. ``RULESHIFT_PRIVATE_DATASET_ROOT`` environment variable
+      3. Kaggle input mounts under ``/kaggle/input``
+    """
+    if private_dataset_root is not None:
+        return _validate_private_dataset_root(
+            Path(private_dataset_root),
+            context="explicit private_dataset_root",
+        )
+
+    env_value = os.environ.get(PRIVATE_DATASET_ROOT_ENV_VAR)
+    if env_value:
+        return _validate_private_dataset_root(
+            Path(env_value),
+            context=f"{PRIVATE_DATASET_ROOT_ENV_VAR}={env_value}",
+        )
+
+    for search_root in _KAGGLE_PRIVATE_SEARCH_ROOTS:
+        if not search_root.exists():
+            continue
+        for episodes_path in search_root.rglob(PRIVATE_EPISODES_FILENAME):
+            return episodes_path.parent
+
+    raise FileNotFoundError(
+        "Private evaluation dataset is not attached. "
+        "Attach the authorized private dataset mount or set "
+        f"{PRIVATE_DATASET_ROOT_ENV_VAR} to the mounted dataset root."
+    )
+
+
 def _resolve_private_episodes_path(
     private_dataset_root: Path | str | None,
 ) -> Path:
-    if private_dataset_root is not None:
-        root = Path(private_dataset_root)
-        candidate = root / PRIVATE_EPISODES_FILENAME
-        if not candidate.is_file():
-            raise FileNotFoundError(
-                f"private_episodes.json not found at {candidate}"
-            )
-        return candidate
+    return resolve_private_dataset_root(private_dataset_root) / PRIVATE_EPISODES_FILENAME
 
-    # Default: repo-relative location
-    repo_root = Path(__file__).resolve().parents[2]
-    default_path = (
-        repo_root / "packaging" / "kaggle" / "private" / PRIVATE_EPISODES_FILENAME
-    )
-    if not default_path.is_file():
+
+def _validate_private_dataset_root(root: Path, *, context: str) -> Path:
+    candidate = root / PRIVATE_EPISODES_FILENAME
+    if not candidate.is_file():
         raise FileNotFoundError(
-            f"private_episodes.json not found at default path {default_path}. "
-            "Pass private_dataset_root explicitly or attach the private dataset."
+            f"private_episodes.json not found for {context} at {candidate}. "
+            "Attach the authorized private dataset mount before running private evaluation."
         )
-    return default_path
+    return root
 
 
 def _parse_private_episodes(payload: object) -> tuple[FrozenSplitEpisode, ...]:

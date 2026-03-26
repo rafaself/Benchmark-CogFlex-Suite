@@ -40,7 +40,7 @@ Task and metric boundaries:
 - Binary (`ruleshift_benchmark_v1_binary`) is the only leaderboard-primary path.
 - Narrative is supplementary same-episode robustness evidence only. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored. Narrative results do not contribute to the leaderboard score.
 - Post-shift Probe Accuracy is the sole headline metric.
-- Split names are exactly `dev`, `public_leaderboard`, and `private_leaderboard`. `dev` is local-only and is never included in the official leaderboard evaluation.
+- Split names are exactly `dev`, `public_leaderboard`, and `private_leaderboard`. `dev` is local-only and is never included in the official leaderboard evaluation. `private_leaderboard` is held out and loaded only from an authorized private dataset mount.
 
 Current v1 readiness status:
 
@@ -139,12 +139,12 @@ Primary benchmark-infrastructure interfaces:
 
 ## Frozen Splits
 
-The repository includes frozen split JSON files under [`src/frozen_splits/`](./src/frozen_splits/). These remain the source for deterministic `dev`, `public_leaderboard`, and `private_leaderboard` partitions.
+The repository includes frozen split JSON files under [`src/frozen_splits/`](./src/frozen_splits/) for the public runtime partitions `dev` and `public_leaderboard`. The held-out `private_leaderboard` partition is resolved only through the private split loader and an authorized private dataset mount.
 
 The split utilities support:
 
 - loading manifest-backed frozen partitions;
-- regenerating episodes from stored seed banks;
+- regenerating the public partitions from stored seed banks;
 - checking partition overlap;
 - auditing within-partition and cross-partition distribution gaps.
 
@@ -262,7 +262,7 @@ The repository governance model is:
 - benchmark card: [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md) is the descriptive benchmark summary and current evidence record;
 - Kaggle runbook: [`packaging/kaggle/README.md`](./packaging/kaggle/README.md) is the single authoritative operational path description for Kaggle packaging, staging, and submission;
 - Kaggle leaderboard entry point: [`packaging/kaggle/ruleshift_notebook_task.ipynb`](./packaging/kaggle/ruleshift_notebook_task.ipynb) is the single official Kaggle leaderboard notebook, wired by [`packaging/kaggle/kernel-metadata.json`](./packaging/kaggle/kernel-metadata.json);
-- minimum Kaggle runtime package: the official notebook, [`packaging/kaggle/kernel-metadata.json`](./packaging/kaggle/kernel-metadata.json), [`packaging/kaggle/frozen_artifacts_manifest.json`](./packaging/kaggle/frozen_artifacts_manifest.json) as the Kaggle runtime-contract manifest, [`src/`](./src/), and [`src/frozen_splits/`](./src/frozen_splits/);
+- minimum Kaggle runtime package: the official notebook, [`packaging/kaggle/kernel-metadata.json`](./packaging/kaggle/kernel-metadata.json), [`packaging/kaggle/frozen_artifacts_manifest.json`](./packaging/kaggle/frozen_artifacts_manifest.json) as the Kaggle runtime-contract manifest, [`src/`](./src/), and the public frozen manifests under [`src/frozen_splits/`](./src/frozen_splits/);
 - Kaggle staging materials: the rest of [`packaging/kaggle/`](./packaging/kaggle/) is packaging support only and does not redefine benchmark semantics or runtime behavior;
 - evidence and audits: [`reports/`](./reports/) and the bundled validation/audit fixtures record evidence about the implemented benchmark.
 

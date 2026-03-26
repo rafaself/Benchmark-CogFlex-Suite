@@ -19,6 +19,12 @@ import shutil
 import sys
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from check_public_private_isolation import _collect_public_location_errors
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = REPO_ROOT / "src"
 KAGGLE_DIR = REPO_ROOT / "packaging" / "kaggle"
@@ -68,6 +74,15 @@ def _verify_no_private_in_runtime() -> None:
             "ERROR: private-only asset(s) found in deploy/kaggle-runtime/ — "
             "private data must not enter the public runtime package:\n"
             + "\n".join(f"  {p.relative_to(REPO_ROOT)}" for p in violations)
+        )
+
+
+def _verify_public_repo_isolation() -> None:
+    violations = _collect_public_location_errors()
+    if violations:
+        sys.exit(
+            "ERROR: public repo still contains private-only artifact references:\n"
+            + "\n".join(f"  {violation}" for violation in violations)
         )
 
 
@@ -203,6 +218,7 @@ def main() -> None:
     print("Verifying sources...")
     _verify_sources()
     _verify_kernel_metadata()
+    _verify_public_repo_isolation()
 
     print("\nBuilding deploy/kaggle-notebook/...")
     build_kaggle_notebook()

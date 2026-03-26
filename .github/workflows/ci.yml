@@ -37,6 +37,9 @@ jobs:
       - name: Install notebook smoke-test dependencies
         run: pip install "pandas>=2.0,<3.0"
 
+      - name: Enforce private split isolation in public repo
+        run: python scripts/check_public_private_isolation.py
+
       # ── packaging contract ───────────────────────────────────────────────────
       # Validates kernel-metadata.json, frozen_artifacts_manifest.json,
       # split manifests, active-docs consistency, and packaging text contracts.
@@ -61,18 +64,6 @@ jobs:
             --ignore=tests/test_gemini_panel.py \
             --ignore=tests/test_anthropic_panel.py \
             --ignore=tests/test_openai_panel.py
-
-      # ── canonical validation commands ───────────────────────────────────────
-      # These mirror `make validity`, `make integrity`, and `make evidence-pass`.
-      # They call the same CLI entry points used locally.
-      - name: Validate anti-shortcut validity gate
-        run: python scripts/ruleshift_benchmark.py validity
-
-      - name: Validate split integrity
-        run: python scripts/ruleshift_benchmark.py integrity
-
-      - name: Validate evidence pass
-        run: python scripts/ruleshift_benchmark.py evidence-pass
 
   # ── Job 2: build-deploy ──────────────────────────────────────────────────────
   # Generates fresh deploy artifacts from the canonical repo state and uploads

@@ -19,7 +19,8 @@ The official Kaggle notebook runs with this minimum packaged subset:
 - `src/frozen_splits/dev.json`
 - `src/frozen_splits/public_leaderboard.json`
 
-Private evaluation data is loaded from a separate private-only dataset (`private_episodes.json`) and is not part of the public runtime package. `src/frozen_splits/private_leaderboard.json` is not shipped in the runtime package.
+Private evaluation data is loaded from a separate private-only dataset (`private_episodes.json`) and is not part of the public runtime package.
+Private evaluation data must come from an authorized private dataset mount. The public repo and public runtime package do not provide a repo-local fallback.
 
 The active runtime contract does not require `BENCHMARK_CARD.md`, this runbook, staging notebooks, archive files, `reports/`, or `tests/fixtures/`.
 
@@ -64,14 +65,16 @@ Non-Kaggle execution surfaces:
 
 1. Upload the minimum runtime package needed by the official notebook: `src/`, `src/frozen_splits/`, and `packaging/kaggle/`.
 2. Submit `ruleshift_notebook_task.ipynb` via `kernel-metadata.json`.
-3. Optionally use `staging/ruleshift_benchmark_v1_kaggle_staging.ipynb` before submission to validate the frozen artifact manifest, inspect packaged resources, and run a dry run over the packaged frozen episodes.
-4. Keep Binary as the only leaderboard-primary path and treat Narrative as the required same-episode robustness companion on the same episode order and probe targets.
-5. Confirm that parsing, scoring, and report rendering complete end to end, with Post-shift Probe Accuracy as the headline metric.
+3. Attach the authorized private evaluation dataset mount that provides `private_episodes.json` before running the official leaderboard notebook.
+4. Optionally use `staging/ruleshift_benchmark_v1_kaggle_staging.ipynb` before submission to validate the frozen artifact manifest, inspect packaged resources, and run a dry run over the packaged frozen episodes.
+5. Keep Binary as the only leaderboard-primary path and treat Narrative as the required same-episode robustness companion on the same episode order and probe targets.
+6. Confirm that parsing, scoring, and report rendering complete end to end, with Post-shift Probe Accuracy as the headline metric.
 
 ## Reproducibility Notes
 
 - Resource paths are explicit and relative to the repo root.
 - The notebook relies on the local `src/` modules and the frozen JSON artifacts already present in the repository.
+- The held-out private split is not present in the public repo; it is resolved only from the authorized private dataset mount at runtime.
 - The runtime-contract manifest records integrity hashes for the official notebook and frozen split manifests.
 - The runtime implementation under `src/` and the frozen manifests under `src/frozen_splits/` are the source of truth for executable benchmark behavior.
 - The official Kaggle submission surface is only `ruleshift_notebook_task.ipynb` through `kernel-metadata.json`.

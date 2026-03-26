@@ -35,7 +35,7 @@ This directory contains the implemented benchmark code for RuleShift Benchmark v
 
 - `frozen_splits/dev.json`: frozen development partition.
 - `frozen_splits/public_leaderboard.json`: frozen `public_leaderboard` partition.
-- `frozen_splits/private_leaderboard.json`: frozen `private_leaderboard` partition.
+- `core/private_split.py`: mount-backed loader for the held-out `private_leaderboard` partition.
 
 These exact split names are part of the benchmark-facing contract.
 

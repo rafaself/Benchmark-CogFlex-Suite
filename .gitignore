@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .env
 deploy/
+src/frozen_splits/private_leaderboard.json
+packaging/kaggle/private/

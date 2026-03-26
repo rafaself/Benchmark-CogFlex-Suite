@@ -193,6 +193,19 @@ class TestNotebookBootstrap:
     def test_src_added_to_sys_path(self):
         assert str(_SRC_DIR) in sys.path
 
+    def test_missing_private_dataset_raises_clear_error(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        cell2 = _cell_source("cell-2")
+        ns: dict = {"Path": Path, "sys": sys}
+        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
+        with pytest.raises(
+            FileNotFoundError,
+            match="Private evaluation dataset is not attached",
+        ):
+            exec(compile(cell2, "<cell-2>", "exec"), ns)  # noqa: S102
+
 
 # ---------------------------------------------------------------------------
 # module imports
@@ -446,6 +459,12 @@ class TestNotebookSourceFidelity:
         sources = _read_notebook_sources()
         joined = "\n".join(sources)
         assert "%choose ruleshift_benchmark_v1_narrative" not in joined
+
+    def test_notebook_uses_mount_only_private_dataset_resolution(self):
+        joined = "\n".join(_read_notebook_sources())
+        assert "resolve_private_dataset_root" in joined
+        assert 'frozen_splits["private_leaderboard"] = load_private_split(PRIVATE_DATASET_ROOT)' in joined
+        assert "packaging/kaggle/private/private_episodes.json" not in joined
 
     def test_binary_task_signature_matches_eval_df_columns(self):
         """The function params (excluding llm) must match eval_df column names."""

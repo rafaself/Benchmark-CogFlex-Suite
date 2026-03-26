@@ -11,6 +11,22 @@ import os
 import sys
 from pathlib import Path
 
+_PRIVATE_ONLY_FILENAMES = (
+    "private_leaderboard.json",
+    "private_episodes.json",
+)
+
+
+def _assert_no_private_artifacts(search_root: Path) -> None:
+    violations: list[Path] = []
+    for filename in _PRIVATE_ONLY_FILENAMES:
+        violations.extend(search_root.rglob(filename))
+    if violations:
+        raise AssertionError(
+            "private-only artifact(s) found in public dataset payload: "
+            + ", ".join(str(path) for path in violations)
+        )
+
 
 def preflight():
     errors = []
@@ -58,6 +74,10 @@ def preflight():
     notebook_path = notebook_dir / expected_notebook
     if not notebook_path.exists():
         errors.append(f"notebook file missing: {notebook_path}")
+    try:
+        _assert_no_private_artifacts(runtime_dir)
+    except AssertionError as exc:
+        errors.append(str(exc))
 
     if errors:
         print("Metadata validation FAILED:", file=sys.stderr)
@@ -89,6 +109,7 @@ def dataset():
     assert dm.get("licenses"), dm
     assert (runtime_dir / "src").is_dir(), f"missing: {runtime_dir / 'src'}"
     assert (runtime_dir / "packaging" / "kaggle" / "frozen_artifacts_manifest.json").exists()
+    _assert_no_private_artifacts(runtime_dir)
 
     print("Dataset payload verified.")
     print(f"Dataset id: {dm['id']}")

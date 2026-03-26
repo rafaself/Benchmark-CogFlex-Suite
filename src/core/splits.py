@@ -23,6 +23,7 @@ from tasks.ruleshift_benchmark.schema import (
 
 __all__ = [
     "PARTITIONS",
+    "PUBLIC_PARTITIONS",
     "MANIFEST_VERSION",
     "FrozenSplitManifest",
     "FrozenSplitEpisode",
@@ -42,6 +43,10 @@ PARTITIONS: Final[tuple[str, ...]] = (
     "dev",
     "public_leaderboard",
     "private_leaderboard",
+)
+PUBLIC_PARTITIONS: Final[tuple[str, ...]] = (
+    "dev",
+    "public_leaderboard",
 )
 MANIFEST_VERSION: Final[str] = "R14"
 _MANIFEST_FIELD_ORDER: Final[tuple[str, ...]] = (
@@ -186,6 +191,9 @@ def load_split_manifest(partition: str) -> FrozenSplitManifest:
         raise ValueError(f"unknown partition: {partition}")
 
     manifest_path = _MANIFEST_DIR / f"{partition}.json"
+    if partition == "private_leaderboard" and not manifest_path.is_file():
+        return _load_private_split_manifest()
+
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     actual_fields = tuple(payload)
     if actual_fields != _MANIFEST_FIELD_ORDER:
@@ -223,6 +231,10 @@ def generate_frozen_split(
 
 
 def load_frozen_split(partition: str) -> tuple[FrozenSplitEpisode, ...]:
+    if partition == "private_leaderboard":
+        from core.private_split import load_private_split
+
+        return load_private_split()
     return generate_frozen_split(load_split_manifest(partition))
 
 
@@ -231,6 +243,23 @@ def load_all_frozen_splits() -> dict[str, tuple[FrozenSplitEpisode, ...]]:
         partition: load_frozen_split(partition)
         for partition in PARTITIONS
     }
+
+
+def _load_private_split_manifest() -> FrozenSplitManifest:
+    from core.private_split import load_private_split_manifest_info
+
+    payload = load_private_split_manifest_info()
+    return FrozenSplitManifest(
+        partition="private_leaderboard",
+        episode_split=payload["episode_split"],
+        manifest_version=payload["manifest_version"],
+        seed_bank_version=payload["seed_bank_version"],
+        spec_version=SPEC_VERSION,
+        generator_version=GENERATOR_VERSION,
+        template_set_version=TEMPLATE_SET_VERSION,
+        difficulty_version=DIFFICULTY_VERSION,
+        seeds=tuple(payload["seeds"]),
+    )
 
 
 def audit_frozen_splits(

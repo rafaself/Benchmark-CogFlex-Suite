@@ -10,7 +10,7 @@ RuleShift Benchmark v1 is a narrow Executive Functions benchmark for cognitive f
 
 A high v1 Binary score is evidence that a model correctly applied the post-shift rule to the final probes after sparse contradictory evidence in the frozen episodes. It is not evidence of physics skill, broad adaptation ability, broad AGI capability, or general reasoning ability.
 
-This package is a Kaggle packaging layer over the implemented local benchmark. The implemented local benchmark under `src/` and the frozen split manifests under `src/frozen_splits/` remain the runtime source of truth. The single official Kaggle leaderboard notebook is `packaging/kaggle/ruleshift_notebook_task.ipynb`; `packaging/kaggle/staging/ruleshift_benchmark_v1_kaggle_staging.ipynb` is staging-only.
+This package is a Kaggle packaging layer over the implemented local benchmark. The implemented local benchmark under `src/` and the public frozen split manifests under `src/frozen_splits/` remain the runtime source of truth. The held-out private split is resolved only through the private split loader and an authorized private dataset mount. The single official Kaggle leaderboard notebook is `packaging/kaggle/ruleshift_notebook_task.ipynb`; `packaging/kaggle/staging/ruleshift_benchmark_v1_kaggle_staging.ipynb` is staging-only.
 
 ## Task Paths
 
@@ -62,7 +62,8 @@ These are benchmark sanity-check baselines used by the local validity and re-aud
 
 This Kaggle package references frozen local artifacts rather than regenerating a new benchmark:
 
-- split manifests: `src/frozen_splits/dev.json`, `src/frozen_splits/public_leaderboard.json`, `src/frozen_splits/private_leaderboard.json`
+- public split manifests: `src/frozen_splits/dev.json`, `src/frozen_splits/public_leaderboard.json`
+- held-out private split input: attached private dataset mount providing `private_episodes.json`
 - anti-shortcut gate evidence: `tests/fixtures/release_r13_validity_report.json`
 - empirical re-audit evidence: `tests/fixtures/release_r15_reaudit_report.json`
 - single packaged Gemini readiness anchor: `reports/m1_binary_vs_narrative_robustness_report.md`
@@ -85,7 +86,7 @@ The benchmark currently claims:
 - a reproducible Binary benchmark and Narrative companion over the same frozen split manifests and probe targets
 - Binary as the only leaderboard-primary path
 - Post-shift Probe Accuracy as the sole headline metric
-- deterministic local replay from the stored seed banks
+- deterministic local replay for the public partitions from the stored seed banks
 - local validity and audit evidence tied to the current implemented benchmark
 
 The benchmark explicitly does **not** claim:

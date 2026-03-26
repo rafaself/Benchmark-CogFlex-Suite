@@ -142,7 +142,6 @@ def test_kaggle_runbook_documents_the_minimum_runtime_subset():
         "src/",
         "src/frozen_splits/dev.json",
         "src/frozen_splits/public_leaderboard.json",
-        "src/frozen_splits/private_leaderboard.json",
     )
     non_runtime_paths = (
         "BENCHMARK_CARD.md",
@@ -161,6 +160,21 @@ def test_kaggle_runbook_documents_the_minimum_runtime_subset():
     for path in non_runtime_paths:
         assert path in usage_text
     assert "keeping `src/`, `tests/fixtures/`, `reports/`, and `packaging/kaggle/` together" not in usage_text
+    assert "src/frozen_splits/private_leaderboard.json" not in usage_text
+    assert "packaging/kaggle/private/private_episodes.json" not in usage_text
+
+
+def test_packaging_docs_describe_private_split_as_mount_only():
+    usage_text = _USAGE_PATH.read_text(encoding="utf-8")
+    card_text = _CARD_PATH.read_text(encoding="utf-8")
+    notebook_text = _read_notebook_sources(_KBENCH_NOTEBOOK_PATH)
+
+    assert "authorized private dataset mount" in usage_text
+    assert "repo-local default" not in usage_text
+    assert "src/frozen_splits/private_leaderboard.json" not in card_text
+    assert "public partitions from the stored seed banks" in card_text
+    assert "packaging/kaggle/private/private_episodes.json" not in notebook_text
+    assert "resolve_private_dataset_root" in notebook_text
 
 
 def test_active_docs_label_frozen_artifacts_manifest_by_runtime_role():
