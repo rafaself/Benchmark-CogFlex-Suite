@@ -57,6 +57,13 @@ _PROBE_LABEL_ORDER: Final[tuple[InteractionLabel, ...]] = (
     InteractionLabel.REPEL,
 )
 _PROBE_SIGN_PATTERN_ORDER: Final[tuple[str, ...]] = ("++", "--", "+-", "-+")
+_FACTOR_LEVEL_SCORE: Final[dict[FactorLevel, int]] = {
+    FactorLevel.LOW: 0,
+    FactorLevel.MEDIUM: 1,
+    FactorLevel.HIGH: 2,
+}
+_EASY_DIFFICULTY_SCORE_MAX: Final[int] = 3
+_HARD_DIFFICULTY_SCORE_MIN: Final[int] = 6
 
 
 def _is_plain_int(value: object) -> bool:
@@ -354,22 +361,26 @@ def derive_difficulty_factors(
 def derive_difficulty_profile(
     factors: DifficultyFactors,
 ) -> tuple[Difficulty, DifficultyProfileId]:
-    if (
-        factors.conflict_strength is FactorLevel.LOW
-        and factors.post_shift_evidence_clarity is FactorLevel.HIGH
-        and factors.probe_ambiguity is FactorLevel.LOW
-        and factors.evidence_to_final_probe_distance is FactorLevel.LOW
-        and factors.pre_shift_distractor_pressure is FactorLevel.LOW
-    ):
+    clarity_load = {
+        FactorLevel.HIGH: FactorLevel.LOW,
+        FactorLevel.MEDIUM: FactorLevel.MEDIUM,
+        FactorLevel.LOW: FactorLevel.HIGH,
+    }[factors.post_shift_evidence_clarity]
+    difficulty_score = sum(
+        _FACTOR_LEVEL_SCORE[level]
+        for level in (
+            factors.conflict_strength,
+            clarity_load,
+            factors.probe_ambiguity,
+            factors.evidence_to_final_probe_distance,
+            factors.pre_shift_distractor_pressure,
+        )
+    )
+
+    if difficulty_score <= _EASY_DIFFICULTY_SCORE_MAX:
         return Difficulty.EASY, DifficultyProfileId.EASY_ANCHORED
 
-    if (
-        factors.conflict_strength is FactorLevel.HIGH
-        and factors.post_shift_evidence_clarity is FactorLevel.LOW
-        and factors.probe_ambiguity is FactorLevel.HIGH
-        and factors.evidence_to_final_probe_distance is FactorLevel.HIGH
-        and factors.pre_shift_distractor_pressure is FactorLevel.HIGH
-    ):
+    if difficulty_score >= _HARD_DIFFICULTY_SCORE_MIN:
         return Difficulty.HARD, DifficultyProfileId.HARD_INTERLEAVED
 
     return Difficulty.MEDIUM, DifficultyProfileId.MEDIUM_BALANCED

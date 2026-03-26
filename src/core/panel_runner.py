@@ -21,6 +21,7 @@ from tasks.ruleshift_benchmark.baselines import (
     last_evidence_baseline,
     never_update_baseline,
 )
+from tasks.ruleshift_benchmark.protocol import TemplateFamily, TemplateId, Transition
 from tasks.ruleshift_benchmark.schema import (
     DIFFICULTY_VERSION,
     GENERATOR_VERSION,
@@ -59,9 +60,8 @@ _BASELINE_ORDER: tuple[str, ...] = (
     "physics_prior",
     "template_position",
 )
-_TRANSITION_ORDER: tuple[str, ...] = (
-    "R_std_to_R_inv",
-    "R_inv_to_R_std",
+_TRANSITION_ORDER: tuple[str, ...] = tuple(
+    transition.value for transition in Transition
 )
 _ARTIFACT_SCHEMA_VERSION = "v1.1"
 _PANEL_RUN_GENERATOR_VERSION = "v1"
@@ -1312,9 +1312,9 @@ def _ordered_scope_labels(
         for row in split_payload["rows"]
     )
     if key_name == "template_id":
-        order = ("T1", "T2")
+        order = tuple(template_id.value for template_id in TemplateId)
     elif key_name == "template_family":
-        order = ("canonical", "observation_log")
+        order = tuple(template_family.value for template_family in TemplateFamily)
     elif key_name == "difficulty":
         order = ("easy", "medium", "hard")
     elif key_name == "transition":
@@ -1791,7 +1791,9 @@ def _diagnostic_rows_for_markdown(
         "public_leaderboard": 1,
         "private_leaderboard": 2,
     }
-    template_rank = {"T1": 0, "T2": 1}
+    template_rank = {
+        template_id.value: index for index, template_id in enumerate(TemplateId)
+    }
     difficulty_rank = {"easy": 0, "medium": 1, "hard": 2}
     transition_rank = {
         transition: index

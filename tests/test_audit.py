@@ -323,16 +323,16 @@ def test_template_level_and_difficulty_level_summaries_match_hand_checked_fixtur
             valid_prediction_count=1,
             parse_valid_rate=1.0,
         ),
+        "T3": AuditSliceSummary(
+            episode_count=0,
+            correct_probe_count=0,
+            total_probe_count=0,
+            accuracy=0.0,
+            valid_prediction_count=0,
+            parse_valid_rate=0.0,
+        ),
     }
     assert _slice_map(binary_summary.by_difficulty) == {
-        "medium": AuditSliceSummary(
-            episode_count=2,
-            correct_probe_count=5,
-            total_probe_count=8,
-            accuracy=0.625,
-            valid_prediction_count=2,
-            parse_valid_rate=1.0,
-        ),
         "easy": AuditSliceSummary(
             episode_count=0,
             correct_probe_count=0,
@@ -341,13 +341,21 @@ def test_template_level_and_difficulty_level_summaries_match_hand_checked_fixtur
             valid_prediction_count=0,
             parse_valid_rate=0.0,
         ),
-        "hard": AuditSliceSummary(
+        "medium": AuditSliceSummary(
             episode_count=0,
             correct_probe_count=0,
             total_probe_count=0,
             accuracy=0.0,
             valid_prediction_count=0,
             parse_valid_rate=0.0,
+        ),
+        "hard": AuditSliceSummary(
+            episode_count=2,
+            correct_probe_count=5,
+            total_probe_count=8,
+            accuracy=0.625,
+            valid_prediction_count=2,
+            parse_valid_rate=1.0,
         ),
     }
     assert _slice_map(binary_summary.by_template_family) == {
@@ -366,6 +374,14 @@ def test_template_level_and_difficulty_level_summaries_match_hand_checked_fixtur
             accuracy=1.0,
             valid_prediction_count=1,
             parse_valid_rate=1.0,
+        ),
+        "case_ledger": AuditSliceSummary(
+            episode_count=0,
+            correct_probe_count=0,
+            total_probe_count=0,
+            accuracy=0.0,
+            valid_prediction_count=0,
+            parse_valid_rate=0.0,
         ),
     }
 
@@ -387,11 +403,9 @@ def test_baseline_comparison_summary_is_stable():
 def test_audit_handles_current_absence_of_emitted_hard_episodes_cleanly():
     report = _report()
 
-    assert report.difficulty_labels_present == ("medium",)
-    assert report.difficulty_labels_missing == ("easy", "hard")
-    assert report.limitations == (
-        "Supplied episodes do not cover the full emitted difficulty set.",
-    )
+    assert report.difficulty_labels_present == ("hard",)
+    assert report.difficulty_labels_missing == ("easy", "medium")
+    assert report.limitations == ()
     for summary in report.source_summaries:
         assert set(_slice_map(summary.by_difficulty)) == {"easy", "medium", "hard"}
 
@@ -493,10 +507,9 @@ def test_release_r15_reaudit_honestly_reports_absent_real_model_runs():
 
     assert report.model_summaries == ()
     assert report.matched_mode_comparisons == ()
-    assert report.difficulty_labels_present == ("medium",)
-    assert report.difficulty_labels_missing == ("easy", "hard")
+    assert report.difficulty_labels_present == ("hard",)
+    assert report.difficulty_labels_missing == ("easy", "medium")
     assert report.limitations == (
-        "Supplied episodes do not cover the full emitted difficulty set.",
         "No structured model runs supplied; frozen R15 re-audit covers deterministic baselines only.",
         "No matched Binary/Narrative model runs supplied; Binary vs Narrative comparison is unavailable.",
         "Narrative remains required non-leaderboard robustness evidence on the same frozen episodes and probe targets as Binary; only the final four labels are scored, and it does not replace the primary Binary post-shift probe audit.",
@@ -540,10 +553,10 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                 narrative_parse_valid_rate=0.5,
                 parse_valid_rate_gap=0.5,
             ),
-            by_template=(
-                (
-                    "T1",
-                    ModeComparisonSummary(
+                by_template=(
+                    (
+                        "T1",
+                        ModeComparisonSummary(
                         binary_accuracy=0.25,
                         narrative_accuracy=1.0,
                         accuracy_gap=-0.75,
@@ -552,22 +565,33 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         parse_valid_rate_gap=0.0,
                     ),
                 ),
-                (
-                    "T2",
-                    ModeComparisonSummary(
-                        binary_accuracy=1.0,
-                        narrative_accuracy=0.0,
+                    (
+                        "T2",
+                        ModeComparisonSummary(
+                            binary_accuracy=1.0,
+                            narrative_accuracy=0.0,
                         accuracy_gap=1.0,
                         binary_parse_valid_rate=1.0,
-                        narrative_parse_valid_rate=0.0,
-                        parse_valid_rate_gap=1.0,
+                            narrative_parse_valid_rate=0.0,
+                            parse_valid_rate_gap=1.0,
+                        ),
+                    ),
+                    (
+                        "T3",
+                        ModeComparisonSummary(
+                            binary_accuracy=0.0,
+                            narrative_accuracy=0.0,
+                            accuracy_gap=0.0,
+                            binary_parse_valid_rate=0.0,
+                            narrative_parse_valid_rate=0.0,
+                            parse_valid_rate_gap=0.0,
+                        ),
                     ),
                 ),
-            ),
-            by_template_family=(
-                (
-                    "canonical",
-                    ModeComparisonSummary(
+                by_template_family=(
+                    (
+                        "canonical",
+                        ModeComparisonSummary(
                         binary_accuracy=0.25,
                         narrative_accuracy=1.0,
                         accuracy_gap=-0.75,
@@ -576,22 +600,33 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         parse_valid_rate_gap=0.0,
                     ),
                 ),
-                (
-                    "observation_log",
-                    ModeComparisonSummary(
-                        binary_accuracy=1.0,
-                        narrative_accuracy=0.0,
+                    (
+                        "observation_log",
+                        ModeComparisonSummary(
+                            binary_accuracy=1.0,
+                            narrative_accuracy=0.0,
                         accuracy_gap=1.0,
                         binary_parse_valid_rate=1.0,
-                        narrative_parse_valid_rate=0.0,
-                        parse_valid_rate_gap=1.0,
+                            narrative_parse_valid_rate=0.0,
+                            parse_valid_rate_gap=1.0,
+                        ),
+                    ),
+                    (
+                        "case_ledger",
+                        ModeComparisonSummary(
+                            binary_accuracy=0.0,
+                            narrative_accuracy=0.0,
+                            accuracy_gap=0.0,
+                            binary_parse_valid_rate=0.0,
+                            narrative_parse_valid_rate=0.0,
+                            parse_valid_rate_gap=0.0,
+                        ),
                     ),
                 ),
-            ),
-            by_difficulty=(
-                (
-                    "easy",
-                    ModeComparisonSummary(
+                by_difficulty=(
+                    (
+                        "easy",
+                        ModeComparisonSummary(
                         binary_accuracy=0.0,
                         narrative_accuracy=0.0,
                         accuracy_gap=0.0,
@@ -600,31 +635,31 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         parse_valid_rate_gap=0.0,
                     ),
                 ),
-                (
-                    "medium",
-                    ModeComparisonSummary(
-                        binary_accuracy=0.625,
-                        narrative_accuracy=0.5,
-                        accuracy_gap=0.125,
+                    (
+                        "medium",
+                        ModeComparisonSummary(
+                            binary_accuracy=0.0,
+                            narrative_accuracy=0.0,
+                            accuracy_gap=0.0,
+                            binary_parse_valid_rate=0.0,
+                            narrative_parse_valid_rate=0.0,
+                            parse_valid_rate_gap=0.0,
+                        ),
+                    ),
+                    (
+                        "hard",
+                        ModeComparisonSummary(
+                            binary_accuracy=0.625,
+                            narrative_accuracy=0.5,
+                            accuracy_gap=0.125,
                         binary_parse_valid_rate=1.0,
-                        narrative_parse_valid_rate=0.5,
-                        parse_valid_rate_gap=0.5,
-                    ),
-                ),
-                (
-                    "hard",
-                    ModeComparisonSummary(
-                        binary_accuracy=0.0,
-                        narrative_accuracy=0.0,
-                        accuracy_gap=0.0,
-                        binary_parse_valid_rate=0.0,
-                        narrative_parse_valid_rate=0.0,
-                        parse_valid_rate_gap=0.0,
+                            narrative_parse_valid_rate=0.5,
+                            parse_valid_rate_gap=0.5,
+                        ),
                     ),
                 ),
             ),
-        ),
-    )
+        )
     assert report.model_summaries[0].by_difficulty == (
         (
             "easy",
@@ -640,23 +675,23 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
         (
             "medium",
             AuditSliceSummary(
-                episode_count=2,
-                correct_probe_count=5,
-                total_probe_count=8,
-                accuracy=0.625,
-                valid_prediction_count=2,
-                parse_valid_rate=1.0,
-            ),
-        ),
-        (
-            "hard",
-            AuditSliceSummary(
                 episode_count=0,
                 correct_probe_count=0,
                 total_probe_count=0,
                 accuracy=0.0,
                 valid_prediction_count=0,
                 parse_valid_rate=0.0,
+            ),
+        ),
+        (
+            "hard",
+            AuditSliceSummary(
+                episode_count=2,
+                correct_probe_count=5,
+                total_probe_count=8,
+                accuracy=0.625,
+                valid_prediction_count=2,
+                parse_valid_rate=1.0,
             ),
         ),
     )
@@ -681,6 +716,17 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                 accuracy=1.0,
                 valid_prediction_count=1,
                 parse_valid_rate=1.0,
+            ),
+        ),
+        (
+            "case_ledger",
+            AuditSliceSummary(
+                episode_count=0,
+                correct_probe_count=0,
+                total_probe_count=0,
+                accuracy=0.0,
+                valid_prediction_count=0,
+                parse_valid_rate=0.0,
             ),
         ),
     )

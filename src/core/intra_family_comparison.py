@@ -420,7 +420,7 @@ def render_comparison_markdown(comparison: dict[str, Any]) -> str:
         f"| Template | Mode | {model_a} acc | {model_b} acc | Gap | {model_a} PV | {model_b} PV |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
     ])
-    for template in ["T1", "T2"]:
+    for template in ["T1", "T2", "T3"]:
         for mode in ["binary", "narrative"]:
             row = _get("template", template, mode)
             if row is None:

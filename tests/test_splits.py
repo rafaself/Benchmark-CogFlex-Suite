@@ -112,28 +112,72 @@ def test_split_audit_only_reports_emitted_difficulty_labels():
 
 
 @pytest.mark.parametrize("partition", ("dev", "public_leaderboard"))
-def test_public_manifests_keep_template_family_balance_and_cross_balance(partition: str):
+def test_public_manifests_balance_core_structure_and_cover_difficulty_crossings(partition: str):
     records = load_frozen_split(partition)
+    difficulty_counts: dict[str, int] = {}
+    template_counts: dict[str, int] = {}
     family_counts: dict[str, int] = {}
-    combo_counts: dict[tuple[str, str], int] = {}
+    transition_counts: dict[str, int] = {}
+    shift_counts: dict[str, int] = {}
+    difficulty_template_pairs: set[tuple[str, str]] = set()
+    difficulty_family_pairs: set[tuple[str, str]] = set()
+    difficulty_transition_pairs: set[tuple[str, str]] = set()
+    difficulty_shift_pairs: set[tuple[str, str]] = set()
 
     for record in records:
         episode = record.episode
+        difficulty_counts[episode.difficulty.value] = (
+            difficulty_counts.get(episode.difficulty.value, 0) + 1
+        )
+        template_counts[episode.template_id.value] = (
+            template_counts.get(episode.template_id.value, 0) + 1
+        )
         family_counts[episode.template_family.value] = (
             family_counts.get(episode.template_family.value, 0) + 1
         )
-        combo_key = (episode.template_id.value, episode.template_family.value)
-        combo_counts[combo_key] = combo_counts.get(combo_key, 0) + 1
+        transition_counts[episode.transition.value] = (
+            transition_counts.get(episode.transition.value, 0) + 1
+        )
+        shift_counts[str(episode.shift_after_position)] = (
+            shift_counts.get(str(episode.shift_after_position), 0) + 1
+        )
+        difficulty_template_pairs.add((episode.difficulty.value, episode.template_id.value))
+        difficulty_family_pairs.add((episode.difficulty.value, episode.template_family.value))
+        difficulty_transition_pairs.add((episode.difficulty.value, episode.transition.value))
+        difficulty_shift_pairs.add((episode.difficulty.value, str(episode.shift_after_position)))
 
+    assert len(records) == 18
+    assert difficulty_counts == {"easy": 6, "medium": 6, "hard": 6}
+    assert template_counts == {"T1": 6, "T2": 6, "T3": 6}
     assert family_counts == {
-        "canonical": 8,
-        "observation_log": 8,
+        "canonical": 6,
+        "observation_log": 6,
+        "case_ledger": 6,
     }
-    assert combo_counts == {
-        ("T1", "canonical"): 4,
-        ("T1", "observation_log"): 4,
-        ("T2", "canonical"): 4,
-        ("T2", "observation_log"): 4,
+    assert transition_counts == {
+        "R_std_to_R_inv": 9,
+        "R_inv_to_R_std": 9,
+    }
+    assert shift_counts == {"1": 6, "2": 6, "3": 6}
+    assert difficulty_template_pairs == {
+        (difficulty, template)
+        for difficulty in ("easy", "medium", "hard")
+        for template in ("T1", "T2", "T3")
+    }
+    assert difficulty_family_pairs == {
+        (difficulty, family)
+        for difficulty in ("easy", "medium", "hard")
+        for family in ("canonical", "observation_log", "case_ledger")
+    }
+    assert difficulty_transition_pairs == {
+        (difficulty, transition)
+        for difficulty in ("easy", "medium", "hard")
+        for transition in ("R_std_to_R_inv", "R_inv_to_R_std")
+    }
+    assert difficulty_shift_pairs == {
+        (difficulty, shift)
+        for difficulty in ("easy", "medium", "hard")
+        for shift in ("1", "2", "3")
     }
 
 

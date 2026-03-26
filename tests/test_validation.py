@@ -308,9 +308,14 @@ def test_validate_dataset_returns_deterministic_distribution_summary():
     result = validate_dataset(episodes)
 
     assert result.summary == DatasetDistributionSummary(
-        template_counts=(("T1", 1), ("T2", 1)),
-        template_family_counts=(("canonical", 1), ("observation_log", 1)),
-        transition_counts=(("R_std_to_R_inv", 1), ("R_inv_to_R_std", 1)),
+        template_counts=(("T1", 0), ("T2", 1), ("T3", 1)),
+        template_family_counts=(
+            ("canonical", 1),
+            ("observation_log", 1),
+            ("case_ledger", 0),
+        ),
+        transition_counts=(("R_std_to_R_inv", 0), ("R_inv_to_R_std", 2)),
+        shift_position_counts=(("2", 0), ("3", 1), ("1", 1)),
         probe_label_counts=(("attract", 4), ("repel", 4)),
         sign_pattern_counts=(("++", 2), ("--", 2), ("+-", 2), ("-+", 2)),
         version_values=(
@@ -348,7 +353,7 @@ def test_validate_episode_rejects_recency_and_persistence_collapsible_probe_bloc
 
 def test_validate_dataset_checks_regeneration_for_canonical_ids_and_skips_noncanonical_ids():
     canonical_episode = generate_episode(0)
-    noncanonical_episode = generate_episode(10)
+    noncanonical_episode = generate_episode(39)
     object.__setattr__(noncanonical_episode, "episode_id", "fixture-1")
 
     result = validate_dataset((canonical_episode, noncanonical_episode))
@@ -447,6 +452,7 @@ def test_validation_result_objects_are_stable_dataclasses():
         template_counts=(("T1", 1), ("T2", 1)),
         template_family_counts=(("canonical", 1), ("observation_log", 1)),
         transition_counts=(("R_std_to_R_inv", 1), ("R_inv_to_R_std", 1)),
+        shift_position_counts=(("2", 1), ("3", 1)),
         probe_label_counts=(("attract", 4), ("repel", 4)),
         sign_pattern_counts=(("++", 2), ("--", 2), ("+-", 3), ("-+", 1)),
         version_values=(("spec_version", ("v1",)),),

@@ -41,16 +41,17 @@ def test_different_seeds_can_generate_different_episodes():
     assert len(episodes) > 1
 
 
-def test_only_t1_and_t2_are_emitted():
+def test_all_templates_are_emitted():
     emitted_templates = {generate_episode(seed).template_id for seed in range(32)}
-    assert emitted_templates == {TemplateId.T1, TemplateId.T2}
+    assert emitted_templates == {TemplateId.T1, TemplateId.T2, TemplateId.T3}
 
 
-def test_both_template_families_are_emitted():
+def test_all_template_families_are_emitted():
     emitted_families = {generate_episode(seed).template_family for seed in range(32)}
     assert emitted_families == {
         TemplateFamily.CANONICAL,
         TemplateFamily.OBSERVATION_LOG,
+        TemplateFamily.CASE_LEDGER,
     }
 
 
@@ -243,18 +244,24 @@ def test_invalid_candidates_are_rejected_by_deterministic_resampling():
         (-2, 3),
     )
 
-    with patch.object(rsb_generator.random.Random, "choice") as random_choice:
-        random_choice.side_effect = (
-            rsb_generator.RuleName.R_STD,
-            TemplateId.T1,
-            TemplateFamily.CANONICAL,
-        )
-        with patch.object(
-            rsb_generator,
-            "_sample_pairs",
-            side_effect=(invalid_candidate, valid_candidate),
-        ) as sample_pairs:
-            episode = generate_episode(1)
+    with patch.object(rsb_generator, "_target_difficulty_for_seed", return_value=rsb_generator.Difficulty.HARD):
+        with patch.object(rsb_generator, "_target_template_for_seed", return_value=TemplateId.T1):
+            with patch.object(
+                rsb_generator,
+                "_target_template_family_for_seed",
+                return_value=TemplateFamily.CANONICAL,
+            ):
+                with patch.object(
+                    rsb_generator,
+                    "_target_transition_for_seed",
+                    return_value=Transition.R_STD_TO_R_INV,
+                ):
+                    with patch.object(
+                        rsb_generator,
+                        "_sample_pairs",
+                        side_effect=(invalid_candidate, valid_candidate),
+                    ) as sample_pairs:
+                        episode = generate_episode(1)
 
     assert sample_pairs.call_count == 2
     assert tuple((item.q1, item.q2) for item in episode.items) == valid_candidate
@@ -265,6 +272,19 @@ def test_invalid_candidates_are_rejected_by_deterministic_resampling():
         ("+-", 1),
         ("-+", 1),
     )
+
+
+def test_difficulty_is_not_effectively_encoded_by_template_identity():
+    episodes = tuple(generate_episode(seed) for seed in range(162))
+    difficulty_to_templates: dict[Difficulty, set[TemplateId]] = {}
+    for episode in episodes:
+        difficulty_to_templates.setdefault(episode.difficulty, set()).add(episode.template_id)
+
+    assert difficulty_to_templates == {
+        Difficulty.EASY: {TemplateId.T1, TemplateId.T2, TemplateId.T3},
+        Difficulty.MEDIUM: {TemplateId.T1, TemplateId.T2, TemplateId.T3},
+        Difficulty.HARD: {TemplateId.T1, TemplateId.T2, TemplateId.T3},
+    }
 
 
 @pytest.mark.parametrize("seed", range(64))

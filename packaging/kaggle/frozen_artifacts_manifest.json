@@ -22,16 +22,16 @@
   "frozen_split_manifests": {
     "dev": {
       "path": "src/frozen_splits/dev.json",
-      "sha256": "3782024dc0496c3beb1f4bfe640f1f286263be1b5c8598e8108be03543e94ca5",
+      "sha256": "0c151ef40c3802383ff68557127483678dacf26b5691c0eb1405e702cd267534",
       "manifest_version": "R14",
-      "seed_bank_version": "R14-dev-3",
+      "seed_bank_version": "R14-dev-4",
       "episode_split": "dev"
     },
     "public_leaderboard": {
       "path": "src/frozen_splits/public_leaderboard.json",
-      "sha256": "13761bbddd35abf3b3c147ec6f25d70ae71688d3f60b7bce6cba62f1562f3204",
+      "sha256": "ca8252062533061f23db3ed07b0e2854586fd221a559c20a930a8734b39b4792",
       "manifest_version": "R14",
-      "seed_bank_version": "R14-public-3",
+      "seed_bank_version": "R14-public-4",
       "episode_split": "public"
     }
   },

@@ -5,7 +5,11 @@ from typing import Final, Iterable, Literal, Mapping
 
 from core.parser import ParseStatus, ParsedPrediction
 from tasks.ruleshift_benchmark.baselines import BaselineRunResult
-from tasks.ruleshift_benchmark.protocol import PROBE_COUNT
+from tasks.ruleshift_benchmark.protocol import (
+    PROBE_COUNT,
+    TemplateFamily,
+    TemplateId,
+)
 from tasks.ruleshift_benchmark.schema import Episode
 
 __all__ = [
@@ -27,8 +31,12 @@ __all__ = [
 TaskMode = Literal["Binary", "Narrative"]
 
 _TASK_MODE_ORDER: Final[tuple[TaskMode, ...]] = ("Binary", "Narrative")
-_TEMPLATE_ORDER: Final[tuple[str, ...]] = ("T1", "T2")
-_TEMPLATE_FAMILY_ORDER: Final[tuple[str, ...]] = ("canonical", "observation_log")
+_TEMPLATE_ORDER: Final[tuple[str, ...]] = tuple(
+    template_id.value for template_id in TemplateId
+)
+_TEMPLATE_FAMILY_ORDER: Final[tuple[str, ...]] = tuple(
+    template_family.value for template_family in TemplateFamily
+)
 _DIFFICULTY_ORDER: Final[tuple[str, ...]] = ("easy", "medium", "hard")
 _RELEASE_SPLIT_ORDER: Final[tuple[str, ...]] = (
     "dev",

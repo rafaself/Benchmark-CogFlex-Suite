@@ -78,14 +78,16 @@ __all__ = [
 ]
 
 _EPISODE_ID_PATTERN = re.compile(r"^ife-r(?:12|13)-(\d+)$")
-_TEMPLATE_ORDER = (TemplateId.T1.value, TemplateId.T2.value)
-_TEMPLATE_FAMILY_ORDER = (
-    TemplateFamily.CANONICAL.value,
-    TemplateFamily.OBSERVATION_LOG.value,
+_TEMPLATE_ORDER = tuple(template_id.value for template_id in TemplateId)
+_TEMPLATE_FAMILY_ORDER = tuple(
+    template_family.value for template_family in TemplateFamily
 )
 _TRANSITION_ORDER = (
     Transition.R_STD_TO_R_INV.value,
     Transition.R_INV_TO_R_STD.value,
+)
+_SHIFT_POSITION_ORDER = tuple(
+    str(TEMPLATES[template_id].shift_after_position) for template_id in TemplateId
 )
 _PROBE_LABEL_ORDER = (
     InteractionLabel.ATTRACT.value,
@@ -154,6 +156,7 @@ class DatasetDistributionSummary:
     template_counts: tuple[tuple[str, int], ...]
     template_family_counts: tuple[tuple[str, int], ...]
     transition_counts: tuple[tuple[str, int], ...]
+    shift_position_counts: tuple[tuple[str, int], ...]
     probe_label_counts: tuple[tuple[str, int], ...]
     sign_pattern_counts: tuple[tuple[str, int], ...]
     version_values: tuple[tuple[str, tuple[str, ...]], ...]
@@ -1296,6 +1299,13 @@ def validate_dataset(episodes: Iterable[Episode]) -> DatasetValidationResult:
             (_safe_value(getattr(episode, "transition", None)) for episode in normalized_episodes),
             _TRANSITION_ORDER,
         ),
+        shift_position_counts=_count_in_canonical_order(
+            (
+                str(getattr(episode, "shift_after_position", None))
+                for episode in normalized_episodes
+            ),
+            _SHIFT_POSITION_ORDER,
+        ),
         probe_label_counts=_count_in_canonical_order(
             (
                 _safe_value(label_value)
@@ -1340,6 +1350,13 @@ def validate_dataset(episodes: Iterable[Episode]) -> DatasetValidationResult:
         code="transition_balance",
         field_name="transition usage",
         counts=summary.transition_counts,
+        threshold=max(1, math.ceil(0.2 * len(normalized_episodes))),
+    )
+    _append_balance_issue(
+        issues,
+        code="shift_position_balance",
+        field_name="shift-position usage",
+        counts=summary.shift_position_counts,
         threshold=max(1, math.ceil(0.2 * len(normalized_episodes))),
     )
     if summary.probe_label_counts:

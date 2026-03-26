@@ -5,7 +5,13 @@ from enum import StrEnum
 from typing import Callable, Sequence
 
 from core.parser import NarrativeParsedResult, NarrativeParseStatus, ParseStatus, ParsedPrediction
-from tasks.ruleshift_benchmark.protocol import PROBE_COUNT, InteractionLabel
+from tasks.ruleshift_benchmark.protocol import (
+    PROBE_COUNT,
+    InteractionLabel,
+    TemplateFamily,
+    TemplateId,
+    Transition,
+)
 from tasks.ruleshift_benchmark.schema import Episode
 
 __all__ = [
@@ -30,9 +36,11 @@ SLICE_DIMENSIONS: tuple[str, ...] = (
 )
 
 _DIFFICULTY_ORDER: tuple[str, ...] = ("easy", "medium", "hard")
-_TRANSITION_ORDER: tuple[str, ...] = ("R_std_to_R_inv", "R_inv_to_R_std")
-_TEMPLATE_ORDER: tuple[str, ...] = ("T1", "T2")
-_TEMPLATE_FAMILY_ORDER: tuple[str, ...] = ("canonical", "observation_log")
+_TRANSITION_ORDER: tuple[str, ...] = tuple(transition.value for transition in Transition)
+_TEMPLATE_ORDER: tuple[str, ...] = tuple(template_id.value for template_id in TemplateId)
+_TEMPLATE_FAMILY_ORDER: tuple[str, ...] = tuple(
+    template_family.value for template_family in TemplateFamily
+)
 
 
 class ErrorType(StrEnum):

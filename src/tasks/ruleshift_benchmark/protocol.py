@@ -90,11 +90,13 @@ class InteractionLabel(StrEnum):
 class TemplateId(StrEnum):
     T1 = "T1"
     T2 = "T2"
+    T3 = "T3"
 
 
 class TemplateFamily(StrEnum):
     CANONICAL = "canonical"
     OBSERVATION_LOG = "observation_log"
+    CASE_LEDGER = "case_ledger"
 
 
 class Transition(StrEnum):
@@ -284,6 +286,11 @@ TEMPLATES: Final[Mapping[TemplateId, TemplateSpec]] = MappingProxyType(
                 template_id=TemplateId.T2,
                 pre_count=3,
                 post_labeled_count=2,
+            ),
+            TemplateId.T3: TemplateSpec(
+                template_id=TemplateId.T3,
+                pre_count=1,
+                post_labeled_count=4,
             ),
         }
     )

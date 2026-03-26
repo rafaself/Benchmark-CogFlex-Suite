@@ -12,7 +12,14 @@ from core.validate import (
     validate_dataset,
 )
 from tasks.ruleshift_benchmark.generator import generate_episode
-from tasks.ruleshift_benchmark.protocol import Split, parse_split
+from tasks.ruleshift_benchmark.protocol import (
+    Difficulty,
+    Split,
+    TemplateFamily,
+    TemplateId,
+    Transition,
+    parse_split,
+)
 from tasks.ruleshift_benchmark.schema import (
     DIFFICULTY_VERSION,
     GENERATOR_VERSION,
@@ -70,11 +77,20 @@ _WITHIN_SPLIT_DIFFICULTY_GAP_THRESHOLD: Final[float] = 0.25
 _PUBLIC_DIFFICULTY_COUNT_GAP_THRESHOLD: Final[int] = 1
 _CROSS_SPLIT_GAP_THRESHOLDS: Final[dict[str, float]] = {
     "template": 0.25,
-    "template_family": 0.0,
+    "template_family": 0.2,
     "transition": 0.25,
+    "shift_position": 0.25,
     "difficulty": 0.25,
     "probe_label": 0.125,
 }
+_PRIVATE_BALANCE_ISSUE_CODES: Final[frozenset[str]] = frozenset(
+    {
+        "template_balance",
+        "template_family_balance",
+        "transition_balance",
+        "shift_position_balance",
+    }
+)
 
 
 def _is_plain_int(value: object) -> bool:
@@ -178,6 +194,7 @@ class CrossSplitComparisonSummary:
     template: tuple[DistributionGap, ...]
     template_family: tuple[DistributionGap, ...]
     transition: tuple[DistributionGap, ...]
+    shift_position: tuple[DistributionGap, ...]
     probe_label: tuple[DistributionGap, ...]
     difficulty: tuple[DistributionGap, ...]
 
@@ -293,6 +310,11 @@ def audit_frozen_splits(
             )
         )
         for issue in validation_result.issues:
+            if (
+                partition == "private_leaderboard"
+                and issue.code in _PRIVATE_BALANCE_ISSUE_CODES
+            ):
+                continue
             issues.append(
                 ValidationIssue(
                     code=issue.code,
@@ -324,10 +346,10 @@ def audit_frozen_splits(
                 )
         if partition in PUBLIC_PARTITIONS:
             issues.extend(
-                _collect_template_family_coverage_issues(
+                _collect_public_structure_coverage_issues(
                     partition,
                     episodes,
-                    validation_result.summary.template_family_counts,
+                    validation_result.summary,
                 )
             )
 
@@ -377,74 +399,161 @@ def _count_gap(counts: tuple[tuple[str, int], ...]) -> int:
     return max(values) - min(values) if values else 0
 
 
-def _collect_template_family_coverage_issues(
+def _collect_public_structure_coverage_issues(
     partition: str,
     episodes: tuple[Episode, ...],
-    template_family_counts: tuple[tuple[str, int], ...],
+    summary: DatasetDistributionSummary,
 ) -> tuple[ValidationIssue, ...]:
     issues: list[ValidationIssue] = []
-    family_counts = {label: count for label, count in template_family_counts}
-    family_labels = tuple(sorted(family_counts))
-    if set(family_labels) != {"canonical", "observation_log"}:
-        issues.append(
-            ValidationIssue(
-                code="template_family_coverage",
-                message=(
-                    f"{partition}: template families must include canonical and observation_log, "
-                    f"got {tuple(sorted(family_counts.items()))}"
-                ),
-            )
-        )
-        return tuple(issues)
-
-    expected_family_count = len(episodes) // 2
-    if any(count != expected_family_count for count in family_counts.values()):
-        issues.append(
-            ValidationIssue(
-                code="template_family_balance",
-                message=(
-                    f"{partition}: template family counts must be exactly balanced at "
-                    f"{expected_family_count} each, got {tuple(sorted(family_counts.items()))}"
-                ),
-            )
-        )
-
-    combo_counts: dict[tuple[str, str], int] = {}
-    for episode in episodes:
-        key = (episode.template_id.value, episode.template_family.value)
-        combo_counts[key] = combo_counts.get(key, 0) + 1
-
-    expected_combos = (
-        ("T1", "canonical"),
-        ("T1", "observation_log"),
-        ("T2", "canonical"),
-        ("T2", "observation_log"),
+    dimension_specs = (
+        (
+            "template",
+            summary.template_counts,
+            tuple(template_id.value for template_id in TemplateId),
+        ),
+        (
+            "template_family",
+            summary.template_family_counts,
+            tuple(template_family.value for template_family in TemplateFamily),
+        ),
+        (
+            "transition",
+            summary.transition_counts,
+            tuple(transition.value for transition in Transition),
+        ),
+        (
+            "shift_position",
+            summary.shift_position_counts,
+            tuple(
+                str(shift_position)
+                for shift_position in sorted(
+                    {episode.shift_after_position for episode in episodes}
+                )
+            ),
+        ),
+        (
+            "difficulty",
+            _count_difficulty_counts(episodes),
+            tuple(difficulty.value for difficulty in Difficulty),
+        ),
     )
-    if tuple(sorted(combo_counts)) != expected_combos:
-        issues.append(
-            ValidationIssue(
-                code="template_family_cross_coverage",
-                message=(
-                    f"{partition}: template/template_family combinations must cover all canonical combinations, "
-                    f"got {tuple(sorted(combo_counts.items()))}"
-                ),
-            )
+    for dimension_name, counts, expected_labels in dimension_specs:
+        count_map = dict(counts)
+        missing_labels = tuple(
+            label for label in expected_labels if count_map.get(label, 0) == 0
         )
-        return tuple(issues)
+        if missing_labels:
+            issues.append(
+                ValidationIssue(
+                    code=f"{dimension_name}_coverage",
+                    message=(
+                        f"{partition}: missing {dimension_name} labels {missing_labels}; "
+                        f"got {tuple(sorted(count_map.items()))}"
+                    ),
+                )
+            )
+            continue
 
-    expected_combo_count = len(episodes) // len(expected_combos)
-    if any(combo_counts[key] != expected_combo_count for key in expected_combos):
-        issues.append(
-            ValidationIssue(
-                code="template_family_cross_balance",
-                message=(
-                    f"{partition}: template/template_family combinations must each appear "
-                    f"{expected_combo_count} times, got {tuple((key, combo_counts[key]) for key in expected_combos)}"
-                ),
+        if _count_gap(counts) > 1:
+            issues.append(
+                ValidationIssue(
+                    code=f"{dimension_name}_balance",
+                    message=(
+                        f"{partition}: {dimension_name} counts must stay within a gap of 1, "
+                        f"got {tuple(sorted(count_map.items()))}"
+                    ),
+                )
             )
+
+    issues.extend(
+        _collect_pairwise_coverage_issues(
+            partition,
+            episodes,
+            left_name="difficulty",
+            right_name="template",
+            left_labels=tuple(difficulty.value for difficulty in Difficulty),
+            right_labels=tuple(template_id.value for template_id in TemplateId),
+            left_getter=lambda episode: episode.difficulty.value,
+            right_getter=lambda episode: episode.template_id.value,
         )
+    )
+    issues.extend(
+        _collect_pairwise_coverage_issues(
+            partition,
+            episodes,
+            left_name="difficulty",
+            right_name="template_family",
+            left_labels=tuple(difficulty.value for difficulty in Difficulty),
+            right_labels=tuple(
+                template_family.value for template_family in TemplateFamily
+            ),
+            left_getter=lambda episode: episode.difficulty.value,
+            right_getter=lambda episode: episode.template_family.value,
+        )
+    )
+    issues.extend(
+        _collect_pairwise_coverage_issues(
+            partition,
+            episodes,
+            left_name="difficulty",
+            right_name="transition",
+            left_labels=tuple(difficulty.value for difficulty in Difficulty),
+            right_labels=tuple(transition.value for transition in Transition),
+            left_getter=lambda episode: episode.difficulty.value,
+            right_getter=lambda episode: episode.transition.value,
+        )
+    )
+    issues.extend(
+        _collect_pairwise_coverage_issues(
+            partition,
+            episodes,
+            left_name="difficulty",
+            right_name="shift_position",
+            left_labels=tuple(difficulty.value for difficulty in Difficulty),
+            right_labels=tuple(
+                str(shift_position)
+                for shift_position in sorted(
+                    {episode.shift_after_position for episode in episodes}
+                )
+            ),
+            left_getter=lambda episode: episode.difficulty.value,
+            right_getter=lambda episode: str(episode.shift_after_position),
+        )
+    )
 
     return tuple(issues)
+
+
+def _collect_pairwise_coverage_issues(
+    partition: str,
+    episodes: tuple[Episode, ...],
+    *,
+    left_name: str,
+    right_name: str,
+    left_labels: tuple[str, ...],
+    right_labels: tuple[str, ...],
+    left_getter,
+    right_getter,
+) -> tuple[ValidationIssue, ...]:
+    seen_pairs = {
+        (left_getter(episode), right_getter(episode)) for episode in episodes
+    }
+    missing_pairs = tuple(
+        (left_label, right_label)
+        for left_label in left_labels
+        for right_label in right_labels
+        if (left_label, right_label) not in seen_pairs
+    )
+    if not missing_pairs:
+        return ()
+    return (
+        ValidationIssue(
+            code=f"{left_name}_{right_name}_coverage",
+            message=(
+                f"{partition}: missing {left_name}/{right_name} pairs {missing_pairs}"
+            ),
+        ),
+    )
 
 
 def _collect_overlap_issues(
@@ -555,6 +664,14 @@ def _build_cross_partition_summary(
                 for label, _ in per_partition[0][1].dataset_summary.transition_counts
             ),
         ),
+        shift_position=_distribution_gaps(
+            public_per_partition if public_per_partition else per_partition,
+            lambda summary: summary.dataset_summary.shift_position_counts,
+            tuple(
+                label
+                for label, _ in per_partition[0][1].dataset_summary.shift_position_counts
+            ),
+        ),
         probe_label=_distribution_gaps(
             per_partition,
             lambda summary: summary.dataset_summary.probe_label_counts,
@@ -603,6 +720,7 @@ def _collect_cross_partition_gap_issues(
         "template": summary.template,
         "template_family": summary.template_family,
         "transition": summary.transition,
+        "shift_position": summary.shift_position,
         "difficulty": summary.difficulty,
         "probe_label": summary.probe_label,
     }

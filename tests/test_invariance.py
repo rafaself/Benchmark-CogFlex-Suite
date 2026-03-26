@@ -98,12 +98,13 @@ def _episode_t2() -> object:
 # ---------------------------------------------------------------------------
 
 
-def test_perturbation_class_order_has_four_canonical_entries():
+def test_perturbation_class_order_has_five_canonical_entries():
     assert PERTURBATION_CLASS_ORDER == (
         "wording_paraphrase",
         "layout_reformat",
         "neutral_renaming",
         "non_causal_ordering",
+        "presentation_family_swap",
     )
 
 
@@ -471,10 +472,10 @@ def test_minimal_pair_all_classes_preserve_probe_targets_multiple_episodes():
 # ---------------------------------------------------------------------------
 
 
-def test_generate_invariance_cases_produces_four_cases_per_episode():
+def test_generate_invariance_cases_produces_five_cases_per_episode():
     ep = generate_episode(0)
     cases = generate_invariance_cases([ep])
-    assert len(cases) == 4
+    assert len(cases) == 5
 
 
 def test_generate_invariance_cases_one_case_per_perturbation_class():
@@ -531,7 +532,7 @@ def test_generate_invariance_cases_canonical_prompt_matches_render():
 def test_generate_invariance_cases_scales_with_episodes():
     episodes = [generate_episode(s) for s in range(3)]
     cases = generate_invariance_cases(episodes)
-    assert len(cases) == 3 * 4  # 3 episodes × 4 perturbation classes
+    assert len(cases) == 3 * 5  # 3 episodes × 5 perturbation classes
 
 
 def test_generate_invariance_cases_empty_produces_no_cases():

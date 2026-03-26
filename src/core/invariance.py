@@ -21,12 +21,12 @@ so stored fixtures remain auditable across code changes.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Callable, Iterable, Sequence
 
 from core.parser import ParseStatus, ParsedPrediction
-from tasks.ruleshift_benchmark.protocol import PROBE_COUNT, InteractionLabel
+from tasks.ruleshift_benchmark.protocol import PROBE_COUNT, InteractionLabel, TemplateFamily
 from tasks.ruleshift_benchmark.render import render_binary_prompt
 from tasks.ruleshift_benchmark.schema import Episode
 
@@ -41,6 +41,7 @@ __all__ = [
     "apply_layout_reformat",
     "apply_neutral_renaming",
     "apply_non_causal_ordering",
+    "apply_presentation_family_swap",
     "generate_invariance_cases",
     "build_invariance_report",
 ]
@@ -54,6 +55,7 @@ PERTURBATION_CLASS_ORDER: tuple[str, ...] = (
     "layout_reformat",
     "neutral_renaming",
     "non_causal_ordering",
+    "presentation_family_swap",
 )
 
 # ---------------------------------------------------------------------------
@@ -79,6 +81,11 @@ _WORDING_PARAPHRASE_SUBS: tuple[tuple[str, str], ...] = (
         "Each entry records q1, q2, and the observed outcome.",
         "Each entry lists q1, q2, and the observed outcome.",
     ),
+    # Case-ledger binary: second sentence of the intro paragraph.
+    (
+        "Each row records the charge pair and the observed result.",
+        "Each row lists the charge pair and the observed result.",
+    ),
 )
 
 _LAYOUT_REFORMAT_SUBS: tuple[tuple[str, str], ...] = (
@@ -86,6 +93,8 @@ _LAYOUT_REFORMAT_SUBS: tuple[tuple[str, str], ...] = (
     ("\n\nProbes:\n", "\n\n---\nProbes:\n"),
     # Add a visual separator line before the observation-log probe heading.
     ("\n\nUnresolved probe entries:\n", "\n\n---\nUnresolved probe entries:\n"),
+    # Add a visual separator line before the case-ledger probe heading.
+    ("\n\nPending ledger rows:\n", "\n\n---\nPending ledger rows:\n"),
 )
 
 _NEUTRAL_RENAMING_SUBS: tuple[tuple[str, str], ...] = (
@@ -95,6 +104,9 @@ _NEUTRAL_RENAMING_SUBS: tuple[tuple[str, str], ...] = (
     # Observation-log section headings.
     ("Resolved log entries:", "Confirmed log entries:"),
     ("Unresolved probe entries:", "Pending entries:"),
+    # Case-ledger section headings.
+    ("Confirmed ledger rows:", "Verified ledger rows:"),
+    ("Pending ledger rows:", "Rows to complete:"),
 )
 
 
@@ -110,6 +122,7 @@ class PerturbationClass(StrEnum):
     LAYOUT_REFORMAT = "layout_reformat"
     NEUTRAL_RENAMING = "neutral_renaming"
     NON_CAUSAL_ORDERING = "non_causal_ordering"
+    PRESENTATION_FAMILY_SWAP = "presentation_family_swap"
 
 
 @dataclass(frozen=True, slots=True)
@@ -223,7 +236,21 @@ def apply_non_causal_ordering(prompt: str, *, pre_shift_count: int) -> str:
     """
     if re.search(r"^\[\d{2}\] ", prompt, re.MULTILINE):
         return _reverse_preshift_obs_log(prompt, pre_shift_count)
+    if re.search(r"^row \d{2} \| ", prompt, re.MULTILINE):
+        return _reverse_preshift_case_ledger(prompt, pre_shift_count)
     return _reverse_preshift_canonical(prompt, pre_shift_count)
+
+
+def apply_presentation_family_swap(
+    episode: Episode,
+    *,
+    render_fn: Callable[[Episode], str] = render_binary_prompt,
+) -> str:
+    swapped_episode = replace(
+        episode,
+        template_family=_next_template_family(episode.template_family),
+    )
+    return render_fn(swapped_episode)
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +314,36 @@ def _reverse_preshift_obs_log(prompt: str, pre_shift_count: int) -> str:
     return "\n".join(lines)
 
 
+def _reverse_preshift_case_ledger(prompt: str, pre_shift_count: int) -> str:
+    """Reverse ledger row bodies while preserving row numbering."""
+    lines = prompt.split("\n")
+    item_map: dict[int, tuple[int, str]] = {}
+
+    for idx, line in enumerate(lines):
+        m = re.match(r"^row (\d+) \| (.+)$", line)
+        if m:
+            pos = int(m.group(1))
+            if 1 <= pos <= pre_shift_count:
+                item_map[pos] = (idx, m.group(2))
+
+    if len(item_map) < 2:
+        return prompt
+
+    positions = sorted(item_map)
+    bodies = [item_map[position][1] for position in positions]
+    for pos, body in zip(positions, reversed(bodies)):
+        line_idx = item_map[pos][0]
+        lines[line_idx] = f"row {pos:02d} | {body}"
+
+    return "\n".join(lines)
+
+
+def _next_template_family(template_family: TemplateFamily) -> TemplateFamily:
+    family_order = tuple(TemplateFamily)
+    current_index = family_order.index(template_family)
+    return family_order[(current_index + 1) % len(family_order)]
+
+
 # ---------------------------------------------------------------------------
 # Case generation
 # ---------------------------------------------------------------------------
@@ -316,7 +373,12 @@ def generate_invariance_cases(
     for episode in episodes:
         canonical = render_fn(episode)
         for perturb_class in PerturbationClass:
-            perturbed = _apply_perturbation(canonical, perturb_class, episode)
+            perturbed = _apply_perturbation(
+                canonical,
+                perturb_class,
+                episode,
+                render_fn=render_fn,
+            )
             cases.append(
                 InvarianceCase(
                     episode_id=episode.episode_id,
@@ -334,6 +396,8 @@ def _apply_perturbation(
     prompt: str,
     perturb_class: PerturbationClass,
     episode: Episode,
+    *,
+    render_fn: Callable[[Episode], str],
 ) -> str:
     if perturb_class is PerturbationClass.WORDING_PARAPHRASE:
         return apply_wording_paraphrase(prompt)
@@ -345,6 +409,8 @@ def _apply_perturbation(
         return apply_non_causal_ordering(
             prompt, pre_shift_count=episode.shift_after_position
         )
+    if perturb_class is PerturbationClass.PRESENTATION_FAMILY_SWAP:
+        return apply_presentation_family_swap(episode, render_fn=render_fn)
     raise ValueError(f"Unhandled perturbation class: {perturb_class!r}")  # pragma: no cover
 
 

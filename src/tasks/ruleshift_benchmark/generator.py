@@ -32,11 +32,19 @@ from tasks.ruleshift_benchmark.schema import (
     derive_difficulty_profile,
 )
 
-RULE_CHOICES: tuple[RuleName, ...] = (RuleName.R_STD, RuleName.R_INV)
-TEMPLATE_CHOICES: tuple[TemplateId, ...] = (TemplateId.T1, TemplateId.T2)
+TEMPLATE_CHOICES: tuple[TemplateId, ...] = (
+    TemplateId.T1,
+    TemplateId.T2,
+    TemplateId.T3,
+)
 TEMPLATE_FAMILY_CHOICES: tuple[TemplateFamily, ...] = (
     TemplateFamily.CANONICAL,
     TemplateFamily.OBSERVATION_LOG,
+    TemplateFamily.CASE_LEDGER,
+)
+TRANSITION_CHOICES: tuple[Transition, ...] = (
+    Transition.R_STD_TO_R_INV,
+    Transition.R_INV_TO_R_STD,
 )
 _PROBE_LABEL_ORDER: tuple[InteractionLabel, ...] = (
     InteractionLabel.ATTRACT,
@@ -48,11 +56,6 @@ _DIFFICULTY_ORDER: tuple[Difficulty, ...] = (
     Difficulty.MEDIUM,
     Difficulty.HARD,
 )
-_DIFFICULTY_TEMPLATE_CHOICES: dict[Difficulty, tuple[TemplateId, ...]] = {
-    Difficulty.EASY: (TemplateId.T1,),
-    Difficulty.MEDIUM: TEMPLATE_CHOICES,
-    Difficulty.HARD: (TemplateId.T2,),
-}
 
 
 def _is_plain_int(value: object) -> bool:
@@ -216,16 +219,39 @@ def _target_difficulty_for_seed(seed: int) -> Difficulty:
     return _DIFFICULTY_ORDER[seed % len(_DIFFICULTY_ORDER)]
 
 
+def _target_template_for_seed(seed: int) -> TemplateId:
+    return TEMPLATE_CHOICES[(seed // len(_DIFFICULTY_ORDER)) % len(TEMPLATE_CHOICES)]
+
+
+def _target_template_family_for_seed(seed: int) -> TemplateFamily:
+    stride = len(_DIFFICULTY_ORDER) * len(TEMPLATE_CHOICES)
+    return TEMPLATE_FAMILY_CHOICES[(seed // stride) % len(TEMPLATE_FAMILY_CHOICES)]
+
+
+def _target_transition_for_seed(seed: int) -> Transition:
+    stride = len(_DIFFICULTY_ORDER) * len(TEMPLATE_CHOICES) * len(
+        TEMPLATE_FAMILY_CHOICES
+    )
+    return TRANSITION_CHOICES[(seed // stride) % len(TRANSITION_CHOICES)]
+
+
 def generate_episode(seed: int, split: Split | str = Split.DEV) -> Episode:
     if not _is_plain_int(seed):
         raise TypeError("seed must be an int")
 
     rng = random.Random(seed)
-    rule_a = rng.choice(RULE_CHOICES)
-    rule_b = rule_a.opposite
     target_difficulty = _target_difficulty_for_seed(seed)
-    template_id = rng.choice(_DIFFICULTY_TEMPLATE_CHOICES[target_difficulty])
-    template_family = rng.choice(TEMPLATE_FAMILY_CHOICES)
+    target_template_id = _target_template_for_seed(seed)
+    target_template_family = _target_template_family_for_seed(seed)
+    target_transition = _target_transition_for_seed(seed)
+    rule_a = (
+        RuleName.R_STD
+        if target_transition is Transition.R_STD_TO_R_INV
+        else RuleName.R_INV
+    )
+    rule_b = rule_a.opposite
+    template_id = target_template_id
+    template_family = target_template_family
     template = TEMPLATES[template_id]
 
     while True:

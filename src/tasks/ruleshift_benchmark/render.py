@@ -20,6 +20,12 @@ _BINARY_INTROS = {
         "Each entry records q1, q2, and the observed outcome.\n"
         "Use the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries."
     ),
+    TemplateFamily.CASE_LEDGER: (
+        "Review the case ledger for interactions between two electric charges.\n"
+        "Each row records the charge pair and the observed result.\n"
+        "Use the full ledger to infer which sign combinations were revised by the later evidence, "
+        "then complete the pending rows."
+    ),
 }
 _NARRATIVE_INTROS = {
     TemplateFamily.CANONICAL: (
@@ -30,6 +36,11 @@ _NARRATIVE_INTROS = {
     TemplateFamily.OBSERVATION_LOG: (
         "An observation log recorded interactions between two electric charges over time.\n"
         "Use the full log to infer which sign combinations were revised by the later evidence, "
+        "then answer the unlabeled observations at the end."
+    ),
+    TemplateFamily.CASE_LEDGER: (
+        "A case ledger recorded interactions between two electric charges across successive rows.\n"
+        "Use the full ledger to infer which sign combinations were revised by the later evidence, "
         "then answer the unlabeled observations at the end."
     ),
 }
@@ -92,6 +103,8 @@ def _binary_line_renderer(
 ):
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return _render_binary_log_line
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return _render_binary_ledger_line
     return _render_binary_line
 
 
@@ -100,30 +113,40 @@ def _narrative_line_renderer(
 ):
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return _render_narrative_log_line
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return _render_narrative_ledger_line
     return _render_narrative_line
 
 
 def _binary_labeled_heading(template_family: TemplateFamily) -> str:
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return "Resolved log entries:"
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return "Confirmed ledger rows:"
     return "Labeled examples:"
 
 
 def _binary_probe_heading(template_family: TemplateFamily) -> str:
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return "Unresolved probe entries:"
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return "Pending ledger rows:"
     return "Probes:"
 
 
 def _narrative_labeled_heading(template_family: TemplateFamily) -> str:
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return "Resolved log entries:"
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return "Confirmed ledger rows:"
     return "Labeled examples:"
 
 
 def _narrative_probe_heading(template_family: TemplateFamily) -> str:
     if template_family is TemplateFamily.OBSERVATION_LOG:
         return "Unresolved probe entries:"
+    if template_family is TemplateFamily.CASE_LEDGER:
+        return "Pending ledger rows:"
     return "Probes:"
 
 
@@ -152,6 +175,20 @@ def _render_narrative_log_line(item: EpisodeItem) -> str:
     return (
         f"[{item.position:02d}] charges({_format_charge(item.q1)}, {_format_charge(item.q2)}) "
         f"=> observed {_render_outcome(item)}."
+    )
+
+
+def _render_binary_ledger_line(item: EpisodeItem) -> str:
+    return (
+        f"row {item.position:02d} | pair=({_format_charge(item.q1)}, {_format_charge(item.q2)}) "
+        f"| result={_render_outcome(item)}"
+    )
+
+
+def _render_narrative_ledger_line(item: EpisodeItem) -> str:
+    return (
+        f"row {item.position:02d} recorded pair({_format_charge(item.q1)}, {_format_charge(item.q2)}) "
+        f"with result {_render_outcome(item)}."
     )
 
 
