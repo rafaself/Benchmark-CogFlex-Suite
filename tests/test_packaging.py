@@ -26,6 +26,7 @@ _STAGING_DIR = _KAGGLE_DIR / "staging"
 _ARCHIVE_DIR = _KAGGLE_DIR / "archive"
 _STAGING_NOTEBOOK_PATH = _STAGING_DIR / "ruleshift_benchmark_v1_kaggle_staging.ipynb"
 _KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
+_SPEC_PATH = _KAGGLE_DIR / "FROZEN_BENCHMARK_SPEC.md"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 _USAGE_PATH = _KAGGLE_DIR / "README.md"
 _PACKAGING_NOTE_PATH = _ARCHIVE_DIR / "PACKAGING_NOTE.md"
@@ -125,6 +126,7 @@ def test_kaggle_directory_layout_separates_active_staging_and_archive_files():
 
     assert top_level_files == [
         "BENCHMARK_CARD.md",
+        "FROZEN_BENCHMARK_SPEC.md",
         "PRIVATE_SPLIT_RUNBOOK.md",
         "README.md",
         "frozen_artifacts_manifest.json",
@@ -147,6 +149,7 @@ def test_kaggle_runbook_documents_the_minimum_runtime_subset():
         "src/frozen_splits/public_leaderboard.json",
     )
     non_runtime_paths = (
+        "FROZEN_BENCHMARK_SPEC.md",
         "BENCHMARK_CARD.md",
         "this runbook",
         "staging notebooks",
@@ -249,9 +252,29 @@ def test_benchmark_card_matches_current_implementation_state():
     assert "easy" in text
     assert "medium" in text
     assert "hard" in text
+    assert "template_family" in text
+    assert "Invariance reporting is diagnostic-only" in text
     assert "recency shortcut was materially reduced" in text
     assert "R13 anti-shortcut validity gate" in text
     assert "R15 empirical re-audit" in text
+
+
+def test_frozen_spec_exists_and_docs_point_to_it():
+    spec_text = _SPEC_PATH.read_text(encoding="utf-8")
+    readme_text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8")
+    card_text = _CARD_PATH.read_text(encoding="utf-8")
+    usage_text = _USAGE_PATH.read_text(encoding="utf-8")
+
+    assert "NORMATIVE FROZEN SPECIFICATION" in spec_text
+    assert "Benchmark scope: cognitive flexibility" in spec_text
+    assert "Binary (`ruleshift_benchmark_v1_binary`) is the only leaderboard-facing" in spec_text
+    assert "Narrative is structured audit output and same-episode robustness evidence only." in spec_text
+    assert "Template-family axis: `canonical`, `observation_log`" in spec_text
+    assert "Invariance reporting is diagnostic-only." in spec_text
+    assert "private dataset mount" in spec_text
+    assert "FROZEN_BENCHMARK_SPEC.md" in readme_text
+    assert "FROZEN_BENCHMARK_SPEC.md" in card_text
+    assert "FROZEN_BENCHMARK_SPEC.md" in usage_text
 
 
 def test_active_docs_identify_one_official_packaged_readiness_anchor():

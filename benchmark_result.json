@@ -37,6 +37,7 @@
   },
   "slices": {
     "template": {},
+    "template_family": {},
     "difficulty": {},
     "shift_position": {},
     "transition_type": {},

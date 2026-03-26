@@ -2,6 +2,7 @@
 
 > **Status: SUPPORTING OVERVIEW**
 > This README is a project guide, not a normative benchmark specification.
+> For the frozen benchmark definition, use [`packaging/kaggle/FROZEN_BENCHMARK_SPEC.md`](./packaging/kaggle/FROZEN_BENCHMARK_SPEC.md).
 > For benchmark description and current evidence summary, use [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md).
 > For Kaggle submission and staging steps, use [`packaging/kaggle/README.md`](./packaging/kaggle/README.md).
 
@@ -31,15 +32,19 @@ The repository currently implements:
 Current implementation notes:
 
 - the current frozen benchmark clears the local R13 anti-shortcut validity gate and keeps the recency shortcut materially bounded in the current R15 re-audit surface;
-- `hard` remains a reserved difficulty label and is not currently emitted by the generator. No benchmark claim depends on emitted `hard` slices;
+- the current emitted difficulty labels are `easy`, `medium`, and `hard`, and `reserved_difficulty_labels` is empty in the shipped manifest surface;
+- the frozen prompt/report contract includes the `template_family` axis (`canonical`, `observation_log`) and keeps invariance reporting diagnostic-only;
 - the repo already contains the single packaged Gemini readiness anchor at [`reports/m1_binary_vs_narrative_robustness_report.md`](./reports/m1_binary_vs_narrative_robustness_report.md), plus supporting live Gemini report material under [`reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`](./reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md);
 - the Kaggle packaging bundle under [`packaging/kaggle/`](./packaging/kaggle/) mirrors the current local benchmark state, but it is downstream of the local benchmark and does not redefine benchmark governance.
 
 Task and metric boundaries:
 
 - Binary (`ruleshift_benchmark_v1_binary`) is the only leaderboard-primary path.
-- Narrative is supplementary same-episode robustness evidence only. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored. Narrative results do not contribute to the leaderboard score.
+- Narrative is supplementary same-episode robustness evidence only. It is structured audit output over the same frozen episodes and probe targets as Binary, and only the final four labels are scored. Narrative results do not contribute to the leaderboard score.
 - Post-shift Probe Accuracy is the sole headline metric.
+- Aggregate accuracy remains available in the canonical payload `primary_result`.
+- The frozen template-family axis is `canonical` and `observation_log`.
+- Invariance reporting is diagnostic-only, reproducible when emitted, and does not change the Binary headline metric.
 - Split names are exactly `dev`, `public_leaderboard`, and `private_leaderboard`. `dev` is local-only and is never included in the official leaderboard evaluation. `private_leaderboard` is held out and loaded only from an authorized private dataset mount.
 
 Current v1 readiness status:
@@ -261,6 +266,7 @@ ruleshift-benchmark-evidence-pass
 
 The repository governance model is:
 
+- frozen benchmark specification: [`packaging/kaggle/FROZEN_BENCHMARK_SPEC.md`](./packaging/kaggle/FROZEN_BENCHMARK_SPEC.md) is the single normative benchmark-definition document for the current cognitive-flexibility benchmark;
 - benchmark definition: [`src/`](./src/) and the frozen manifests under [`src/frozen_splits/`](./src/frozen_splits/) are the single executable source of truth for benchmark behavior;
 - benchmark card: [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md) is the descriptive benchmark summary and current evidence record;
 - Kaggle runbook: [`packaging/kaggle/README.md`](./packaging/kaggle/README.md) is the single authoritative operational path description for Kaggle packaging, staging, and submission;
@@ -273,6 +279,7 @@ Supporting documents describe that implemented state; they do not override the c
 
 Key documents:
 
+- [`packaging/kaggle/FROZEN_BENCHMARK_SPEC.md`](./packaging/kaggle/FROZEN_BENCHMARK_SPEC.md): frozen benchmark methodology and benchmark-facing scope for the current cognitive-flexibility benchmark.
 - [`src/README.md`](./src/README.md): source-tree overview and canonical package layout.
 - [`packaging/kaggle/BENCHMARK_CARD.md`](./packaging/kaggle/BENCHMARK_CARD.md): Kaggle-facing benchmark card tied to the current implemented benchmark and bundled evidence.
 - [`packaging/kaggle/README.md`](./packaging/kaggle/README.md): Kaggle packaging governance, official leaderboard notebook, and staging-only path labels.

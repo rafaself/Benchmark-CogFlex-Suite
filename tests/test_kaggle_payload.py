@@ -149,7 +149,19 @@ def test_build_kaggle_payload_valid():
     assert payload["comparison"] is not None
     assert payload["comparison"]["episode_count_aligned"] is True
 
-    assert payload["slices"] == {}
+    assert set(payload["slices"]) == {
+        "template",
+        "template_family",
+        "difficulty",
+        "shift_position",
+        "transition_type",
+        "error_type",
+    }
+    assert payload["slices"]["template"] == {}
+    assert payload["slices"]["template_family"] == {}
+    assert payload["slices"]["difficulty"] == {}
+    assert payload["slices"]["shift_position"] == {}
+    assert payload["slices"]["transition_type"] == {}
     assert payload["metadata"]["benchmark_version"] is not None
 
 
@@ -624,6 +636,50 @@ def test_build_kaggle_payload_accepts_leaderboard_split_column():
     ])
     payload = build_kaggle_payload(bin_df, nar_df)  # must not raise
     assert payload["primary_result"]["total_episodes"] == 4
+
+
+def test_build_kaggle_payload_aggregates_template_family_when_present():
+    bin_df = pd.DataFrame([
+        {
+            "num_correct": 3,
+            "total": 4,
+            "template_id": "T1",
+            "template_family": "canonical",
+            "difficulty": "easy",
+            "shift_position": "2",
+            "transition_type": "R_std_to_R_inv",
+        },
+        {
+            "num_correct": 4,
+            "total": 4,
+            "template_id": "T2",
+            "template_family": "observation_log",
+            "difficulty": "medium",
+            "shift_position": "3",
+            "transition_type": "R_inv_to_R_std",
+        },
+    ])
+    nar_df = pd.DataFrame([
+        {"num_correct": 2, "total": 4},
+        {"num_correct": 3, "total": 4},
+    ])
+
+    payload = build_kaggle_payload(bin_df, nar_df)
+
+    assert payload["slices"]["template_family"] == {
+        "canonical": {
+            "episode_count": 1,
+            "correct_probes": 3,
+            "total_probes": 4,
+            "accuracy": 0.75,
+        },
+        "observation_log": {
+            "episode_count": 1,
+            "correct_probes": 4,
+            "total_probes": 4,
+            "accuracy": 1.0,
+        },
+    }
 
 
 def test_build_kaggle_payload_passes_without_split_column():

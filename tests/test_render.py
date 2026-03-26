@@ -57,16 +57,20 @@ def _assert_lines_appear_in_order(text: str, lines: tuple[str, ...]) -> None:
         search_start = next_index + len(line)
 
 
+def _first_episode_with_template(template_id: str):
+    for seed in range(64):
+        episode = generate_episode(seed)
+        if episode.template_id.value == template_id:
+            return episode
+    raise AssertionError(f"could not find an episode with template_id={template_id!r}")
+
+
 def make_valid_t1_episode():
-    episode = generate_episode(1)
-    assert episode.template_id.value == "T1"
-    return episode
+    return _first_episode_with_template("T1")
 
 
 def make_valid_t2_episode():
-    episode = generate_episode(0)
-    assert episode.template_id.value == "T2"
-    return episode
+    return _first_episode_with_template("T2")
 
 
 def test_same_episode_renders_identically_across_repeated_runs():

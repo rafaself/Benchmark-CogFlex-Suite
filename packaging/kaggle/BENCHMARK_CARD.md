@@ -2,6 +2,7 @@
 
 > **Status: SUPPORTING SUMMARY**
 > This benchmark card is a descriptive summary of the implemented RuleShift Benchmark v1 task.
+> For the normative frozen benchmark definition, use [`FROZEN_BENCHMARK_SPEC.md`](./FROZEN_BENCHMARK_SPEC.md).
 > For Kaggle submission and staging steps, use [`README.md`](./README.md).
 
 ## Summary
@@ -15,7 +16,7 @@ This package is a Kaggle packaging layer over the implemented local benchmark. T
 ## Task Paths
 
 - **Binary** (`ruleshift_benchmark_v1_binary`) is the only leaderboard-primary path. The Binary task is the scored evaluation path for the v1 claim.
-- **Narrative** is supplementary same-episode robustness evidence only. It uses the same frozen episodes and probe targets as Binary, and only the final four labels are scored. Narrative results do not contribute to the leaderboard score.
+- **Narrative** is supplementary same-episode robustness evidence only. It is structured audit output over the same frozen episodes and probe targets as Binary, and only the final four labels are scored. Narrative results do not contribute to the leaderboard score.
 - Electrostatics is only the controlled substrate. The benchmark is not intended to measure physics skill as the primary target.
 
 Each episode contains:
@@ -35,6 +36,15 @@ Current rule family:
 The sole headline metric is **Post-shift Probe Accuracy**: the fraction of final post-shift probe labels answered correctly under the post-shift rule in the Binary path.
 
 Narrative is reviewed only as same-episode robustness evidence and does not change the headline score.
+
+Aggregate accuracy remains available in the canonical payload `primary_result`.
+
+## Frozen Reporting Axes
+
+- The frozen `template_family` axis is `canonical` and `observation_log`.
+- Required benchmark-facing slices cover `template`, `template_family`, `difficulty`, `shift_position`, `transition_type`, and `error_type`.
+- Invariance reporting is diagnostic-only, reproducible when emitted, and does not change the Binary headline score.
+- Difficulty is part of the frozen methodology and is reported diagnostically without changing the Binary leaderboard task.
 
 ## Split Contract
 
@@ -84,7 +94,7 @@ Version metadata currently frozen by the package:
 - split manifest version: `R14`
 - spec version: `v1`
 - generator version: `R13`
-- template set version: `v1`
+- template set version: `v2`
 - difficulty version: `R13`
 
 ## Current Implementation State
@@ -94,8 +104,10 @@ Current emitted difficulty labels are `easy`, `medium`, and `hard`. Difficulty i
 The benchmark currently claims:
 
 - a reproducible Binary benchmark and Narrative companion over the same frozen split manifests and probe targets
+- a reproducible Binary benchmark and Narrative companion over the same frozen split manifests and probe targets, with Narrative retained as structured audit output only
 - Binary as the only leaderboard-primary path
 - Post-shift Probe Accuracy as the sole headline metric
+- the frozen `template_family` axis and diagnostic-only invariance reporting
 - deterministic local replay for the public partitions from the stored seed banks
 - local validity and audit evidence tied to the current implemented benchmark
 
@@ -112,7 +124,7 @@ The benchmark explicitly does **not** claim:
 - switch cost measurement
 - recovery length
 - immediate post-shift drop
-- emitted `hard` slices
+- any expansion beyond the current cognitive flexibility benchmark
 
 ## Current Readiness Status
 

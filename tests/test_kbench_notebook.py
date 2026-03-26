@@ -101,6 +101,7 @@ def _build_eval_df():
                 "split": partition,
                 "difficulty": ep.difficulty.value,
                 "template_id": ep.template_id.value,
+                "template_family": ep.template_family.value,
                 "prompt_binary": render_binary_prompt(ep),
                 "prompt_narrative": render_narrative_prompt(ep),
                 "probe_targets": tuple(t.value for t in ep.probe_targets),
@@ -278,6 +279,7 @@ class TestEvalDataframe:
     def test_eval_df_has_expected_columns(self):
         df = _build_eval_df()
         required = {"episode_id", "split", "difficulty", "template_id",
+                     "template_family",
                      "prompt_binary", "prompt_narrative", "probe_targets"}
         assert required.issubset(set(df.columns))
 

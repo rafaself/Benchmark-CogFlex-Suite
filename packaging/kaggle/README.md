@@ -2,6 +2,7 @@
 
 > **Status: AUTHORITATIVE KAGGLE RUNBOOK**
 > This is the single authoritative operational path description for Kaggle packaging, staging, and submission in this repository.
+> For the normative frozen benchmark definition, use [`FROZEN_BENCHMARK_SPEC.md`](./FROZEN_BENCHMARK_SPEC.md).
 > For benchmark description and current evidence summary, use [`BENCHMARK_CARD.md`](./BENCHMARK_CARD.md).
 
 This directory packages the implemented benchmark for Kaggle. It does not create the benchmark from scratch and does not redefine benchmark semantics locally.
@@ -23,7 +24,7 @@ Private evaluation data is loaded from a separate private-only dataset (`private
 Private evaluation data must come from an authorized private dataset mount. The public repo and public runtime package do not provide a repo-local fallback.
 Generate that private artifact offline before publication with `scripts/generate_private_split_artifact.py`, then attach it as the authorized private dataset mount.
 
-The active runtime contract does not require `BENCHMARK_CARD.md`, this runbook, staging notebooks, archive files, `reports/`, or `tests/fixtures/`.
+The active runtime contract does not require `FROZEN_BENCHMARK_SPEC.md`, `BENCHMARK_CARD.md`, this runbook, staging notebooks, archive files, `reports/`, or `tests/fixtures/`.
 
 ## Official Kaggle Entry Point
 
@@ -47,6 +48,7 @@ Top-level active operational surface:
 - `ruleshift_notebook_task.ipynb`: runtime artifact; official leaderboard notebook
 - `kernel-metadata.json`: metadata; official Kaggle submission manifest pointing to the leaderboard notebook
 - `frozen_artifacts_manifest.json`: metadata; Kaggle runtime-contract manifest for the official notebook and frozen split inputs
+- `FROZEN_BENCHMARK_SPEC.md`: active documentation; normative frozen benchmark definition for the current cognitive-flexibility benchmark
 - `README.md`: active operational doc; Kaggle packaging governance and flow
 - `BENCHMARK_CARD.md`: active operational doc; benchmark description and current evidence summary
 - `PRIVATE_SPLIT_RUNBOOK.md`: active operational doc; offline private split generation, publication, and isolation verification

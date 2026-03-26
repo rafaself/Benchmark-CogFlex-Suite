@@ -50,6 +50,7 @@ REQUIRED_SLICE_DIMENSIONS: Final[tuple[str, ...]] = SLICE_DIMENSIONS
 # Column names in binary_df that carry episode metadata for slice computation.
 _SLICE_METADATA_COLS: Final[dict[str, str]] = {
     "template": "template_id",
+    "template_family": "template_family",
     "difficulty": "difficulty",
     "shift_position": "shift_position",
     "transition_type": "transition_type",

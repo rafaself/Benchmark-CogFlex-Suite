@@ -32,18 +32,18 @@
 | Version field | Value |
 | --- | --- |
 | schema_version | v1 |
-| generator_version | R12 |
-| template_family_version | v1 |
+| generator_version | R13 |
+| template_family_version | v2 |
 | parser_version | v1 |
 | metric_version | v1 |
-| difficulty_version | R12 |
+| difficulty_version | R13 |
 | artifact_schema_version | v1.1 |
 
 | Split | SHA-256 (shared) |
 | --- | --- |
-| dev | `986f750f73549b42...` |
+| dev | `3782024dc0496c3b...` |
 | private_leaderboard | `5b0ae4650a509a98...` |
-| public_leaderboard | `6b884cbfd706db58...` |
+| public_leaderboard | `13761bbddd35abf3...` |
 
 All benchmark versions and frozen split hashes match. Runs are directly comparable.
 
@@ -264,4 +264,3 @@ All benchmark versions and frozen split hashes match. Runs are directly comparab
 - gemini-2.5-flash Binary (0.781250) outperforms gemini-2.5-flash-lite Binary (0.687500) by +0.093750.
 - gemini-2.5-flash-lite shows higher runtime error rates and substantially lower Narrative parse-valid rates, indicating the Flash-Lite model's weakness is concentrated in Narrative formatting/parsing and provider reliability, not solely in adaptation logic.
 - This comparison does not widen the benchmark claim beyond the Gemini evidence path.
-

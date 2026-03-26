@@ -8,6 +8,7 @@ import sys
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _README_PATH = _REPO_ROOT / "README.md"
+_FROZEN_SPEC_PATH = _REPO_ROOT / "packaging" / "kaggle" / "FROZEN_BENCHMARK_SPEC.md"
 _CANONICAL_M1_REPORT_PATH = (
     _REPO_ROOT
     / "reports"
@@ -32,12 +33,47 @@ _M1_ALIAS_REPORT_PATH = (
 _M1_ALIAS_ARTIFACT_PATH = (
     _REPO_ROOT / "reports" / "m1_binary_vs_narrative_robustness_report.json"
 )
+_CANONICAL_M1_METADATA_PATH = (
+    _REPO_ROOT
+    / "reports"
+    / "live"
+    / "gemini-first-panel"
+    / "binary-vs-narrative"
+    / "latest"
+    / "metadata.json"
+)
+_CANONICAL_BINARY_ONLY_METADATA_PATH = (
+    _REPO_ROOT
+    / "reports"
+    / "live"
+    / "gemini-first-panel"
+    / "binary-only"
+    / "latest"
+    / "metadata.json"
+)
+_CANONICAL_COMPARISON_METADATA_PATH = (
+    _REPO_ROOT
+    / "reports"
+    / "live"
+    / "gemini-first-panel"
+    / "comparison"
+    / "latest"
+    / "metadata.json"
+)
 
 
 def test_readme_does_not_report_stale_m3_status():
     text = _README_PATH.read_text(encoding="utf-8")
 
     assert "- **M3**: Not started." not in text
+
+
+def test_frozen_spec_is_committed_and_scope_explicit():
+    text = _FROZEN_SPEC_PATH.read_text(encoding="utf-8")
+
+    assert "NORMATIVE FROZEN SPECIFICATION" in text
+    assert "Benchmark scope: cognitive flexibility" in text
+    assert "Binary (`ruleshift_benchmark_v1_binary`) is the only leaderboard-facing" in text
 
 
 def test_public_repo_does_not_commit_private_split_artifacts():
@@ -87,3 +123,34 @@ def test_committed_m1_report_exposes_current_diagnostic_sections():
     assert "## Failure Decomposition (diagnostic-only)" in text
     assert "## Direct Disagreement Diagnostics (diagnostic-only)" in text
     assert "## Diagnostic Failure Slices (diagnostic-only)" in text
+
+
+def test_current_latest_metadata_surfaces_do_not_advertise_stale_benchmark_versions():
+    expected_versions = {
+        "schema_version": "v1",
+        "generator_version": "R13",
+        "template_family_version": "v2",
+        "parser_version": "v1",
+        "metric_version": "v1",
+        "difficulty_version": "R13",
+        "artifact_schema_version": "v1.1",
+    }
+
+    for path in (
+        _CANONICAL_M1_METADATA_PATH,
+        _CANONICAL_BINARY_ONLY_METADATA_PATH,
+        _CANONICAL_COMPARISON_METADATA_PATH,
+    ):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["benchmark_versions"] == expected_versions
+
+
+def test_current_latest_m1_metadata_uses_mount_only_private_artifact_path():
+    payload = json.loads(_CANONICAL_M1_METADATA_PATH.read_text(encoding="utf-8"))
+    private_record = next(
+        record
+        for record in payload["frozen_artifacts"]["split_manifests"]
+        if record["split_name"] == "private_leaderboard"
+    )
+
+    assert private_record["path"] == "<private_dataset_root>/private_episodes.json"

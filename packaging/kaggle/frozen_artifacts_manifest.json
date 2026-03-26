@@ -12,7 +12,7 @@
   "entry_points": {
     "kbench_notebook": {
       "path": "packaging/kaggle/ruleshift_notebook_task.ipynb",
-      "sha256": "b20532777dd4e8811bf7191d0df4b43f6c01b674f86cd0f7bdcfb20123b47928"
+      "sha256": "660f6538bb992494d475c3ec2e957f89ea25ff87f7681281e62372b410ddcc56"
     },
     "kernel_metadata": {
       "path": "packaging/kaggle/kernel-metadata.json",
@@ -36,6 +36,7 @@
     }
   },
   "source_of_truth": [
+    "packaging/kaggle/FROZEN_BENCHMARK_SPEC.md is the frozen benchmark-definition document for the current cognitive-flexibility benchmark.",
     "Local validation and audit outputs produced from the implemented code under src/ remain authoritative.",
     "Kaggle staging replays frozen manifests and locally produced evidence; it does not redefine the benchmark."
   ],

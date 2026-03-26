@@ -49,7 +49,7 @@ python scripts/check_public_private_isolation.py
 This check fails if any of the following are true:
 
 - `private_episodes.json` exists anywhere inside the public repo tree
-- `src/frozen_splits/private_leaderboard.json` exists
+- `src/frozen_splits/private_leaderboard.json` is present as a repo-local fallback
 - `private_leaderboard` appears in `packaging/kaggle/frozen_artifacts_manifest.json`
 - Any packaged notebook contains a repo-local private dataset fallback path
 
