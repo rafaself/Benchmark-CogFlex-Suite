@@ -46,6 +46,16 @@ Frozen split names are exactly:
 
 The official leaderboard evaluation (`ruleshift_benchmark_v1_binary`) runs only over `public_leaderboard` and `private_leaderboard`.
 
+## Private Evaluation
+
+Private evaluation uses a held-out private split that is not included in the public runtime package or the public repository.
+
+- The private split is fixed per benchmark version. The current private artifact uses `benchmark_version: R14` and is generated deterministically from a fixed private seed list.
+- The public runtime package contains only `dev.json` and `public_leaderboard.json`. It does not include `private_episodes.json` or any private seed bank.
+- At evaluation time the private artifact is loaded from an authorized private dataset mount only; there is no repo-local fallback.
+- The private split loader validates `benchmark_version`, `schema_version`, and `artifact_checksum` before any episode is used.
+- For generation and publication steps, see [`PRIVATE_SPLIT_RUNBOOK.md`](./PRIVATE_SPLIT_RUNBOOK.md).
+
 ## Baselines
 
 Current baseline references carried into the package:

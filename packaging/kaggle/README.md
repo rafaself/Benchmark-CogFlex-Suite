@@ -49,6 +49,7 @@ Top-level active operational surface:
 - `frozen_artifacts_manifest.json`: metadata; Kaggle runtime-contract manifest for the official notebook and frozen split inputs
 - `README.md`: active operational doc; Kaggle packaging governance and flow
 - `BENCHMARK_CARD.md`: active operational doc; benchmark description and current evidence summary
+- `PRIVATE_SPLIT_RUNBOOK.md`: active operational doc; offline private split generation, publication, and isolation verification
 
 Staging-only:
 
