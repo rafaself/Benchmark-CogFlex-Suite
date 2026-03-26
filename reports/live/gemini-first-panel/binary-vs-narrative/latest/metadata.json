@@ -1,0 +1,96 @@
+{
+  "run_metadata_schema_version": "v1",
+  "run_generator_version": "v1",
+  "release_id": "R18",
+  "provider": "gemini",
+  "requested_model_id": "gemini-2.5-flash-lite",
+  "served_model_id": "gemini-2.5-flash-lite",
+  "observed_served_model_ids": [
+    "gemini-2.5-flash-lite"
+  ],
+  "prompt_modes": [
+    "binary",
+    "narrative"
+  ],
+  "split_set": [
+    "dev",
+    "public_leaderboard",
+    "private_leaderboard"
+  ],
+  "execution_timestamp": "20260323_125335",
+  "invocation": {
+    "surface": "cli",
+    "command": [
+      "ife",
+      "gemini-first-panel",
+      "--include-narrative",
+      "--model",
+      "gemini-2.5-flash-lite"
+    ]
+  },
+  "benchmark_versions": {
+    "schema_version": "v1",
+    "generator_version": "R13",
+    "template_family_version": "v2",
+    "parser_version": "v1",
+    "metric_version": "v1",
+    "difficulty_version": "R13",
+    "artifact_schema_version": "v1.1"
+  },
+  "frozen_artifacts": {
+    "split_manifests": [
+      {
+        "split_name": "dev",
+        "path": "src/frozen_splits/dev.json",
+        "sha256": "3782024dc0496c3beb1f4bfe640f1f286263be1b5c8598e8108be03543e94ca5",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-dev-3",
+        "episode_count": 16
+      },
+      {
+        "split_name": "public_leaderboard",
+        "path": "src/frozen_splits/public_leaderboard.json",
+        "sha256": "13761bbddd35abf3b3c147ec6f25d70ae71688d3f60b7bce6cba62f1562f3204",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-public-3",
+        "episode_count": 16
+      },
+      {
+        "split_name": "private_leaderboard",
+        "path": "<private_dataset_root>/private_episodes.json",
+        "sha256": "5b0ae4650a509a98f03fcba1faced92aeab2e8c1c9164688c2e891c655466be2",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-private-2",
+        "episode_count": 16
+      }
+    ]
+  },
+  "storage": {
+    "report": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md",
+        "sha256": "70afd757a9d9d54eeb71815c83bbe22123f2f777e3fe29bfdd5da92fc1ac3ba0"
+      },
+      "history": {
+        "path": "reports/live/gemini-first-panel/binary-vs-narrative/history/report__20260323_125335.md",
+        "sha256": "70afd757a9d9d54eeb71815c83bbe22123f2f777e3fe29bfdd5da92fc1ac3ba0"
+      }
+    },
+    "artifact": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-vs-narrative/latest/artifact.json",
+        "sha256": "7f989f5cc506942d2fd2ad2340c8797432dbfdc3f7020893e25a933791e46375"
+      },
+      "history": {
+        "path": "reports/live/gemini-first-panel/binary-vs-narrative/history/artifact__20260323_125335.json",
+        "sha256": "7f989f5cc506942d2fd2ad2340c8797432dbfdc3f7020893e25a933791e46375"
+      }
+    },
+    "sample": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-vs-narrative/samples/raw_capture__20260323_125335.json",
+        "sha256": "b96617500920fbc1fdebc15a7e68d3a565db6ab5188c19c3801baa582ceb4a1a"
+      }
+    }
+  }
+}

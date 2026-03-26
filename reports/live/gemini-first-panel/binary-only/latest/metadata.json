@@ -1,0 +1,94 @@
+{
+  "run_metadata_schema_version": "v1",
+  "run_generator_version": "v1",
+  "release_id": "R18",
+  "provider": "gemini",
+  "requested_model_id": "gemini-2.5-flash",
+  "served_model_id": "gemini-2.5-flash",
+  "observed_served_model_ids": [
+    "gemini-2.5-flash"
+  ],
+  "prompt_modes": [
+    "binary"
+  ],
+  "split_set": [
+    "dev",
+    "public_leaderboard",
+    "private_leaderboard"
+  ],
+  "execution_timestamp": "20260323_125443",
+  "invocation": {
+    "surface": "cli",
+    "command": [
+      "ife",
+      "gemini-first-panel",
+      "--model",
+      "gemini-2.5-flash"
+    ]
+  },
+  "benchmark_versions": {
+    "schema_version": "v1",
+    "generator_version": "R13",
+    "template_family_version": "v2",
+    "parser_version": "v1",
+    "metric_version": "v1",
+    "difficulty_version": "R13",
+    "artifact_schema_version": "v1.1"
+  },
+  "frozen_artifacts": {
+    "split_manifests": [
+      {
+        "split_name": "dev",
+        "path": "src/frozen_splits/dev.json",
+        "sha256": "3782024dc0496c3beb1f4bfe640f1f286263be1b5c8598e8108be03543e94ca5",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-dev-3",
+        "episode_count": 16
+      },
+      {
+        "split_name": "public_leaderboard",
+        "path": "src/frozen_splits/public_leaderboard.json",
+        "sha256": "13761bbddd35abf3b3c147ec6f25d70ae71688d3f60b7bce6cba62f1562f3204",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-public-3",
+        "episode_count": 16
+      },
+      {
+        "split_name": "private_leaderboard",
+        "path": "<private_dataset_root>/private_episodes.json",
+        "sha256": "5b0ae4650a509a98f03fcba1faced92aeab2e8c1c9164688c2e891c655466be2",
+        "manifest_version": "R14",
+        "seed_bank_version": "R14-private-2",
+        "episode_count": 16
+      }
+    ]
+  },
+  "storage": {
+    "report": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-only/latest/report.md",
+        "sha256": "bd91157b47fac6325c3e4ec483dab7aa7ff9a574817debb1439b10fa89fcc7a0"
+      },
+      "history": {
+        "path": "reports/live/gemini-first-panel/binary-only/history/report__20260323_125443.md",
+        "sha256": "bd91157b47fac6325c3e4ec483dab7aa7ff9a574817debb1439b10fa89fcc7a0"
+      }
+    },
+    "artifact": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-only/latest/artifact.json",
+        "sha256": "e811cb2b61a04cf02cf786b9731558a9058c4350baa7b08c513fd9584c0b854c"
+      },
+      "history": {
+        "path": "reports/live/gemini-first-panel/binary-only/history/artifact__20260323_125443.json",
+        "sha256": "e811cb2b61a04cf02cf786b9731558a9058c4350baa7b08c513fd9584c0b854c"
+      }
+    },
+    "sample": {
+      "latest": {
+        "path": "reports/live/gemini-first-panel/binary-only/samples/raw_capture__20260323_125443.json",
+        "sha256": "9b2b33dd9ebe99a3063a957eae6c2181effefc77ff10431cf98254e06f0585bc"
+      }
+    }
+  }
+}
