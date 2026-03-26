@@ -15,7 +15,13 @@ from baselines import (
 )
 from generator import generate_episode
 from metrics import MetricSummary, compute_metrics
-from parser import ParsedPrediction, ParseStatus, parse_binary_output, parse_narrative_output
+from parser import (
+    NarrativeParsedResult,
+    ParsedPrediction,
+    ParseStatus,
+    parse_binary_output,
+    parse_narrative_audit_output,
+)
 from protocol import LABELED_ITEM_COUNT, InteractionLabel
 from render import render_binary_prompt, render_narrative_prompt
 from rules import label
@@ -81,6 +87,18 @@ def _parsed_payload(parsed_prediction: ParsedPrediction) -> dict[str, object]:
         "status": parsed_prediction.status.value,
         "labels": [label.value for label in parsed_prediction.labels],
     }
+
+
+def _parsed_narrative_payload(parsed_result: NarrativeParsedResult) -> dict[str, object]:
+    result: dict[str, object] = {"status": parsed_result.status.value}
+    if parsed_result.output is not None:
+        result["inferred_rule_before"] = parsed_result.output.inferred_rule_before
+        result["shift_evidence"] = parsed_result.output.shift_evidence
+        result["inferred_rule_after"] = parsed_result.output.inferred_rule_after
+        result["final_binary_answer"] = [
+            label.value for label in parsed_result.output.final_binary_answer
+        ]
+    return result
 
 
 def _issue_codes(result: EpisodeValidationResult | DatasetValidationResult) -> set[str]:
@@ -359,31 +377,30 @@ def test_regression_fixture_blocks_parser_drift():
         assert _parsed_payload(
             parse_binary_output(parser_fixture["binary_text"])
         ) == parser_fixture["binary_expected"]
-        assert _parsed_payload(
-            parse_narrative_output(parser_fixture["narrative_text"])
+        assert _parsed_narrative_payload(
+            parse_narrative_audit_output(parser_fixture["narrative_text"])
         ) == parser_fixture["narrative_expected"]
 
 
 def test_regression_fixture_blocks_metric_drift():
     fixture = _load_fixture()
     binary_predictions = []
-    narrative_predictions = []
+    narrative_results = []
     targets = []
     for episode_fixture in fixture["episodes"]:
         episode = _regenerate_fixture_episode(episode_fixture)
         binary_predictions.append(
             parse_binary_output(episode_fixture["parser"]["binary_text"])
         )
-        narrative_predictions.append(
-            parse_narrative_output(episode_fixture["parser"]["narrative_text"])
+        narrative_results.append(
+            parse_narrative_audit_output(episode_fixture["parser"]["narrative_text"])
         )
         targets.append(episode.probe_targets)
 
     summary = compute_metrics(
         binary_predictions=tuple(binary_predictions),
         binary_targets=tuple(targets),
-        narrative_predictions=tuple(narrative_predictions),
-        narrative_targets=tuple(targets),
+        narrative_results=tuple(narrative_results),
     )
 
     assert summary == MetricSummary(**fixture["metrics"]["expected"])

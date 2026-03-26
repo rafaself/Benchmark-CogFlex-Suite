@@ -22,7 +22,7 @@ from core.panel_runner import (
     render_panel_markdown,
 )
 from generator import generate_episode
-from parser import ParseStatus, ParsedPrediction
+from parser import NarrativeParsedResult, NarrativeParseStatus, ParseStatus, ParsedPrediction
 from protocol import Split
 
 
@@ -61,6 +61,7 @@ def _row_from_prediction(
         ),
         parsed_prediction=parsed_prediction,
         target=episode.probe_targets,
+        narrative_result=None,
     )
 
 
@@ -190,10 +191,7 @@ def test_panel_runner_builds_direct_diagnostic_summary_and_report_labels():
         metrics=compute_metrics(
             binary_predictions=tuple(row.parsed_prediction for row in binary_rows),
             binary_targets=tuple(row.target for row in binary_rows),
-            narrative_predictions=tuple(
-                row.parsed_prediction for row in narrative_rows
-            ),
-            narrative_targets=tuple(row.target for row in narrative_rows),
+            narrative_results=(),
         ),
     )
 

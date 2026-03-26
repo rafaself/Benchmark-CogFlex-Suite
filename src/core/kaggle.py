@@ -8,7 +8,12 @@ from pathlib import Path
 import random
 from typing import Any, Final, Sequence
 
-from core.parser import ParseStatus, parse_binary_output, parse_narrative_output
+from core.parser import (
+    NarrativeParseStatus,
+    ParseStatus,
+    parse_binary_output,
+    parse_narrative_audit_output,
+)
 from core.splits import MANIFEST_VERSION, PARTITIONS, load_split_manifest
 from tasks.ruleshift_benchmark.protocol import PROBE_COUNT, InteractionLabel, parse_label
 from tasks.ruleshift_benchmark.schema import (
@@ -204,9 +209,9 @@ def normalize_binary_response(response: object) -> tuple[str, ...] | None:
 
 def normalize_narrative_response(response: object) -> tuple[str, ...] | None:
     if isinstance(response, str):
-        parsed = parse_narrative_output(response)
-        if parsed.status is ParseStatus.VALID:
-            return tuple(label.value for label in parsed.labels)
+        parsed = parse_narrative_audit_output(response)
+        if parsed.status is NarrativeParseStatus.VALID and parsed.output is not None:
+            return tuple(label.value for label in parsed.output.final_binary_answer)
 
     return None
 

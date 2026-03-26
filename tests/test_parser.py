@@ -1,262 +1,251 @@
-from parser import ParsedPrediction, ParseStatus, parse_binary_output, parse_narrative_output
+import json
+
+from parser import (
+    NarrativeAuditOutput,
+    NarrativeParseStatus,
+    NarrativeParsedResult,
+    ParsedPrediction,
+    ParseStatus,
+    parse_binary_output,
+    parse_narrative_audit_output,
+)
 from protocol import InteractionLabel
+
+ATTRACT = InteractionLabel.ATTRACT
+REPEL = InteractionLabel.REPEL
+
+
+# ---------------------------------------------------------------------------
+# Binary parser tests
+# ---------------------------------------------------------------------------
 
 
 def test_binary_output_parses_exactly_four_labels_in_order():
     parsed = parse_binary_output("attract, repel, repel, attract")
 
     assert parsed == ParsedPrediction(
-        labels=(
-            InteractionLabel.ATTRACT,
-            InteractionLabel.REPEL,
-            InteractionLabel.REPEL,
-            InteractionLabel.ATTRACT,
-        ),
-        status=ParseStatus.VALID,
-    )
-
-
-def test_narrative_output_parses_final_labels_after_reasoning():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "The later examples indicate a rule change.",
-                "attract, repel, repel, attract",
-            )
-        )
-    )
-
-    assert parsed == ParsedPrediction(
-        labels=(
-            InteractionLabel.ATTRACT,
-            InteractionLabel.REPEL,
-            InteractionLabel.REPEL,
-            InteractionLabel.ATTRACT,
-        ),
+        labels=(ATTRACT, REPEL, REPEL, ATTRACT),
         status=ParseStatus.VALID,
     )
 
 
 def test_safe_formatting_variants_normalize_to_canonical_labels():
     expected = ParsedPrediction(
-        labels=(
-            InteractionLabel.ATTRACT,
-            InteractionLabel.REPEL,
-            InteractionLabel.REPEL,
-            InteractionLabel.ATTRACT,
-        ),
+        labels=(ATTRACT, REPEL, REPEL, ATTRACT),
         status=ParseStatus.VALID,
     )
 
     assert parse_binary_output("  ATTRACT, repel,\nREPEL,\nattract  ") == expected
     assert parse_binary_output("\nattract\nrepel\nrepel\nattract\n") == expected
-    assert parse_narrative_output(
-        "\n".join(
-            (
-                "Some reasoning here.",
-                "ATTRACT, repel, REPEL, attract",
-            )
-        )
-    ) == expected
-    assert parse_narrative_output("Final labels: ATTRACT, repel, REPEL, attract") == expected
 
 
-def test_malformed_outputs_are_rejected_deterministically():
+def test_malformed_binary_outputs_are_rejected():
     invalid = ParsedPrediction(labels=(), status=ParseStatus.INVALID)
 
     assert parse_binary_output("attract, repel, repels, attract") == invalid
     assert parse_binary_output("attract, repel, repel, attract because of the shift") == invalid
-    assert parse_narrative_output("Reasoning only without the required answer block.") == invalid
-    assert parse_narrative_output(
-        "\n".join(
-            (
-                "Reasoning.",
-                "Final labels: attract, repel, repel, attract",
-                "extra text",
-            )
-        )
-    ) == invalid
 
 
-def test_wrong_length_outputs_use_the_same_invalid_result():
+def test_wrong_length_binary_outputs_use_invalid_result():
     invalid = ParsedPrediction(labels=(), status=ParseStatus.INVALID)
 
     assert parse_binary_output("attract, repel, repel") == invalid
     assert parse_binary_output("attract, repel, repel, attract, attract") == invalid
-    assert parse_narrative_output("attract, repel, repel") == invalid
-    assert parse_narrative_output("attract, repel, repel, attract, repel") == invalid
 
 
-def test_narrative_parser_scores_only_the_last_answer_line():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "repel, repel, repel, repel",
-                "Updated reasoning after re-checking the post-shift evidence.",
-                "attract, repel, repel, attract",
-            )
-        )
+# ---------------------------------------------------------------------------
+# Narrative audit parser — valid cases
+# ---------------------------------------------------------------------------
+
+
+def _make_valid_json(labels=None) -> str:
+    if labels is None:
+        labels = ["attract", "repel", "repel", "attract"]
+    return json.dumps({
+        "inferred_rule_before": "opposite-sign attract, same-sign repel",
+        "shift_evidence": "observations 3-5 contradict the initial rule",
+        "inferred_rule_after": "same-sign attract, opposite-sign repel",
+        "final_binary_answer": labels,
+    })
+
+
+def test_narrative_audit_parses_valid_json_with_all_fields():
+    result = parse_narrative_audit_output(_make_valid_json())
+
+    assert result.status is NarrativeParseStatus.VALID
+    assert result.output is not None
+    assert result.output.inferred_rule_before == "opposite-sign attract, same-sign repel"
+    assert result.output.shift_evidence == "observations 3-5 contradict the initial rule"
+    assert result.output.inferred_rule_after == "same-sign attract, opposite-sign repel"
+    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
+    assert result.failure_detail is None
+
+
+def test_narrative_audit_output_is_frozen_dataclass():
+    result = parse_narrative_audit_output(_make_valid_json())
+    assert result.status is NarrativeParseStatus.VALID
+    assert isinstance(result, NarrativeParsedResult)
+    assert isinstance(result.output, NarrativeAuditOutput)
+
+
+def test_narrative_audit_handles_json_in_markdown_code_block():
+    text = "```json\n" + _make_valid_json() + "\n```"
+    result = parse_narrative_audit_output(text)
+    assert result.status is NarrativeParseStatus.VALID
+    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
+
+
+def test_narrative_audit_handles_plain_markdown_code_block():
+    text = "```\n" + _make_valid_json() + "\n```"
+    result = parse_narrative_audit_output(text)
+    assert result.status is NarrativeParseStatus.VALID
+
+
+def test_narrative_audit_case_insensitive_labels():
+    result = parse_narrative_audit_output(json.dumps({
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["ATTRACT", "Repel", "REPEL", "Attract"],
+    }))
+    assert result.status is NarrativeParseStatus.VALID
+    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
+
+
+def test_narrative_audit_strips_whitespace_from_text_fields():
+    result = parse_narrative_audit_output(json.dumps({
+        "inferred_rule_before": "  rule A  ",
+        "shift_evidence": "  evidence  ",
+        "inferred_rule_after": "  rule B  ",
+        "final_binary_answer": ["attract", "repel", "repel", "attract"],
+    }))
+    assert result.status is NarrativeParseStatus.VALID
+    assert result.output.inferred_rule_before == "rule A"
+    assert result.output.shift_evidence == "evidence"
+    assert result.output.inferred_rule_after == "rule B"
+
+
+# ---------------------------------------------------------------------------
+# Narrative audit parser — invalid cases
+# ---------------------------------------------------------------------------
+
+
+def test_narrative_audit_rejects_empty_text():
+    result = parse_narrative_audit_output("")
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert result.output is None
+
+
+def test_narrative_audit_rejects_whitespace_only_text():
+    result = parse_narrative_audit_output("   \n  ")
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+
+
+def test_narrative_audit_rejects_non_json_prose():
+    result = parse_narrative_audit_output(
+        "The rule shifted after observation 3. My answers are attract, repel, repel, attract."
     )
-
-    assert parsed == ParsedPrediction(
-        labels=(
-            InteractionLabel.ATTRACT,
-            InteractionLabel.REPEL,
-            InteractionLabel.REPEL,
-            InteractionLabel.ATTRACT,
-        ),
-        status=ParseStatus.VALID,
-    )
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert result.output is None
 
 
-def test_narrative_parser_extracts_four_bare_trailing_labels():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "The charges follow an inverted rule.",
-                "6. repel",
-                "7. repel",
-                "8. repel",
-                "9. attract",
-                "",
-                "repel",
-                "repel",
-                "repel",
-                "attract",
-            )
-        )
-    )
-
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.REPEL,
-        InteractionLabel.REPEL,
-        InteractionLabel.REPEL,
-        InteractionLabel.ATTRACT,
-    )
+def test_narrative_audit_rejects_json_array_root():
+    result = parse_narrative_audit_output('["attract", "repel", "repel", "attract"]')
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
 
 
-def test_narrative_parser_extracts_labels_after_final_answer_marker():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "Reasoning about the rule shift.",
-                "Final Answer:",
-                "repel",
-                "attract",
-                "attract",
-                "attract",
-            )
-        )
-    )
-
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.REPEL,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.ATTRACT,
-    )
+def test_narrative_audit_rejects_missing_inferred_rule_before():
+    payload = {
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "repel", "attract"],
+    }
+    result = parse_narrative_audit_output(json.dumps(payload))
+    assert result.status is NarrativeParseStatus.MISSING_FIELD
+    assert "inferred_rule_before" in (result.failure_detail or "")
 
 
-def test_narrative_parser_extracts_numbered_labels_after_final_answers_marker():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "Some analysis.",
-                "**Final Answers:**",
-                "6. attract",
-                "7. repel",
-                "8. attract",
-                "9. repel",
-            )
-        )
-    )
-
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.ATTRACT,
-        InteractionLabel.REPEL,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.REPEL,
-    )
+def test_narrative_audit_rejects_missing_shift_evidence():
+    payload = {
+        "inferred_rule_before": "rule A",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "repel", "attract"],
+    }
+    result = parse_narrative_audit_output(json.dumps(payload))
+    assert result.status is NarrativeParseStatus.MISSING_FIELD
+    assert "shift_evidence" in (result.failure_detail or "")
 
 
-def test_narrative_parser_extracts_case_variant_trailing_labels():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "Analysis complete.",
-                "Repel",
-                "Attract",
-                "Attract",
-                "Repel",
-            )
-        )
-    )
-
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.REPEL,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.REPEL,
-    )
+def test_narrative_audit_rejects_missing_final_binary_answer():
+    payload = {
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+    }
+    result = parse_narrative_audit_output(json.dumps(payload))
+    assert result.status is NarrativeParseStatus.MISSING_FIELD
+    assert "final_binary_answer" in (result.failure_detail or "")
 
 
-def test_narrative_parser_extracts_numbered_trailing_labels_without_marker():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "The revised rule means like charges attract.",
-                "6. attract",
-                "7. attract",
-                "8. repel",
-                "9. repel",
-            )
-        )
-    )
-
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.ATTRACT,
-        InteractionLabel.ATTRACT,
-        InteractionLabel.REPEL,
-        InteractionLabel.REPEL,
-    )
+def test_narrative_audit_rejects_empty_string_text_field():
+    payload = {
+        "inferred_rule_before": "",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "repel", "attract"],
+    }
+    result = parse_narrative_audit_output(json.dumps(payload))
+    assert result.status is NarrativeParseStatus.MISSING_FIELD
 
 
-def test_narrative_parser_rejects_prose_only_even_with_final_answer_marker():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "Final Answer:",
-                "The charges follow the standard rule of electrostatics.",
-            )
-        )
-    )
+def test_narrative_audit_rejects_invalid_label_value():
+    payload = {
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "bounce", "attract"],
+    }
+    result = parse_narrative_audit_output(json.dumps(payload))
+    assert result.status is NarrativeParseStatus.INVALID_LABELS
+    assert result.output is None
 
-    assert parsed.status == ParseStatus.INVALID
+
+def test_narrative_audit_rejects_too_few_labels():
+    result = parse_narrative_audit_output(json.dumps({
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "repel"],
+    }))
+    assert result.status is NarrativeParseStatus.INVALID_LABELS
 
 
-def test_narrative_parser_falls_through_final_answer_to_trailing_lines():
-    parsed = parse_narrative_output(
-        "\n".join(
-            (
-                "Final Answer:",
-                "Based on my analysis, here are the predictions:",
-                "attract",
-                "repel",
-                "repel",
-                "attract",
-            )
-        )
-    )
+def test_narrative_audit_rejects_too_many_labels():
+    result = parse_narrative_audit_output(json.dumps({
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": ["attract", "repel", "repel", "attract", "attract"],
+    }))
+    assert result.status is NarrativeParseStatus.INVALID_LABELS
 
-    assert parsed.status == ParseStatus.VALID
-    assert parsed.labels == (
-        InteractionLabel.ATTRACT,
-        InteractionLabel.REPEL,
-        InteractionLabel.REPEL,
-        InteractionLabel.ATTRACT,
-    )
+
+def test_narrative_audit_rejects_non_list_final_binary_answer():
+    result = parse_narrative_audit_output(json.dumps({
+        "inferred_rule_before": "rule A",
+        "shift_evidence": "evidence",
+        "inferred_rule_after": "rule B",
+        "final_binary_answer": "attract, repel, repel, attract",
+    }))
+    assert result.status is NarrativeParseStatus.INVALID_LABELS
+
+
+# ---------------------------------------------------------------------------
+# NarrativeParsedResult factory methods
+# ---------------------------------------------------------------------------
+
+
+def test_narrative_parsed_result_skipped_provider_failure_factory():
+    result = NarrativeParsedResult.skipped_provider_failure()
+    assert result.status is NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE
+    assert result.output is None

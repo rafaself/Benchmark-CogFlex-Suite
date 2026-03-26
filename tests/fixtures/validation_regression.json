@@ -156,7 +156,7 @@
       },
       "render": {
         "binary": "You are given labeled interactions between two electric charges.\nEach labeled line shows q1, q2, and the observed result.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. q1=-2, q2=-2 -> attract\n2. q1=+3, q2=-2 -> repel\n3. q1=-1, q2=-2 -> repel\n4. q1=-1, q2=+2 -> attract\n5. q1=-3, q2=-3 -> repel\n\nProbes:\n6. q1=+1, q2=+3 -> ?\n7. q1=-2, q2=-3 -> ?\n8. q1=-2, q2=+3 -> ?\n9. q1=+1, q2=-1 -> ?\n\nReturn exactly 4 labels in order, one per probe. Use only attract or repel.",
-        "narrative": "Two electric charges were observed interacting in the following sequence.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the unlabeled observations at the end.\n\nLabeled examples:\n1. A -2 charge and a -2 charge were observed to attract.\n2. A +3 charge and a -2 charge were observed to repel.\n3. A -1 charge and a -2 charge were observed to repel.\n4. A -1 charge and a +2 charge were observed to attract.\n5. A -3 charge and a -3 charge were observed to repel.\n\nProbes:\n6. A +1 charge and a +3 charge were observed to ?.\n7. A -2 charge and a -3 charge were observed to ?.\n8. A -2 charge and a +3 charge were observed to ?.\n9. A +1 charge and a -1 charge were observed to ?.\n\nNarrative is robustness evidence over the same probes as Binary. Any reasoning is optional and unscored. On the final line, return exactly 4 labels in order, one per probe. Use only attract or repel."
+        "narrative": "Two electric charges were observed interacting in the following sequence.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the unlabeled observations at the end.\n\nLabeled examples:\n1. A -2 charge and a -2 charge were observed to attract.\n2. A +3 charge and a -2 charge were observed to repel.\n3. A -1 charge and a -2 charge were observed to repel.\n4. A -1 charge and a +2 charge were observed to attract.\n5. A -3 charge and a -3 charge were observed to repel.\n\nProbes:\n6. A +1 charge and a +3 charge were observed to ?.\n7. A -2 charge and a -3 charge were observed to ?.\n8. A -2 charge and a +3 charge were observed to ?.\n9. A +1 charge and a -1 charge were observed to ?.\n\nReturn your analysis as a JSON object with exactly these four fields:\n  \"inferred_rule_before\": your inferred rule from the pre-shift examples (string),\n  \"shift_evidence\": which observations indicated the rule changed (string),\n  \"inferred_rule_after\": your inferred rule from the post-shift examples (string),\n  \"final_binary_answer\": list of exactly 4 labels in probe order (each \"attract\" or \"repel\").\nOutput only the JSON object."
       },
       "parser": {
         "binary_text": "repel, attract, repel, repel",
@@ -169,10 +169,13 @@
             "repel"
           ]
         },
-        "narrative_text": "Reasoning about the revised local rule.\nFinal labels: repel, attract, repel, repel",
+        "narrative_text": "{\"inferred_rule_before\": \"opposite-sign attract, same-sign repel\", \"shift_evidence\": \"post-shift observations inverted the rule\", \"inferred_rule_after\": \"same-sign attract, opposite-sign repel\", \"final_binary_answer\": [\"repel\", \"attract\", \"repel\", \"repel\"]}",
         "narrative_expected": {
           "status": "valid",
-          "labels": [
+          "inferred_rule_before": "opposite-sign attract, same-sign repel",
+          "shift_evidence": "post-shift observations inverted the rule",
+          "inferred_rule_after": "same-sign attract, opposite-sign repel",
+          "final_binary_answer": [
             "repel",
             "attract",
             "repel",
@@ -368,7 +371,7 @@
       },
       "render": {
         "binary": "You are given labeled interactions between two electric charges.\nEach labeled line shows q1, q2, and the observed result.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. q1=+1, q2=-3 -> attract\n2. q1=-2, q2=-3 -> repel\n3. q1=-2, q2=+1 -> attract\n4. q1=-2, q2=+3 -> repel\n5. q1=+3, q2=+3 -> attract\n\nProbes:\n6. q1=+2, q2=-1 -> ?\n7. q1=-2, q2=+2 -> ?\n8. q1=-3, q2=-3 -> ?\n9. q1=+2, q2=+3 -> ?\n\nReturn exactly 4 labels in order, one per probe. Use only attract or repel.",
-        "narrative": "Two electric charges were observed interacting in the following sequence.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the unlabeled observations at the end.\n\nLabeled examples:\n1. A +1 charge and a -3 charge were observed to attract.\n2. A -2 charge and a -3 charge were observed to repel.\n3. A -2 charge and a +1 charge were observed to attract.\n4. A -2 charge and a +3 charge were observed to repel.\n5. A +3 charge and a +3 charge were observed to attract.\n\nProbes:\n6. A +2 charge and a -1 charge were observed to ?.\n7. A -2 charge and a +2 charge were observed to ?.\n8. A -3 charge and a -3 charge were observed to ?.\n9. A +2 charge and a +3 charge were observed to ?.\n\nNarrative is robustness evidence over the same probes as Binary. Any reasoning is optional and unscored. On the final line, return exactly 4 labels in order, one per probe. Use only attract or repel."
+        "narrative": "Two electric charges were observed interacting in the following sequence.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the unlabeled observations at the end.\n\nLabeled examples:\n1. A +1 charge and a -3 charge were observed to attract.\n2. A -2 charge and a -3 charge were observed to repel.\n3. A -2 charge and a +1 charge were observed to attract.\n4. A -2 charge and a +3 charge were observed to repel.\n5. A +3 charge and a +3 charge were observed to attract.\n\nProbes:\n6. A +2 charge and a -1 charge were observed to ?.\n7. A -2 charge and a +2 charge were observed to ?.\n8. A -3 charge and a -3 charge were observed to ?.\n9. A +2 charge and a +3 charge were observed to ?.\n\nReturn your analysis as a JSON object with exactly these four fields:\n  \"inferred_rule_before\": your inferred rule from the pre-shift examples (string),\n  \"shift_evidence\": which observations indicated the rule changed (string),\n  \"inferred_rule_after\": your inferred rule from the post-shift examples (string),\n  \"final_binary_answer\": list of exactly 4 labels in probe order (each \"attract\" or \"repel\").\nOutput only the JSON object."
       },
       "parser": {
         "binary_text": "attract, repel, attract, repel",
@@ -381,10 +384,13 @@
             "repel"
           ]
         },
-        "narrative_text": "Reasoning about the revised local rule.\nFinal labels: attract, repel, attract, repel",
+        "narrative_text": "{\"inferred_rule_before\": \"opposite-sign attract, same-sign repel\", \"shift_evidence\": \"post-shift observations inverted the rule\", \"inferred_rule_after\": \"same-sign attract, opposite-sign repel\", \"final_binary_answer\": [\"attract\", \"repel\", \"attract\", \"repel\"]}",
         "narrative_expected": {
           "status": "valid",
-          "labels": [
+          "inferred_rule_before": "opposite-sign attract, same-sign repel",
+          "shift_evidence": "post-shift observations inverted the rule",
+          "inferred_rule_after": "same-sign attract, opposite-sign repel",
+          "final_binary_answer": [
             "attract",
             "repel",
             "attract",
@@ -429,9 +435,9 @@
   "metrics": {
     "expected": {
       "post_shift_probe_accuracy": 0.375,
-      "parse_valid_rate": 1.0,
-      "binary_accuracy": 0.375,
-      "narrative_accuracy": 0.375
+      "binary_parse_valid_rate": 1.0,
+      "narrative_schema_valid_rate": 1.0,
+      "narrative_parse_failure_count": 0
     }
   }
 }

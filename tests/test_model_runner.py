@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from core.metrics import MetricSummary
@@ -13,7 +14,7 @@ from core.model_execution import (
 )
 from core.model_runner import run_model_benchmark
 from generator import generate_episode
-from parser import ParseStatus
+from parser import NarrativeParseStatus, ParseStatus
 from render import render_binary_prompt, render_narrative_prompt
 
 
@@ -21,8 +22,14 @@ def _binary_labels_for(episode) -> str:
     return ", ".join(label.value for label in episode.probe_targets)
 
 
-def _narrative_labels_for(episode) -> str:
-    return "Reasoning.\n" + _binary_labels_for(episode)
+def _narrative_json_for(episode) -> str:
+    labels = [label.value for label in episode.probe_targets]
+    return json.dumps({
+        "inferred_rule_before": "pre-shift rule inferred from labeled examples",
+        "shift_evidence": "post-shift observations contradict the pre-shift rule",
+        "inferred_rule_after": "post-shift rule inferred from later labeled examples",
+        "final_binary_answer": labels,
+    })
 
 
 @dataclass
@@ -77,7 +84,7 @@ def test_runner_is_deterministic_for_fixed_fake_adapter_outputs():
                     prompt_text=render_narrative_prompt(episode),
                     mode=ModelMode.NARRATIVE,
                 ),
-                response_text=_narrative_labels_for(episode),
+                response_text=_narrative_json_for(episode),
                 duration_seconds=0.5,
             )
             for episode in episodes
@@ -102,9 +109,9 @@ def test_runner_is_deterministic_for_fixed_fake_adapter_outputs():
     assert first_result == second_result
     assert first_result.metrics == MetricSummary(
         post_shift_probe_accuracy=1.0,
-        parse_valid_rate=1.0,
-        binary_accuracy=1.0,
-        narrative_accuracy=1.0,
+        binary_parse_valid_rate=1.0,
+        narrative_schema_valid_rate=1.0,
+        narrative_parse_failure_count=0,
     )
 
 
@@ -133,7 +140,7 @@ def test_runner_flows_renderer_to_adapter_to_parser_to_metrics():
                     prompt_text=narrative_prompt,
                     mode=ModelMode.NARRATIVE,
                 ),
-                response_text=_narrative_labels_for(episode),
+                response_text=_narrative_json_for(episode),
                 duration_seconds=0.2,
             ),
         }
@@ -160,11 +167,13 @@ def test_runner_flows_renderer_to_adapter_to_parser_to_metrics():
     assert narrative_row.execution.request.prompt_text == narrative_prompt
     assert binary_row.parsed_prediction.status is ParseStatus.VALID
     assert narrative_row.parsed_prediction.status is ParseStatus.VALID
+    assert narrative_row.narrative_result is not None
+    assert narrative_row.narrative_result.status is NarrativeParseStatus.VALID
     assert binary_row.target == episode.probe_targets
     assert narrative_row.target == episode.probe_targets
 
 
-def test_runner_marks_malformed_raw_outputs_as_invalid_without_changing_scoring_rules():
+def test_runner_marks_malformed_narrative_as_schema_invalid():
     episode = generate_episode(0)
     binary_prompt = render_binary_prompt(episode)
     narrative_prompt = render_narrative_prompt(episode)
@@ -186,7 +195,7 @@ def test_runner_marks_malformed_raw_outputs_as_invalid_without_changing_scoring_
                     prompt_text=narrative_prompt,
                     mode=ModelMode.NARRATIVE,
                 ),
-                response_text="Reasoning without a final labels line.",
+                response_text="Reasoning without any JSON structure.",
             ),
         }
     )
@@ -200,12 +209,17 @@ def test_runner_marks_malformed_raw_outputs_as_invalid_without_changing_scoring_
     binary_mode, narrative_mode = result.mode_results
 
     assert binary_mode.rows[0].parsed_prediction.status is ParseStatus.VALID
+    # Narrative parse failure reflected in both the derived ParsedPrediction and
+    # the NarrativeParsedResult.
     assert narrative_mode.rows[0].parsed_prediction.status is ParseStatus.INVALID
+    assert narrative_mode.rows[0].narrative_result is not None
+    assert narrative_mode.rows[0].narrative_result.status is NarrativeParseStatus.INVALID_FORMAT
+    # Binary scoring is unaffected; narrative failure tracked separately.
     assert result.metrics == MetricSummary(
         post_shift_probe_accuracy=1.0,
-        parse_valid_rate=0.5,
-        binary_accuracy=1.0,
-        narrative_accuracy=0.0,
+        binary_parse_valid_rate=1.0,
+        narrative_schema_valid_rate=0.0,
+        narrative_parse_failure_count=1,
     )
 
 
@@ -237,6 +251,8 @@ def test_runner_captures_adapter_failures_as_invalid_rows():
     narrative_row = result.mode_results[1].rows[0]
 
     assert narrative_row.parsed_prediction.status is ParseStatus.SKIPPED_PROVIDER_FAILURE
+    assert narrative_row.narrative_result is not None
+    assert narrative_row.narrative_result.status is NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE
     assert (
         narrative_row.execution.raw_result.execution_outcome
         is ModelExecutionOutcome.PROVIDER_FAILURE
@@ -244,11 +260,12 @@ def test_runner_captures_adapter_failures_as_invalid_rows():
     assert narrative_row.execution.raw_result.error_type == "TimeoutError"
     assert narrative_row.execution.raw_result.error_message == "timed out"
     assert narrative_row.execution.raw_result.response_text is None
+    # Provider failure excluded from denominator; narrative_parse_failure_count = 0.
     assert result.metrics == MetricSummary(
         post_shift_probe_accuracy=1.0,
-        parse_valid_rate=1.0,
-        binary_accuracy=1.0,
-        narrative_accuracy=0.0,
+        binary_parse_valid_rate=1.0,
+        narrative_schema_valid_rate=0.0,
+        narrative_parse_failure_count=0,
     )
 
 

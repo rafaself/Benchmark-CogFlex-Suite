@@ -154,9 +154,9 @@ def test_output_instructions_explicitly_require_four_ordered_answers():
     assert (
         "Return exactly 4 labels in order, one per probe. Use only attract or repel."
     ) in binary_prompt
-    assert (
-        "Narrative is robustness evidence over the same probes as Binary. "
-        "Any reasoning is optional and unscored. "
-        "On the final line, return exactly 4 labels in order, one per probe. "
-        "Use only attract or repel."
-    ) in narrative_prompt
+    # Narrative prompt must request structured JSON with the required schema fields.
+    assert '"inferred_rule_before"' in narrative_prompt
+    assert '"shift_evidence"' in narrative_prompt
+    assert '"inferred_rule_after"' in narrative_prompt
+    assert '"final_binary_answer"' in narrative_prompt
+    assert "Output only the JSON object" in narrative_prompt

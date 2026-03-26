@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from core.parser import ParseStatus, ParsedPrediction
+from core.parser import NarrativeParsedResult, NarrativeParseStatus, ParseStatus, ParsedPrediction
 from tasks.ruleshift_benchmark.protocol import (
     PROBE_COUNT,
     InteractionLabel,
@@ -22,10 +22,14 @@ METRIC_VERSION = "v1"
 
 @dataclass(frozen=True, slots=True)
 class MetricSummary:
+    # Leaderboard headline — Binary only.
     post_shift_probe_accuracy: float
-    parse_valid_rate: float
-    binary_accuracy: float
-    narrative_accuracy: float
+    # Binary parse success rate (provider failures excluded from denominator).
+    binary_parse_valid_rate: float
+    # Narrative schema validation rate (provider failures excluded).
+    narrative_schema_valid_rate: float
+    # Number of narrative parse/validation failures (excludes provider failures).
+    narrative_parse_failure_count: int
 
 
 def compute_post_shift_probe_accuracy(
@@ -50,8 +54,7 @@ def compute_post_shift_probe_accuracy(
 def compute_metrics(
     binary_predictions: Iterable[ParsedPrediction],
     binary_targets: Iterable[tuple[InteractionLabel, ...]],
-    narrative_predictions: Iterable[ParsedPrediction],
-    narrative_targets: Iterable[tuple[InteractionLabel, ...]],
+    narrative_results: Iterable[NarrativeParsedResult],
 ) -> MetricSummary:
     normalized_binary_predictions = tuple(binary_predictions)
     normalized_binary_targets = _normalize_targets(binary_targets)
@@ -60,40 +63,38 @@ def compute_metrics(
         normalized_binary_targets,
     )
 
-    normalized_narrative_predictions = tuple(narrative_predictions)
-    normalized_narrative_targets = _normalize_targets(narrative_targets)
-    _validate_prediction_target_lengths(
-        normalized_narrative_predictions,
-        normalized_narrative_targets,
-    )
+    normalized_narrative_results = tuple(narrative_results)
 
-    all_predictions = normalized_binary_predictions + normalized_narrative_predictions
-    parse_attempted_predictions = tuple(
-        prediction
-        for prediction in all_predictions
-        if prediction.status is not ParseStatus.SKIPPED_PROVIDER_FAILURE
-    )
-    total_predictions = len(parse_attempted_predictions)
-    valid_predictions = sum(
-        prediction.status is ParseStatus.VALID for prediction in parse_attempted_predictions
-    )
+    # Binary scoring — the only leaderboard metric.
     binary_accuracy = compute_post_shift_probe_accuracy(
         normalized_binary_predictions,
         normalized_binary_targets,
     )
-    narrative_accuracy = compute_post_shift_probe_accuracy(
-        normalized_narrative_predictions,
-        normalized_narrative_targets,
+
+    # Binary parse valid rate (provider failures excluded).
+    binary_attempted = [
+        p for p in normalized_binary_predictions
+        if p.status is not ParseStatus.SKIPPED_PROVIDER_FAILURE
+    ]
+    binary_valid = sum(p.status is ParseStatus.VALID for p in binary_attempted)
+    binary_parse_valid_rate = binary_valid / len(binary_attempted) if binary_attempted else 0.0
+
+    # Narrative schema validity (provider failures excluded from denominator).
+    narrative_attempted = [
+        r for r in normalized_narrative_results
+        if r.status is not NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE
+    ]
+    narrative_valid = sum(r.status is NarrativeParseStatus.VALID for r in narrative_attempted)
+    narrative_schema_valid_rate = (
+        narrative_valid / len(narrative_attempted) if narrative_attempted else 0.0
     )
+    narrative_parse_failure_count = len(narrative_attempted) - narrative_valid
 
     return MetricSummary(
-        # The headline metric is Binary-only Post-shift Probe Accuracy.
         post_shift_probe_accuracy=binary_accuracy,
-        parse_valid_rate=(
-            valid_predictions / total_predictions if total_predictions else 0.0
-        ),
-        binary_accuracy=binary_accuracy,
-        narrative_accuracy=narrative_accuracy,
+        binary_parse_valid_rate=binary_parse_valid_rate,
+        narrative_schema_valid_rate=narrative_schema_valid_rate,
+        narrative_parse_failure_count=narrative_parse_failure_count,
     )
 
 

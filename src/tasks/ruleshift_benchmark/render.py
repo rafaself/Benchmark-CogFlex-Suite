@@ -21,10 +21,13 @@ _BINARY_OUTRO = (
     "Use only attract or repel."
 )
 _NARRATIVE_OUTRO = (
-    "Narrative is robustness evidence over the same probes as Binary. "
-    "Any reasoning is optional and unscored. "
-    "On the final line, return exactly 4 labels in order, one per probe. "
-    "Use only attract or repel."
+    "Return your analysis as a JSON object with exactly these four fields:\n"
+    '  "inferred_rule_before": your inferred rule from the pre-shift examples (string),\n'
+    '  "shift_evidence": which observations indicated the rule changed (string),\n'
+    '  "inferred_rule_after": your inferred rule from the post-shift examples (string),\n'
+    '  "final_binary_answer": list of exactly 4 labels in probe order'
+    ' (each "attract" or "repel").\n'
+    "Output only the JSON object."
 )
 
 

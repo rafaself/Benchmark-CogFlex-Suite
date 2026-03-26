@@ -13,7 +13,14 @@ from core.model_execution import (
     ModelRequest,
     ModelRunConfig,
 )
-from core.parser import ParsedPrediction, parse_binary_output, parse_narrative_output
+from core.parser import (
+    NarrativeParsedResult,
+    NarrativeParseStatus,
+    ParseStatus,
+    ParsedPrediction,
+    parse_binary_output,
+    parse_narrative_audit_output,
+)
 from tasks.ruleshift_benchmark.protocol import InteractionLabel
 from tasks.ruleshift_benchmark.render import render_binary_prompt, render_narrative_prompt
 from tasks.ruleshift_benchmark.schema import Episode
@@ -35,6 +42,7 @@ class BenchmarkModeRunRow:
     execution: ModelExecutionRecord
     parsed_prediction: ParsedPrediction
     target: tuple[InteractionLabel, ...]
+    narrative_result: NarrativeParsedResult | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,10 +83,6 @@ def run_model_benchmark(
         ModelMode.BINARY: render_binary_prompt,
         ModelMode.NARRATIVE: render_narrative_prompt,
     }
-    parsers = {
-        ModelMode.BINARY: parse_binary_output,
-        ModelMode.NARRATIVE: parse_narrative_output,
-    }
 
     mode_results = tuple(
         _run_mode(
@@ -89,12 +93,18 @@ def run_model_benchmark(
             config=normalized_config,
             mode=mode,
             renderer=renderers[mode],
-            parser=parsers[mode],
             progress_callback=progress_callback,
         )
         for mode in normalized_modes
     )
     rows_by_mode = {result.mode: result.rows for result in mode_results}
+
+    narrative_rows = rows_by_mode.get(ModelMode.NARRATIVE, ())
+    narrative_results = tuple(
+        row.narrative_result
+        for row in narrative_rows
+        if row.narrative_result is not None
+    )
 
     return BenchmarkRunResult(
         provider_name=provider_name,
@@ -105,13 +115,10 @@ def run_model_benchmark(
             binary_predictions=tuple(
                 row.parsed_prediction for row in rows_by_mode.get(ModelMode.BINARY, ())
             ),
-            binary_targets=tuple(row.target for row in rows_by_mode.get(ModelMode.BINARY, ())),
-            narrative_predictions=tuple(
-                row.parsed_prediction for row in rows_by_mode.get(ModelMode.NARRATIVE, ())
+            binary_targets=tuple(
+                row.target for row in rows_by_mode.get(ModelMode.BINARY, ())
             ),
-            narrative_targets=tuple(
-                row.target for row in rows_by_mode.get(ModelMode.NARRATIVE, ())
-            ),
+            narrative_results=narrative_results,
         ),
     )
 
@@ -134,7 +141,6 @@ def _run_mode(
     config: ModelRunConfig,
     mode: ModelMode,
     renderer: Callable[[Episode], str],
-    parser: Callable[[str], ParsedPrediction],
     progress_callback: RunProgressCallback | None,
 ) -> BenchmarkModeRunResult:
     total = len(episodes)
@@ -148,7 +154,6 @@ def _run_mode(
             config=config,
             mode=mode,
             renderer=renderer,
-            parser=parser,
         )
         rows.append(row)
         if progress_callback is not None:
@@ -168,7 +173,6 @@ def _run_episode(
     config: ModelRunConfig,
     mode: ModelMode,
     renderer: Callable[[Episode], str],
-    parser: Callable[[str], ParsedPrediction],
 ) -> BenchmarkModeRunRow:
     request = ModelRequest(
         provider_name=provider_name,
@@ -187,10 +191,20 @@ def _run_episode(
         )
 
     _validate_raw_result(request, raw_result)
-    if raw_result.execution_outcome is ModelExecutionOutcome.COMPLETED:
-        parsed_prediction = parser(raw_result.response_text or "")
+
+    narrative_result: NarrativeParsedResult | None = None
+
+    if mode is ModelMode.NARRATIVE:
+        if raw_result.execution_outcome is ModelExecutionOutcome.COMPLETED:
+            narrative_result = parse_narrative_audit_output(raw_result.response_text or "")
+        else:
+            narrative_result = NarrativeParsedResult.skipped_provider_failure()
+        parsed_prediction = _narrative_to_parsed_prediction(narrative_result)
     else:
-        parsed_prediction = ParsedPrediction.skipped_provider_failure()
+        if raw_result.execution_outcome is ModelExecutionOutcome.COMPLETED:
+            parsed_prediction = parse_binary_output(raw_result.response_text or "")
+        else:
+            parsed_prediction = ParsedPrediction.skipped_provider_failure()
 
     return BenchmarkModeRunRow(
         episode_id=episode.episode_id,
@@ -201,7 +215,21 @@ def _run_episode(
         ),
         parsed_prediction=parsed_prediction,
         target=episode.probe_targets,
+        narrative_result=narrative_result,
     )
+
+
+def _narrative_to_parsed_prediction(result: NarrativeParsedResult) -> ParsedPrediction:
+    """Derive a ParsedPrediction from a NarrativeParsedResult for audit compatibility."""
+    if result.status is NarrativeParseStatus.VALID:
+        assert result.output is not None
+        return ParsedPrediction(
+            labels=result.output.final_binary_answer,
+            status=ParseStatus.VALID,
+        )
+    if result.status is NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE:
+        return ParsedPrediction.skipped_provider_failure()
+    return ParsedPrediction(labels=(), status=ParseStatus.INVALID)
 
 
 def _validate_raw_result(request: ModelRequest, raw_result: ModelRawResult) -> None:
