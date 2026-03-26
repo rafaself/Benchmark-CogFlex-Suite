@@ -60,11 +60,6 @@ def _collect_public_location_errors() -> list[str]:
     if "packaging/kaggle/private/private_episodes.json" in notebook_text:
         errors.append("official notebook still contains a repo-local private dataset fallback")
 
-    staging_path = KAGGLE_DIR / "staging" / "ruleshift_benchmark_v1_kaggle_staging.ipynb"
-    staging_text = staging_path.read_text(encoding="utf-8")
-    if "packaging/kaggle/private/private_episodes.json" in staging_text:
-        errors.append("staging notebook still contains a repo-local private dataset fallback")
-
     return errors
 
 

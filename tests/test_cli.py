@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 import subprocess
@@ -8,10 +9,24 @@ import sys
 import pytest
 
 from core import cli
-from core.anthropic_panel import AnthropicPanelArtifacts
-from core.gemini_panel import GeminiFirstPanelArtifacts
-from core.model_execution import ModelMode
-from core.openai_panel import OpenAIPanelArtifacts
+
+
+def test_build_parser_exposes_only_canonical_cli_commands():
+    parser = cli.build_parser()
+    subparsers = next(
+        action
+        for action in parser._actions
+        if isinstance(action, argparse._SubParsersAction)
+    )
+
+    assert set(subparsers.choices) == {
+        "test",
+        "validity",
+        "reaudit",
+        "integrity",
+        "evidence-pass",
+        "contract-audit",
+    }
 
 
 def test_validity_command_emits_current_gate_report(capsys: pytest.CaptureFixture[str]):
@@ -134,6 +149,7 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
     assert cli.reaudit_entrypoint() == 0
     assert cli.integrity_entrypoint() == 0
     assert cli.evidence_pass_entrypoint() == 0
+    assert cli.contract_audit_entrypoint() == 0
 
     assert commands == [
         ["test"],
@@ -141,301 +157,19 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
         ["reaudit"],
         ["integrity"],
         ["evidence-pass"],
+        ["contract-audit"],
     ]
 
 
-def test_gemini_first_panel_command_fails_clearly_without_api_key(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.setattr("core.providers.gemini._repo_root", lambda: tmp_path)
+def test_removed_panel_commands_are_rejected():
+    with pytest.raises(SystemExit):
+        cli.main(["gemini-first-panel"])
 
-    exit_code = cli.main(["gemini-first-panel"])
+    with pytest.raises(SystemExit):
+        cli.main(["anthropic-panel"])
 
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "GEMINI_API_KEY" in captured.err
-
-
-def test_gemini_first_panel_command_emits_report_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    class _StubReport:
-        release_id = "R18"
-
-    report_path = tmp_path / "gemini_first_panel_report.md"
-    monkeypatch.setattr(
-        cli,
-        "run_gemini_first_panel",
-        lambda **_: GeminiFirstPanelArtifacts(
-            provider_name="gemini",
-            model_name="gemini-2.5-flash-001",
-            prompt_modes=(ModelMode.BINARY,),
-            release_report=_StubReport(),
-            report_markdown="# report\n",
-            report_path=report_path,
-            artifact_payload={"prompt_modes": ["binary"]},
-            artifact_path=report_path.with_suffix(".json"),
-            metadata_path=tmp_path / "gemini_first_panel_report.metadata.json",
-            snapshot_report_path=tmp_path / "gemini_first_panel_report__20260322_203000.md",
-            snapshot_artifact_path=tmp_path / "gemini_first_panel_report__20260322_203000.json",
-            snapshot_metadata_path=tmp_path / "gemini_first_panel_report.metadata__20260322_203000.json",
-        ),
-    )
-
-    exit_code = cli.main(["gemini-first-panel", "--report-path", str(report_path)])
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-
-    assert exit_code == 0
-    assert payload == {
-        "release_id": "R18",
-        "provider_name": "gemini",
-        "model_name": "gemini-2.5-flash-001",
-        "prompt_modes": ["binary"],
-        "report_path": str(report_path),
-        "artifact_path": str(report_path.with_suffix(".json")),
-        "metadata_path": str(tmp_path / "gemini_first_panel_report.metadata.json"),
-        "snapshot_report_path": str(
-            tmp_path / "gemini_first_panel_report__20260322_203000.md"
-        ),
-        "snapshot_artifact_path": str(
-            tmp_path / "gemini_first_panel_report__20260322_203000.json"
-        ),
-        "snapshot_metadata_path": str(
-            tmp_path / "gemini_first_panel_report.metadata__20260322_203000.json"
-        ),
-    }
-
-
-def test_gemini_first_panel_command_emits_narrative_mode_when_requested(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    class _StubReport:
-        release_id = "R18"
-
-    report_path = tmp_path / "m1_binary_vs_narrative_robustness_report.md"
-    monkeypatch.setattr(
-        cli,
-        "run_gemini_first_panel",
-        lambda **_: GeminiFirstPanelArtifacts(
-            provider_name="gemini",
-            model_name="gemini-2.5-flash-001",
-            prompt_modes=(ModelMode.BINARY, ModelMode.NARRATIVE),
-            release_report=_StubReport(),
-            report_markdown="# report\n",
-            report_path=report_path,
-            artifact_payload={"prompt_modes": ["binary", "narrative"]},
-            artifact_path=report_path.with_suffix(".json"),
-            metadata_path=tmp_path / "m1_binary_vs_narrative_robustness_report.metadata.json",
-            snapshot_report_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md",
-            snapshot_artifact_path=tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.json",
-            snapshot_metadata_path=tmp_path / "m1_binary_vs_narrative_robustness_report.metadata__20260322_203500.json",
-        ),
-    )
-
-    exit_code = cli.main(
-        [
-            "gemini-first-panel",
-            "--include-narrative",
-            "--report-path",
-            str(report_path),
-        ]
-    )
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-
-    assert exit_code == 0
-    assert payload["prompt_modes"] == ["binary", "narrative"]
-    assert payload["artifact_path"] == str(report_path.with_suffix(".json"))
-    assert payload["metadata_path"] == str(
-        tmp_path / "m1_binary_vs_narrative_robustness_report.metadata.json"
-    )
-    assert payload["snapshot_report_path"] == str(
-        tmp_path / "m1_binary_vs_narrative_robustness_report__20260322_203500.md"
-    )
-
-
-def test_gemini_first_panel_command_rejects_unpinned_model_ids(
-    capsys: pytest.CaptureFixture[str],
-):
-    exit_code = cli.main(["gemini-first-panel", "--model", "not-a-gemini-model"])
-
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "pinned model ID" in captured.err
-
-
-def test_anthropic_panel_command_fails_clearly_without_api_key(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setattr("core.providers.anthropic._repo_root", lambda: tmp_path)
-
-    exit_code = cli.main(["anthropic-panel"])
-
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "ANTHROPIC_API_KEY" in captured.err
-
-
-def test_anthropic_panel_command_emits_report_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    class _StubReport:
-        release_id = "R18"
-
-    report_path = tmp_path / "anthropic_panel_report.md"
-    monkeypatch.setattr(
-        cli,
-        "run_anthropic_panel",
-        lambda **_: AnthropicPanelArtifacts(
-            provider_name="anthropic",
-            model_name="claude-3-5-haiku-20241022",
-            prompt_modes=(ModelMode.BINARY,),
-            release_report=_StubReport(),
-            report_markdown="# report\n",
-            report_path=report_path,
-            artifact_payload={"prompt_modes": ["binary"]},
-            artifact_path=report_path.with_suffix(".json"),
-            metadata_path=tmp_path / "anthropic_panel_report.metadata.json",
-            snapshot_report_path=tmp_path / "anthropic_panel_report__20260322_210000.md",
-            snapshot_artifact_path=tmp_path / "anthropic_panel_report__20260322_210000.json",
-            snapshot_metadata_path=tmp_path / "anthropic_panel_report.metadata__20260322_210000.json",
-        ),
-    )
-
-    exit_code = cli.main(["anthropic-panel", "--report-path", str(report_path)])
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-
-    assert exit_code == 0
-    assert payload == {
-        "release_id": "R18",
-        "provider_name": "anthropic",
-        "model_name": "claude-3-5-haiku-20241022",
-        "prompt_modes": ["binary"],
-        "report_path": str(report_path),
-        "artifact_path": str(report_path.with_suffix(".json")),
-        "metadata_path": str(tmp_path / "anthropic_panel_report.metadata.json"),
-        "snapshot_report_path": str(
-            tmp_path / "anthropic_panel_report__20260322_210000.md"
-        ),
-        "snapshot_artifact_path": str(
-            tmp_path / "anthropic_panel_report__20260322_210000.json"
-        ),
-        "snapshot_metadata_path": str(
-            tmp_path / "anthropic_panel_report.metadata__20260322_210000.json"
-        ),
-    }
-
-
-def test_anthropic_panel_command_rejects_unpinned_model_ids(
-    capsys: pytest.CaptureFixture[str],
-):
-    exit_code = cli.main(["anthropic-panel", "--model", "claude-3-5-haiku-latest"])
-
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "pinned model ID" in captured.err
-
-
-def test_openai_panel_command_fails_clearly_without_api_key(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.setattr("core.providers.openai._repo_root", lambda: tmp_path)
-
-    exit_code = cli.main(["openai-panel"])
-
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "OPENAI_API_KEY" in captured.err
-
-
-def test_openai_panel_command_emits_report_metadata(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-):
-    class _StubReport:
-        release_id = "R18"
-
-    report_path = tmp_path / "openai_panel_report.md"
-    monkeypatch.setattr(
-        cli,
-        "run_openai_panel",
-        lambda **_: OpenAIPanelArtifacts(
-            provider_name="openai",
-            model_name="gpt-5-mini-2025-08-07",
-            prompt_modes=(ModelMode.BINARY,),
-            release_report=_StubReport(),
-            report_markdown="# report\n",
-            report_path=report_path,
-            artifact_payload={"prompt_modes": ["binary"]},
-            artifact_path=report_path.with_suffix(".json"),
-            metadata_path=tmp_path / "openai_panel_report.metadata.json",
-            snapshot_report_path=tmp_path / "openai_panel_report__20260322_220000.md",
-            snapshot_artifact_path=tmp_path / "openai_panel_report__20260322_220000.json",
-            snapshot_metadata_path=tmp_path / "openai_panel_report.metadata__20260322_220000.json",
-        ),
-    )
-
-    exit_code = cli.main(["openai-panel", "--report-path", str(report_path)])
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
-
-    assert exit_code == 0
-    assert payload == {
-        "release_id": "R18",
-        "provider_name": "openai",
-        "model_name": "gpt-5-mini-2025-08-07",
-        "prompt_modes": ["binary"],
-        "report_path": str(report_path),
-        "artifact_path": str(report_path.with_suffix(".json")),
-        "metadata_path": str(tmp_path / "openai_panel_report.metadata.json"),
-        "snapshot_report_path": str(
-            tmp_path / "openai_panel_report__20260322_220000.md"
-        ),
-        "snapshot_artifact_path": str(
-            tmp_path / "openai_panel_report__20260322_220000.json"
-        ),
-        "snapshot_metadata_path": str(
-            tmp_path / "openai_panel_report.metadata__20260322_220000.json"
-        ),
-    }
-
-
-def test_openai_panel_command_rejects_unpinned_model_ids(
-    capsys: pytest.CaptureFixture[str],
-):
-    exit_code = cli.main(["openai-panel", "--model", "gpt-5-mini"])
-
-    captured = capsys.readouterr()
-
-    assert exit_code == 2
-    assert "pinned model ID" in captured.err
+    with pytest.raises(SystemExit):
+        cli.main(["openai-panel"])
 
 
 def test_main_returns_130_on_keyboard_interrupt(
@@ -444,11 +178,11 @@ def test_main_returns_130_on_keyboard_interrupt(
 ):
     monkeypatch.setattr(
         cli,
-        "run_gemini_first_panel",
-        lambda **_: (_ for _ in ()).throw(KeyboardInterrupt()),
+        "_command_validity",
+        lambda args: (_ for _ in ()).throw(KeyboardInterrupt()),
     )
 
-    exit_code = cli.main(["gemini-first-panel"])
+    exit_code = cli.main(["validity"])
 
     captured = capsys.readouterr()
 

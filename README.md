@@ -49,14 +49,6 @@ make reaudit
 make integrity
 ```
 
-Optional local provider runs require the matching extra and API key:
-
-```bash
-python3 -m pip install -e ".[gemini]"
-python3 -m pip install -e ".[anthropic]"
-python3 -m pip install -e ".[openai]"
-```
-
 ## Kaggle And Private Split Workflow
 
 - Benchmark-facing summary: `packaging/kaggle/BENCHMARK_CARD.md`

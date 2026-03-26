@@ -36,6 +36,18 @@ FROZEN_ARTIFACTS_MANIFEST_SRC = KAGGLE_DIR / "frozen_artifacts_manifest.json"
 
 DEPLOY_NOTEBOOK_DIR = DEPLOY_DIR / "kaggle-notebook"
 DEPLOY_RUNTIME_DIR = DEPLOY_DIR / "kaggle-runtime"
+_RUNTIME_CORE_MODULES: tuple[str, ...] = (
+    "__init__.py",
+    "audit.py",
+    "invariance.py",
+    "kaggle.py",
+    "metrics.py",
+    "parser.py",
+    "private_split.py",
+    "slices.py",
+    "splits.py",
+    "validate.py",
+)
 
 
 def _verify_sources() -> None:
@@ -141,7 +153,7 @@ def build_kaggle_runtime() -> None:
     The runtime folder mirrors the subset the notebook expects to find
     under /kaggle/input/ruleshift-runtime/ on Kaggle:
 
-      src/core/                          -- core infrastructure
+      src/core/                          -- notebook runtime modules only
       src/tasks/ruleshift_benchmark/     -- task-specific logic
       src/frozen_splits/                 -- frozen episode manifests
       packaging/kaggle/frozen_artifacts_manifest.json
@@ -167,9 +179,13 @@ def build_kaggle_runtime() -> None:
     runtime_src = DEPLOY_RUNTIME_DIR / "src"
     runtime_src.mkdir()
 
-    # src/core/
-    shutil.copytree(SRC_DIR / "core", runtime_src / "core", ignore=shutil.ignore_patterns("__pycache__"))
-    print(f"  src/core/")
+    # src/core/ -- only the modules imported on the official notebook path.
+    runtime_core = runtime_src / "core"
+    runtime_core.mkdir()
+    for filename in _RUNTIME_CORE_MODULES:
+        shutil.copy2(SRC_DIR / "core" / filename, runtime_core / filename)
+        print(f"  src/core/{filename}")
+    print("  src/core/")
 
     # src/tasks/
     tasks_dst = runtime_src / "tasks"
@@ -204,8 +220,9 @@ def build_kaggle_runtime() -> None:
         "`/kaggle/input/ruleshift-runtime/`\n\n"
         "Copied items:\n\n"
         "- `src/core/`\n"
-        "  Required because the official notebook imports runtime infrastructure "
-        "from `core.*` after adding `/kaggle/input/ruleshift-runtime/src` to `sys.path`.\n"
+        "  Required because the official notebook imports the runtime scoring, "
+        "split-loading, parsing, validation, and private-mount helpers from "
+        "`core.*` after adding `/kaggle/input/ruleshift-runtime/src` to `sys.path`.\n"
         "- `src/tasks/ruleshift_benchmark/`\n"
         "  Required because the runtime scoring, rendering, schema, protocol, "
         "baseline, and generator logic import task modules from this package.\n"

@@ -1,5 +1,5 @@
 PYTHON ?= .venv/bin/python
-CLI := $(PYTHON) scripts/ruleshift_benchmark.py
+CLI := PYTHONPATH=src $(PYTHON) -m core.cli
 
 .PHONY: help test validity reaudit integrity evidence-pass notebook-check contract-audit compliance-check
 

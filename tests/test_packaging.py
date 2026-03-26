@@ -27,9 +27,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 _KBENCH_NOTEBOOK_PATH = _KAGGLE_DIR / "ruleshift_notebook_task.ipynb"
-_STAGING_DIR = _KAGGLE_DIR / "staging"
-_ARCHIVE_DIR = _KAGGLE_DIR / "archive"
-_STAGING_NOTEBOOK_PATH = _STAGING_DIR / "ruleshift_benchmark_v1_kaggle_staging.ipynb"
 _KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
 _CARD_PATH = _KAGGLE_DIR / "BENCHMARK_CARD.md"
 
@@ -109,14 +106,14 @@ def test_official_kaggle_submission_flow_is_consistent_across_surface():
     assert official_notebook_relpath in card_text
 
 
-def test_non_official_packaged_paths_are_explicitly_marked_non_active():
+def test_non_official_packaged_paths_are_removed():
     card_text = _CARD_PATH.read_text(encoding="utf-8")
 
     assert "staging" not in card_text.lower()
-    assert not any(_ARCHIVE_DIR.iterdir())
+    assert not (_KAGGLE_DIR / "staging" / "ruleshift_benchmark_v1_kaggle_staging.ipynb").exists()
 
 
-def test_kaggle_directory_layout_separates_active_staging_and_archive_files():
+def test_kaggle_directory_layout_contains_only_official_entry_surfaces():
     top_level_files = sorted(path.name for path in _KAGGLE_DIR.iterdir() if path.is_file())
 
     assert top_level_files == [
@@ -126,8 +123,6 @@ def test_kaggle_directory_layout_separates_active_staging_and_archive_files():
         "kernel-metadata.json",
         "ruleshift_notebook_task.ipynb",
     ]
-    assert _STAGING_NOTEBOOK_PATH.is_file()
-    assert _ARCHIVE_DIR.is_dir()
 
 
 def test_kaggle_runbook_documents_the_minimum_runtime_subset():
@@ -192,15 +187,7 @@ def test_pyproject_exposes_local_console_entrypoints():
         "ruleshift-benchmark-contract-audit": "core.cli:contract_audit_entrypoint",
     }
     assert pyproject["project"]["dependencies"] == []
-    assert pyproject["project"]["optional-dependencies"]["gemini"] == [
-        "google-genai>=1,<2",
-    ]
-    assert pyproject["project"]["optional-dependencies"]["anthropic"] == [
-        "anthropic>=0.40,<1",
-    ]
-    assert pyproject["project"]["optional-dependencies"]["openai"] == [
-        "openai>=1.0,<2",
-    ]
+    assert "optional-dependencies" not in pyproject["project"]
 
 
 def test_benchmark_card_matches_current_implementation_state():
@@ -251,7 +238,7 @@ def test_active_docs_identify_one_official_packaged_readiness_anchor():
     joined = "\n".join(texts)
     lowered = joined.lower()
 
-    assert "Current readiness evidence is Gemini-only." in joined
+    assert "current readiness evidence" not in lowered
     assert "reports/live/gemini-first-panel" not in joined
     assert "m1_binary_vs_narrative_robustness_report.md" not in joined
     assert "supporting comparison material" not in lowered
@@ -303,20 +290,14 @@ def test_packaging_docs_do_not_claim_unsupported_features():
         assert phrase not in lowered
 
 
-def test_kaggle_packaging_text_keeps_optional_provider_sdks_out_of_base_path():
+def test_kaggle_packaging_text_stays_focused_on_benchmark_runtime_path():
     text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8").lower()
 
-    assert "optional local provider runs require the matching extra" in text
+    assert "optional local provider runs" not in text
+    assert ".[gemini]" not in text
+    assert ".[anthropic]" not in text
+    assert ".[openai]" not in text
     assert "production dependency installation" not in text
-
-
-def test_kaggle_staging_path_does_not_depend_on_openai_runtime():
-    notebook_text = _read_notebook_sources(_STAGING_NOTEBOOK_PATH).lower()
-    readme_text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8").lower()
-
-    assert "openai_api_key" not in notebook_text
-    assert "ife openai-panel" not in notebook_text
-    assert "openai_api_key" not in readme_text
 
 
 def test_official_kbench_notebook_imports_package_owned_benchmark_logic():
@@ -386,6 +367,29 @@ _PRIVATE_ONLY_FILENAMES = (
 )
 
 _BUILD_DEPLOY_DIR = _REPO_ROOT / "scripts"
+
+
+def test_build_deploy_runtime_core_subset_matches_official_notebook_path():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("build_deploy", _BUILD_DEPLOY_DIR / "build_deploy.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    assert mod._RUNTIME_CORE_MODULES == (
+        "__init__.py",
+        "audit.py",
+        "invariance.py",
+        "kaggle.py",
+        "metrics.py",
+        "parser.py",
+        "private_split.py",
+        "slices.py",
+        "splits.py",
+        "validate.py",
+    )
+    assert "cli.py" not in mod._RUNTIME_CORE_MODULES
+    assert "model_runner.py" not in mod._RUNTIME_CORE_MODULES
 
 
 def test_build_deploy_guardrail_rejects_private_asset_in_runtime(tmp_path):

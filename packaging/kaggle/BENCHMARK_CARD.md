@@ -32,6 +32,5 @@ The public repo and public Kaggle runtime package contain only the public splits
 - R13 anti-shortcut validity gate remains the main shortcut-risk check.
 - R15 empirical re-audit indicates the recency shortcut was materially reduced.
 - Reference baselines: `random`, `never_update`, `last_evidence`, `physics_prior`, `template_position`.
-- Current readiness evidence is Gemini-only.
 - Narrative is diagnostic-only and never changes the leaderboard score.
 - The benchmark does **not** claim physics skill, full executive-function decomposition, switch cost, recovery length, immediate post-shift drop, online detection latency, or broad AGI capability.
