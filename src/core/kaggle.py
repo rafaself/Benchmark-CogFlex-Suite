@@ -227,7 +227,7 @@ def normalize_narrative_response(response: object) -> tuple[str, ...] | None:
     if isinstance(response, str):
         parsed = parse_narrative_audit_output(response)
         if parsed.status is NarrativeParseStatus.VALID and parsed.output is not None:
-            return tuple(label.value for label in parsed.output.final_binary_answer)
+            return tuple(label.value for label in parsed.output.final_decision)
 
     return None
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-import json
 import re
 
 from tasks.ruleshift_benchmark.protocol import (
@@ -22,18 +21,16 @@ __all__ = [
     "parse_narrative_audit_output",
 ]
 
-PARSER_VERSION = "v1"
+PARSER_VERSION = "v2"
 _SEPARATOR_PATTERN = re.compile(r"[\n,]+")
-_NUMBER_PREFIX_RE = re.compile(r"^\d+\.?\s*")
-_BOLD_MARKER_RE = re.compile(r"\*+")
-_JSON_CODE_BLOCK_RE = re.compile(r"```(?:json)?\s*\n(.*?)\n\s*```", re.DOTALL | re.IGNORECASE)
-
-_NARRATIVE_SCHEMA_FIELDS = (
-    "inferred_rule_before",
+_CODE_BLOCK_RE = re.compile(r"\A```(?:[^\n`]*)?\s*\n(.*?)\n\s*```\Z", re.DOTALL)
+_NARRATIVE_FIELD_ORDER = (
+    "rule_before",
     "shift_evidence",
-    "inferred_rule_after",
-    "final_binary_answer",
+    "rule_after",
+    "final_decision",
 )
+_NARRATIVE_FIELD_SET = frozenset(_NARRATIVE_FIELD_ORDER)
 
 
 class ParseStatus(StrEnum):
@@ -65,10 +62,10 @@ class NarrativeParseStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class NarrativeAuditOutput:
-    inferred_rule_before: str
+    rule_before: str
     shift_evidence: str
-    inferred_rule_after: str
-    final_binary_answer: tuple[InteractionLabel, ...]
+    rule_after: str
+    final_decision: tuple[InteractionLabel, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,11 +84,7 @@ def parse_binary_output(text: str) -> ParsedPrediction:
 
 
 def parse_narrative_audit_output(text: str) -> NarrativeParsedResult:
-    """Parse a structured JSON narrative audit response.
-
-    Expects a JSON object with fields: inferred_rule_before, shift_evidence,
-    inferred_rule_after, final_binary_answer (list of exactly 4 labels).
-    """
+    """Parse a four-line narrative audit response."""
     if not text or not text.strip():
         return NarrativeParsedResult(
             output=None,
@@ -99,29 +92,53 @@ def parse_narrative_audit_output(text: str) -> NarrativeParsedResult:
             failure_detail="empty response",
         )
 
-    json_text = text.strip()
-    # Unwrap markdown code block if present.
-    block_match = _JSON_CODE_BLOCK_RE.search(json_text)
+    normalized_text = text.strip()
+    block_match = _CODE_BLOCK_RE.fullmatch(normalized_text)
     if block_match:
-        json_text = block_match.group(1).strip()
+        normalized_text = block_match.group(1).strip()
 
-    try:
-        payload = json.loads(json_text)
-    except (json.JSONDecodeError, ValueError):
+    payload: dict[str, str] = {}
+    content_lines = tuple(
+        line.strip() for line in normalized_text.splitlines() if line.strip()
+    )
+    if len(content_lines) != len(_NARRATIVE_FIELD_ORDER):
         return NarrativeParsedResult(
             output=None,
             status=NarrativeParseStatus.INVALID_FORMAT,
-            failure_detail="response is not valid JSON",
+            failure_detail="response must contain exactly 4 non-empty contract lines",
         )
 
-    if not isinstance(payload, dict):
-        return NarrativeParsedResult(
-            output=None,
-            status=NarrativeParseStatus.INVALID_FORMAT,
-            failure_detail="JSON root must be an object",
-        )
+    for line in content_lines:
+        key, separator, value = line.partition(":")
+        if not separator:
+            return NarrativeParsedResult(
+                output=None,
+                status=NarrativeParseStatus.INVALID_FORMAT,
+                failure_detail="each contract line must be formatted as key: value",
+            )
+        normalized_key = key.strip().lower()
+        normalized_value = value.strip()
+        if normalized_key not in _NARRATIVE_FIELD_SET:
+            return NarrativeParsedResult(
+                output=None,
+                status=NarrativeParseStatus.INVALID_FORMAT,
+                failure_detail=f"unknown narrative field: {key.strip()!r}",
+            )
+        if normalized_key in payload:
+            return NarrativeParsedResult(
+                output=None,
+                status=NarrativeParseStatus.INVALID_FORMAT,
+                failure_detail=f"duplicate narrative field: {normalized_key!r}",
+            )
+        if not normalized_value:
+            return NarrativeParsedResult(
+                output=None,
+                status=NarrativeParseStatus.MISSING_FIELD,
+                failure_detail=f"{normalized_key!r} must be a non-empty string",
+            )
+        payload[normalized_key] = normalized_value
 
-    for field_name in _NARRATIVE_SCHEMA_FIELDS:
+    for field_name in _NARRATIVE_FIELD_ORDER:
         if field_name not in payload:
             return NarrativeParsedResult(
                 output=None,
@@ -129,37 +146,23 @@ def parse_narrative_audit_output(text: str) -> NarrativeParsedResult:
                 failure_detail=f"missing required field: {field_name!r}",
             )
 
-    for field_name in ("inferred_rule_before", "shift_evidence", "inferred_rule_after"):
-        if not isinstance(payload[field_name], str) or not payload[field_name].strip():
-            return NarrativeParsedResult(
-                output=None,
-                status=NarrativeParseStatus.MISSING_FIELD,
-                failure_detail=f"{field_name!r} must be a non-empty string",
-            )
-
-    raw_labels = payload["final_binary_answer"]
-    if not isinstance(raw_labels, list) or len(raw_labels) != PROBE_COUNT:
+    parsed_labels = _parse_labels_payload(payload["final_decision"])
+    if parsed_labels.status is not ParseStatus.VALID:
         return NarrativeParsedResult(
             output=None,
             status=NarrativeParseStatus.INVALID_LABELS,
-            failure_detail=f"final_binary_answer must be a list of exactly {PROBE_COUNT} labels",
-        )
-
-    try:
-        labels = tuple(parse_label(str(lbl).strip().lower()) for lbl in raw_labels)
-    except ValueError as exc:
-        return NarrativeParsedResult(
-            output=None,
-            status=NarrativeParseStatus.INVALID_LABELS,
-            failure_detail=f"invalid label value: {exc}",
+            failure_detail=(
+                f"final_decision must contain exactly {PROBE_COUNT} labels "
+                "using only attract or repel"
+            ),
         )
 
     return NarrativeParsedResult(
         output=NarrativeAuditOutput(
-            inferred_rule_before=payload["inferred_rule_before"].strip(),
-            shift_evidence=payload["shift_evidence"].strip(),
-            inferred_rule_after=payload["inferred_rule_after"].strip(),
-            final_binary_answer=labels,
+            rule_before=payload["rule_before"],
+            shift_evidence=payload["shift_evidence"],
+            rule_after=payload["rule_after"],
+            final_decision=parsed_labels.labels,
         ),
         status=NarrativeParseStatus.VALID,
     )

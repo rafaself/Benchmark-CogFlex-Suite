@@ -200,6 +200,9 @@ class ModeComparisonSummary:
     binary_parse_valid_rate: float
     narrative_parse_valid_rate: float
     parse_valid_rate_gap: float
+    exact_agreement_count: int
+    exact_agreement_denominator: int
+    exact_agreement_rate: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,6 +228,7 @@ class MatchedModeComparisonSummary:
     narrative_source_name: str
     covered_splits: tuple[str, ...]
     overall: ModeComparisonSummary
+    by_split: tuple[tuple[str, ModeComparisonSummary], ...]
     by_template: tuple[tuple[str, ModeComparisonSummary], ...]
     by_template_family: tuple[tuple[str, ModeComparisonSummary], ...]
     by_difficulty: tuple[tuple[str, ModeComparisonSummary], ...]
@@ -314,7 +318,10 @@ def run_audit(
         episodes=normalized_episodes,
         sources=normalized_sources,
     )
-    mode_comparison = _build_mode_comparison(task_mode_summaries)
+    mode_comparison = _build_mode_comparison(
+        task_mode_summaries,
+        sources=normalized_sources,
+    )
 
     return AuditReport(
         episode_count=episode_count,
@@ -484,6 +491,10 @@ def serialize_release_r15_reaudit_report(
                 "narrative_source_name": summary.narrative_source_name,
                 "covered_splits": list(summary.covered_splits),
                 "overall": _serialize_mode_comparison(summary.overall),
+                "by_split": [
+                    {"label": label, **_serialize_mode_comparison(slice_summary)}
+                    for label, slice_summary in summary.by_split
+                ],
                 "by_template": [
                     {"label": label, **_serialize_mode_comparison(slice_summary)}
                     for label, slice_summary in summary.by_template
@@ -686,12 +697,26 @@ def _build_task_mode_summaries(
 
 def _build_mode_comparison(
     task_mode_summaries: tuple[tuple[TaskMode, AuditSliceSummary], ...],
+    *,
+    sources: tuple[AuditSource, ...],
 ) -> ModeComparisonSummary | None:
     task_mode_map = dict(task_mode_summaries)
     binary_summary = task_mode_map.get("Binary")
     narrative_summary = task_mode_map.get("Narrative")
     if binary_summary is None or narrative_summary is None:
         return None
+    binary_sources = tuple(source for source in sources if source.task_mode == "Binary")
+    narrative_sources = tuple(
+        source for source in sources if source.task_mode == "Narrative"
+    )
+    if len(binary_sources) == 1 and len(narrative_sources) == 1:
+        exact_agreement_count, exact_agreement_denominator = _count_exact_agreements(
+            binary_predictions=binary_sources[0].predictions,
+            narrative_predictions=narrative_sources[0].predictions,
+        )
+    else:
+        exact_agreement_count = 0
+        exact_agreement_denominator = 0
     return ModeComparisonSummary(
         binary_accuracy=binary_summary.accuracy,
         narrative_accuracy=narrative_summary.accuracy,
@@ -700,6 +725,13 @@ def _build_mode_comparison(
         narrative_parse_valid_rate=narrative_summary.parse_valid_rate,
         parse_valid_rate_gap=(
             binary_summary.parse_valid_rate - narrative_summary.parse_valid_rate
+        ),
+        exact_agreement_count=exact_agreement_count,
+        exact_agreement_denominator=exact_agreement_denominator,
+        exact_agreement_rate=(
+            exact_agreement_count / exact_agreement_denominator
+            if exact_agreement_denominator
+            else 0.0
         ),
     )
 
@@ -1051,6 +1083,19 @@ def _build_release_mode_comparisons(
                     narrative_predictions=combined_narrative_predictions,
                     targets=tuple(episode.probe_targets for episode in combined_episodes),
                 ),
+                by_split=tuple(
+                    (
+                        split_name,
+                        _build_mode_comparison_from_predictions(
+                            binary_predictions=binary_sources[split_name].predictions,
+                            narrative_predictions=narrative_sources[split_name].predictions,
+                            targets=tuple(
+                                episode.probe_targets for episode in episode_map[split_name]
+                            ),
+                        ),
+                    )
+                    for split_name in matched_splits
+                ),
                 by_template=_build_mode_slice_comparisons(
                     episodes=combined_episodes,
                     binary_predictions=combined_binary_predictions,
@@ -1145,6 +1190,10 @@ def _build_mode_comparison_from_predictions(
 ) -> ModeComparisonSummary:
     binary_summary = _build_slice_summary(binary_predictions, targets)
     narrative_summary = _build_slice_summary(narrative_predictions, targets)
+    exact_agreement_count, exact_agreement_denominator = _count_exact_agreements(
+        binary_predictions=binary_predictions,
+        narrative_predictions=narrative_predictions,
+    )
     return ModeComparisonSummary(
         binary_accuracy=binary_summary.accuracy,
         narrative_accuracy=narrative_summary.accuracy,
@@ -1154,7 +1203,36 @@ def _build_mode_comparison_from_predictions(
         parse_valid_rate_gap=(
             binary_summary.parse_valid_rate - narrative_summary.parse_valid_rate
         ),
+        exact_agreement_count=exact_agreement_count,
+        exact_agreement_denominator=exact_agreement_denominator,
+        exact_agreement_rate=(
+            exact_agreement_count / exact_agreement_denominator
+            if exact_agreement_denominator
+            else 0.0
+        ),
     )
+
+
+def _count_exact_agreements(
+    *,
+    binary_predictions: tuple[ParsedPrediction, ...],
+    narrative_predictions: tuple[ParsedPrediction, ...],
+) -> tuple[int, int]:
+    agreement_count = 0
+    denominator = 0
+    for binary_prediction, narrative_prediction in zip(
+        binary_predictions,
+        narrative_predictions,
+    ):
+        if (
+            binary_prediction.status is not ParseStatus.VALID
+            or narrative_prediction.status is not ParseStatus.VALID
+        ):
+            continue
+        denominator += 1
+        if binary_prediction.labels == narrative_prediction.labels:
+            agreement_count += 1
+    return agreement_count, denominator
 
 
 def _build_release_limitations(
@@ -1401,6 +1479,9 @@ def _serialize_mode_comparison(
         "binary_parse_valid_rate": summary.binary_parse_valid_rate,
         "narrative_parse_valid_rate": summary.narrative_parse_valid_rate,
         "parse_valid_rate_gap": summary.parse_valid_rate_gap,
+        "exact_agreement_count": summary.exact_agreement_count,
+        "exact_agreement_denominator": summary.exact_agreement_denominator,
+        "exact_agreement_rate": summary.exact_agreement_rate,
     }
 
 

@@ -209,9 +209,9 @@ def test_output_instructions_explicitly_require_four_ordered_answers():
     assert (
         "Return exactly 4 labels in order, one per probe. Use only attract or repel."
     ) in binary_prompt
-    # Narrative prompt must request structured JSON with the required schema fields.
-    assert '"inferred_rule_before"' in narrative_prompt
-    assert '"shift_evidence"' in narrative_prompt
-    assert '"inferred_rule_after"' in narrative_prompt
-    assert '"final_binary_answer"' in narrative_prompt
-    assert "Output only the JSON object" in narrative_prompt
+    assert "Narrative is supplemental audit evidence only." in narrative_prompt
+    assert "Binary remains the official leaderboard task." in narrative_prompt
+    assert "rule_before: <short pre-shift rule>" in narrative_prompt
+    assert "shift_evidence: <short shift evidence>" in narrative_prompt
+    assert "rule_after: <short post-shift rule>" in narrative_prompt
+    assert "final_decision: attract, repel, repel, attract" in narrative_prompt

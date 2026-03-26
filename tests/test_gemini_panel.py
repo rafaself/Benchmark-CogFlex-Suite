@@ -25,12 +25,14 @@ def _labels_text(labels: tuple[InteractionLabel, ...]) -> str:
 
 
 def _narrative_text(labels: tuple[InteractionLabel, ...]) -> str:
-    return json.dumps({
-        "inferred_rule_before": "opposite-sign attract, same-sign repel",
-        "shift_evidence": "post-shift observations inverted the rule",
-        "inferred_rule_after": "same-sign attract, opposite-sign repel",
-        "final_binary_answer": [label.value for label in labels],
-    })
+    return "\n".join(
+        (
+            "rule_before: opposite-sign attract, same-sign repel",
+            "shift_evidence: post-shift observations inverted the rule",
+            "rule_after: same-sign attract, opposite-sign repel",
+            f"final_decision: {', '.join(label.value for label in labels)}",
+        )
+    )
 
 
 def _wrong_labels(episode) -> tuple[InteractionLabel, ...]:
@@ -167,7 +169,7 @@ def test_run_gemini_first_panel_writes_paired_artifact_and_report(
     assert metadata["invocation"]["surface"] == "python-api"
     assert metadata["benchmark_versions"]["generator_version"] == "R13"
     assert metadata["benchmark_versions"]["template_family_version"] == "v2"
-    assert metadata["benchmark_versions"]["parser_version"] == "v1"
+    assert metadata["benchmark_versions"]["parser_version"] == "v2"
     assert metadata["benchmark_versions"]["metric_version"] == "v1"
     assert len(metadata["frozen_artifacts"]["split_manifests"]) == 3
     assert metadata["storage"]["report"]["latest"]["sha256"]

@@ -95,11 +95,11 @@ def _parsed_payload(parsed_prediction: ParsedPrediction) -> dict[str, object]:
 def _parsed_narrative_payload(parsed_result: NarrativeParsedResult) -> dict[str, object]:
     result: dict[str, object] = {"status": parsed_result.status.value}
     if parsed_result.output is not None:
-        result["inferred_rule_before"] = parsed_result.output.inferred_rule_before
+        result["rule_before"] = parsed_result.output.rule_before
         result["shift_evidence"] = parsed_result.output.shift_evidence
-        result["inferred_rule_after"] = parsed_result.output.inferred_rule_after
-        result["final_binary_answer"] = [
-            label.value for label in parsed_result.output.final_binary_answer
+        result["rule_after"] = parsed_result.output.rule_after
+        result["final_decision"] = [
+            label.value for label in parsed_result.output.final_decision
         ]
     return result
 

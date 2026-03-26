@@ -439,6 +439,9 @@ def test_task_mode_summaries_and_comparison_are_reported_deterministically():
         binary_parse_valid_rate=1.0,
         narrative_parse_valid_rate=0.5,
         parse_valid_rate_gap=0.5,
+        exact_agreement_count=0,
+        exact_agreement_denominator=1,
+        exact_agreement_rate=0.0,
     )
 
 
@@ -552,7 +555,26 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                 binary_parse_valid_rate=1.0,
                 narrative_parse_valid_rate=0.5,
                 parse_valid_rate_gap=0.5,
+                exact_agreement_count=0,
+                exact_agreement_denominator=1,
+                exact_agreement_rate=0.0,
             ),
+                by_split=(
+                    (
+                        "dev",
+                        ModeComparisonSummary(
+                            binary_accuracy=0.625,
+                            narrative_accuracy=0.5,
+                            accuracy_gap=0.125,
+                            binary_parse_valid_rate=1.0,
+                            narrative_parse_valid_rate=0.5,
+                            parse_valid_rate_gap=0.5,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=1,
+                            exact_agreement_rate=0.0,
+                        ),
+                    ),
+                ),
                 by_template=(
                     (
                         "T1",
@@ -563,6 +585,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=1.0,
                         narrative_parse_valid_rate=1.0,
                         parse_valid_rate_gap=0.0,
+                        exact_agreement_count=0,
+                        exact_agreement_denominator=1,
+                        exact_agreement_rate=0.0,
                     ),
                 ),
                     (
@@ -574,6 +599,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=1.0,
                             narrative_parse_valid_rate=0.0,
                             parse_valid_rate_gap=1.0,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=0,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                     (
@@ -585,6 +613,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                             binary_parse_valid_rate=0.0,
                             narrative_parse_valid_rate=0.0,
                             parse_valid_rate_gap=0.0,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=0,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                 ),
@@ -598,6 +629,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=1.0,
                         narrative_parse_valid_rate=1.0,
                         parse_valid_rate_gap=0.0,
+                        exact_agreement_count=0,
+                        exact_agreement_denominator=1,
+                        exact_agreement_rate=0.0,
                     ),
                 ),
                     (
@@ -609,6 +643,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=1.0,
                             narrative_parse_valid_rate=0.0,
                             parse_valid_rate_gap=1.0,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=0,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                     (
@@ -620,6 +657,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                             binary_parse_valid_rate=0.0,
                             narrative_parse_valid_rate=0.0,
                             parse_valid_rate_gap=0.0,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=0,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                 ),
@@ -633,6 +673,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=0.0,
                         narrative_parse_valid_rate=0.0,
                         parse_valid_rate_gap=0.0,
+                        exact_agreement_count=0,
+                        exact_agreement_denominator=0,
+                        exact_agreement_rate=0.0,
                     ),
                 ),
                     (
@@ -644,6 +687,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                             binary_parse_valid_rate=0.0,
                             narrative_parse_valid_rate=0.0,
                             parse_valid_rate_gap=0.0,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=0,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                     (
@@ -655,6 +701,9 @@ def test_release_r15_binary_vs_narrative_comparison_is_stable_on_matched_fixture
                         binary_parse_valid_rate=1.0,
                             narrative_parse_valid_rate=0.5,
                             parse_valid_rate_gap=0.5,
+                            exact_agreement_count=0,
+                            exact_agreement_denominator=1,
+                            exact_agreement_rate=0.0,
                         ),
                     ),
                 ),

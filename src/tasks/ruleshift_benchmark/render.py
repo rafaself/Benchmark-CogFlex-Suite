@@ -46,13 +46,12 @@ _NARRATIVE_INTROS = {
 }
 _BINARY_OUTRO = "Return exactly 4 labels in order, one per probe. Use only attract or repel."
 _NARRATIVE_OUTRO = (
-    "Return your analysis as a JSON object with exactly these four fields:\n"
-    '  "inferred_rule_before": your inferred rule from the pre-shift examples (string),\n'
-    '  "shift_evidence": which observations indicated the rule changed (string),\n'
-    '  "inferred_rule_after": your inferred rule from the post-shift examples (string),\n'
-    '  "final_binary_answer": list of exactly 4 labels in probe order'
-    ' (each "attract" or "repel").\n'
-    "Output only the JSON object."
+    "Narrative is supplemental audit evidence only. Binary remains the official leaderboard task.\n"
+    "Return exactly these 4 lines and nothing else:\n"
+    "rule_before: <short pre-shift rule>\n"
+    "shift_evidence: <short shift evidence>\n"
+    "rule_after: <short post-shift rule>\n"
+    "final_decision: attract, repel, repel, attract"
 )
 
 

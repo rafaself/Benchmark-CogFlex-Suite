@@ -1,5 +1,3 @@
-import json
-
 from parser import (
     NarrativeAuditOutput,
     NarrativeParseStatus,
@@ -13,6 +11,17 @@ from protocol import InteractionLabel
 
 ATTRACT = InteractionLabel.ATTRACT
 REPEL = InteractionLabel.REPEL
+
+
+def _make_valid_narrative_text(final_decision: str = "attract, repel, repel, attract") -> str:
+    return "\n".join(
+        (
+            "rule_before: opposite-sign attract, same-sign repel",
+            "shift_evidence: observations 3-5 contradict the initial rule",
+            "rule_after: same-sign attract, opposite-sign repel",
+            f"final_decision: {final_decision}",
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -58,71 +67,60 @@ def test_wrong_length_binary_outputs_use_invalid_result():
 # ---------------------------------------------------------------------------
 
 
-def _make_valid_json(labels=None) -> str:
-    if labels is None:
-        labels = ["attract", "repel", "repel", "attract"]
-    return json.dumps({
-        "inferred_rule_before": "opposite-sign attract, same-sign repel",
-        "shift_evidence": "observations 3-5 contradict the initial rule",
-        "inferred_rule_after": "same-sign attract, opposite-sign repel",
-        "final_binary_answer": labels,
-    })
-
-
-def test_narrative_audit_parses_valid_json_with_all_fields():
-    result = parse_narrative_audit_output(_make_valid_json())
+def test_narrative_audit_parses_valid_four_line_contract():
+    result = parse_narrative_audit_output(_make_valid_narrative_text())
 
     assert result.status is NarrativeParseStatus.VALID
     assert result.output is not None
-    assert result.output.inferred_rule_before == "opposite-sign attract, same-sign repel"
+    assert result.output.rule_before == "opposite-sign attract, same-sign repel"
     assert result.output.shift_evidence == "observations 3-5 contradict the initial rule"
-    assert result.output.inferred_rule_after == "same-sign attract, opposite-sign repel"
-    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
+    assert result.output.rule_after == "same-sign attract, opposite-sign repel"
+    assert result.output.final_decision == (ATTRACT, REPEL, REPEL, ATTRACT)
     assert result.failure_detail is None
 
 
 def test_narrative_audit_output_is_frozen_dataclass():
-    result = parse_narrative_audit_output(_make_valid_json())
+    result = parse_narrative_audit_output(_make_valid_narrative_text())
     assert result.status is NarrativeParseStatus.VALID
     assert isinstance(result, NarrativeParsedResult)
     assert isinstance(result.output, NarrativeAuditOutput)
 
 
-def test_narrative_audit_handles_json_in_markdown_code_block():
-    text = "```json\n" + _make_valid_json() + "\n```"
+def test_narrative_audit_handles_contract_in_markdown_code_block():
+    text = "```\n" + _make_valid_narrative_text() + "\n```"
     result = parse_narrative_audit_output(text)
     assert result.status is NarrativeParseStatus.VALID
-    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
+    assert result.output.final_decision == (ATTRACT, REPEL, REPEL, ATTRACT)
 
 
-def test_narrative_audit_handles_plain_markdown_code_block():
-    text = "```\n" + _make_valid_json() + "\n```"
+def test_narrative_audit_normalizes_key_case_and_label_case():
+    text = "\n".join(
+        (
+            "RULE_BEFORE: rule A",
+            "SHIFT_EVIDENCE: evidence",
+            "RULE_AFTER: rule B",
+            "FINAL_DECISION: ATTRACT, Repel, REPEL, Attract",
+        )
+    )
     result = parse_narrative_audit_output(text)
     assert result.status is NarrativeParseStatus.VALID
+    assert result.output.final_decision == (ATTRACT, REPEL, REPEL, ATTRACT)
 
 
-def test_narrative_audit_case_insensitive_labels():
-    result = parse_narrative_audit_output(json.dumps({
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["ATTRACT", "Repel", "REPEL", "Attract"],
-    }))
+def test_narrative_audit_strips_whitespace_from_values():
+    text = "\n".join(
+        (
+            "rule_before:   rule A  ",
+            "shift_evidence:   evidence  ",
+            "rule_after:   rule B  ",
+            "final_decision:   attract, repel, repel, attract  ",
+        )
+    )
+    result = parse_narrative_audit_output(text)
     assert result.status is NarrativeParseStatus.VALID
-    assert result.output.final_binary_answer == (ATTRACT, REPEL, REPEL, ATTRACT)
-
-
-def test_narrative_audit_strips_whitespace_from_text_fields():
-    result = parse_narrative_audit_output(json.dumps({
-        "inferred_rule_before": "  rule A  ",
-        "shift_evidence": "  evidence  ",
-        "inferred_rule_after": "  rule B  ",
-        "final_binary_answer": ["attract", "repel", "repel", "attract"],
-    }))
-    assert result.status is NarrativeParseStatus.VALID
-    assert result.output.inferred_rule_before == "rule A"
+    assert result.output.rule_before == "rule A"
     assert result.output.shift_evidence == "evidence"
-    assert result.output.inferred_rule_after == "rule B"
+    assert result.output.rule_after == "rule B"
 
 
 # ---------------------------------------------------------------------------
@@ -136,12 +134,7 @@ def test_narrative_audit_rejects_empty_text():
     assert result.output is None
 
 
-def test_narrative_audit_rejects_whitespace_only_text():
-    result = parse_narrative_audit_output("   \n  ")
-    assert result.status is NarrativeParseStatus.INVALID_FORMAT
-
-
-def test_narrative_audit_rejects_non_json_prose():
+def test_narrative_audit_rejects_non_contract_prose():
     result = parse_narrative_audit_output(
         "The rule shifted after observation 3. My answers are attract, repel, repel, attract."
     )
@@ -149,94 +142,87 @@ def test_narrative_audit_rejects_non_json_prose():
     assert result.output is None
 
 
-def test_narrative_audit_rejects_json_array_root():
-    result = parse_narrative_audit_output('["attract", "repel", "repel", "attract"]')
+def test_narrative_audit_rejects_unknown_field():
+    text = "\n".join(
+        (
+            "rule_before: rule A",
+            "shift_evidence: evidence",
+            "rule_after: rule B",
+            "final_answer: attract, repel, repel, attract",
+        )
+    )
+    result = parse_narrative_audit_output(text)
     assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert "unknown narrative field" in (result.failure_detail or "")
 
 
-def test_narrative_audit_rejects_missing_inferred_rule_before():
-    payload = {
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "repel", "attract"],
-    }
-    result = parse_narrative_audit_output(json.dumps(payload))
+def test_narrative_audit_rejects_duplicate_field():
+    text = "\n".join(
+        (
+            "rule_before: rule A",
+            "shift_evidence: evidence",
+            "rule_after: rule B",
+            "rule_after: another rule B",
+        )
+    )
+    result = parse_narrative_audit_output(text)
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert "duplicate narrative field" in (result.failure_detail or "")
+
+
+def test_narrative_audit_rejects_missing_rule_before():
+    text = "\n".join(
+        (
+            "shift_evidence: evidence",
+            "rule_after: rule B",
+            "final_decision: attract, repel, repel, attract",
+        )
+    )
+    result = parse_narrative_audit_output(text)
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert "exactly 4 non-empty contract lines" in (result.failure_detail or "")
+
+
+def test_narrative_audit_rejects_empty_field_value():
+    text = "\n".join(
+        (
+            "rule_before: ",
+            "shift_evidence: evidence",
+            "rule_after: rule B",
+            "final_decision: attract, repel, repel, attract",
+        )
+    )
+    result = parse_narrative_audit_output(text)
     assert result.status is NarrativeParseStatus.MISSING_FIELD
-    assert "inferred_rule_before" in (result.failure_detail or "")
+    assert "rule_before" in (result.failure_detail or "")
 
 
-def test_narrative_audit_rejects_missing_shift_evidence():
-    payload = {
-        "inferred_rule_before": "rule A",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "repel", "attract"],
-    }
-    result = parse_narrative_audit_output(json.dumps(payload))
-    assert result.status is NarrativeParseStatus.MISSING_FIELD
-    assert "shift_evidence" in (result.failure_detail or "")
-
-
-def test_narrative_audit_rejects_missing_final_binary_answer():
-    payload = {
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-    }
-    result = parse_narrative_audit_output(json.dumps(payload))
-    assert result.status is NarrativeParseStatus.MISSING_FIELD
-    assert "final_binary_answer" in (result.failure_detail or "")
-
-
-def test_narrative_audit_rejects_empty_string_text_field():
-    payload = {
-        "inferred_rule_before": "",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "repel", "attract"],
-    }
-    result = parse_narrative_audit_output(json.dumps(payload))
-    assert result.status is NarrativeParseStatus.MISSING_FIELD
+def test_narrative_audit_rejects_extra_prose_line():
+    text = _make_valid_narrative_text() + "\nsummary: extra prose"
+    result = parse_narrative_audit_output(text)
+    assert result.status is NarrativeParseStatus.INVALID_FORMAT
+    assert "exactly 4 non-empty contract lines" in (result.failure_detail or "")
 
 
 def test_narrative_audit_rejects_invalid_label_value():
-    payload = {
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "bounce", "attract"],
-    }
-    result = parse_narrative_audit_output(json.dumps(payload))
+    result = parse_narrative_audit_output(
+        _make_valid_narrative_text("attract, repel, bounce, attract")
+    )
     assert result.status is NarrativeParseStatus.INVALID_LABELS
     assert result.output is None
 
 
 def test_narrative_audit_rejects_too_few_labels():
-    result = parse_narrative_audit_output(json.dumps({
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "repel"],
-    }))
+    result = parse_narrative_audit_output(
+        _make_valid_narrative_text("attract, repel, repel")
+    )
     assert result.status is NarrativeParseStatus.INVALID_LABELS
 
 
 def test_narrative_audit_rejects_too_many_labels():
-    result = parse_narrative_audit_output(json.dumps({
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": ["attract", "repel", "repel", "attract", "attract"],
-    }))
-    assert result.status is NarrativeParseStatus.INVALID_LABELS
-
-
-def test_narrative_audit_rejects_non_list_final_binary_answer():
-    result = parse_narrative_audit_output(json.dumps({
-        "inferred_rule_before": "rule A",
-        "shift_evidence": "evidence",
-        "inferred_rule_after": "rule B",
-        "final_binary_answer": "attract, repel, repel, attract",
-    }))
+    result = parse_narrative_audit_output(
+        _make_valid_narrative_text("attract, repel, repel, attract, attract")
+    )
     assert result.status is NarrativeParseStatus.INVALID_LABELS
 
 

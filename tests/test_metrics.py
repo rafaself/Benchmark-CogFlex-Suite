@@ -23,10 +23,10 @@ def _invalid_prediction() -> ParsedPrediction:
 def _valid_narrative_result(*labels: InteractionLabel) -> NarrativeParsedResult:
     return NarrativeParsedResult(
         output=NarrativeAuditOutput(
-            inferred_rule_before="rule A",
+            rule_before="rule A",
             shift_evidence="evidence",
-            inferred_rule_after="rule B",
-            final_binary_answer=labels,
+            rule_after="rule B",
+            final_decision=labels,
         ),
         status=NarrativeParseStatus.VALID,
     )

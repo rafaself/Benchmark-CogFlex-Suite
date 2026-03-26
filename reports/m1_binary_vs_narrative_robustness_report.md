@@ -2,13 +2,25 @@
 
 > **Status: SUPPORTING LIVE REPORT MIRROR**
 > This file mirrors the current public paired Gemini live report at `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md`.
-> It is a preserved live-evidence artifact, not the source of truth for benchmark scope, leaderboard role, or current emitted difficulty labels.
+> It is a preserved pre-hardening live-evidence artifact, not the source of truth for benchmark scope, leaderboard role, current emitted difficulty labels, or the current Narrative audit contract.
 
 - Release: R18
 - Provider: gemini
 - Model: gemini-2.5-flash-lite
 - Prompt modes run: binary, narrative
 - Covered splits: dev, public_leaderboard, private_leaderboard
+
+## Contract Hardening Note
+
+- The tables below reflect the older Narrative contract that used long JSON fields and suffered substantial parse/format failure.
+- The local benchmark now hardens Narrative into a short 4-line audit contract:
+  - `rule_before: ...`
+  - `shift_evidence: ...`
+  - `rule_after: ...`
+  - `final_decision: attract, repel, repel, attract`
+- Binary remains the only leaderboard-primary path and headline metric.
+- Narrative remains supplemental audit evidence only.
+- The updated codebase now supports exact Binary/Narrative decision-agreement as an audit-consistency diagnostic, but this preserved report was not regenerated from a fresh live rerun and therefore does not claim improved post-hardening rates.
 
 ## Headline
 
@@ -151,3 +163,4 @@ Execution provenance is diagnostic-only operational context. It does not change 
 
 - This preserved run publishes difficulty tables for `easy` and `medium` only. Current benchmark manifests and bundled audit fixtures expose `easy`, `medium`, and `hard`; use the root `README.md`, `packaging/kaggle/BENCHMARK_CARD.md`, or `packaging/kaggle/frozen_artifacts_manifest.json` for current benchmark-state statements.
 - Narrative remains required non-leaderboard robustness evidence on the same frozen episodes and probe targets as Binary; only the final four labels are scored, and it does not replace the primary Binary post-shift probe audit.
+- Before hardening, Narrative failures were dominated by runtime plus parse/format issues rather than adaptation alone. The new 4-line contract is intended to make Narrative easier to validate automatically and more reliable as a Binary audit layer without changing leaderboard scoring.

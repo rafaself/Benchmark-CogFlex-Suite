@@ -293,7 +293,7 @@ def _narrative_to_parsed_prediction(result: NarrativeParsedResult) -> ParsedPred
     if result.status is NarrativeParseStatus.VALID:
         assert result.output is not None
         return ParsedPrediction(
-            labels=result.output.final_binary_answer,
+            labels=result.output.final_decision,
             status=ParseStatus.VALID,
         )
     if result.status is NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE:

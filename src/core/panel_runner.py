@@ -197,28 +197,21 @@ def render_panel_markdown(
                 "",
                 "## Paired Robustness",
                 "",
-                "| Scope | Binary accuracy | Narrative accuracy | Delta | Binary parse-valid | Narrative parse-valid |",
-                "| --- | ---: | ---: | ---: | ---: | ---: |",
+                "| Scope | Binary accuracy | Narrative accuracy | Delta | Binary parse-valid | Narrative parse-valid | Exact Binary/Narrative agreement |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
                 _render_mode_comparison_row(
                     "overall", matched_mode_comparison.overall
                 ),
             ]
         )
-        binary_by_split = dict(binary_summary.by_split)
-        narrative_by_split = dict(narrative_summary.by_split)
+        comparison_by_split = dict(matched_mode_comparison.by_split)
         for split_name, _episode_count in release_report.split_episode_counts:
-            if (
-                split_name not in binary_by_split
-                or split_name not in narrative_by_split
-            ):
+            if split_name not in comparison_by_split:
                 continue
             lines.append(
                 _render_mode_comparison_row(
                     split_name,
-                    _build_mode_comparison_from_split_summaries(
-                        binary_by_split[split_name],
-                        narrative_by_split[split_name],
-                    ),
+                    comparison_by_split[split_name],
                 )
             )
 
@@ -227,8 +220,8 @@ def render_panel_markdown(
                 "",
                 "## Diagnostic Slices",
                 "",
-                "| Slice type | Label | Binary accuracy | Narrative accuracy | Delta | Binary parse-valid | Narrative parse-valid |",
-                "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+                "| Slice type | Label | Binary accuracy | Narrative accuracy | Delta | Binary parse-valid | Narrative parse-valid | Exact Binary/Narrative agreement |",
+                "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for label, comparison in matched_mode_comparison.by_template:
@@ -1746,6 +1739,9 @@ def _build_mode_comparison_from_split_summaries(
             binary_split_summary.parse_valid_rate
             - narrative_split_summary.parse_valid_rate
         ),
+        exact_agreement_count=0,
+        exact_agreement_denominator=0,
+        exact_agreement_rate=0.0,
     )
 
 
@@ -1757,7 +1753,8 @@ def _render_mode_comparison_row(
         f"| {scope} | {comparison.binary_accuracy:.6f} | "
         f"{comparison.narrative_accuracy:.6f} | {comparison.accuracy_gap:.6f} | "
         f"{comparison.binary_parse_valid_rate:.6f} | "
-        f"{comparison.narrative_parse_valid_rate:.6f} |"
+        f"{comparison.narrative_parse_valid_rate:.6f} | "
+        f"{comparison.exact_agreement_rate:.6f} |"
     )
 
 
@@ -1770,7 +1767,8 @@ def _render_mode_slice_row(
         f"| {slice_type} | {label} | {comparison.binary_accuracy:.6f} | "
         f"{comparison.narrative_accuracy:.6f} | {comparison.accuracy_gap:.6f} | "
         f"{comparison.binary_parse_valid_rate:.6f} | "
-        f"{comparison.narrative_parse_valid_rate:.6f} |"
+        f"{comparison.narrative_parse_valid_rate:.6f} | "
+        f"{comparison.exact_agreement_rate:.6f} |"
     )
 
 

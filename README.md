@@ -252,7 +252,7 @@ Current examples:
 
 - `reports/live/gemini-first-panel/binary-only/` (historical Binary-only evidence)
 - `reports/live/gemini-first-panel/binary-vs-narrative/` (current paired Gemini evidence history and supporting `latest/` material)
-- `reports/m1_binary_vs_narrative_robustness_report.md` (single packaged readiness anchor, synced to the committed paired M1 report)
+- `reports/m1_binary_vs_narrative_robustness_report.md` (single current packaged readiness anchor, not a second active readiness anchor, synced to the committed paired M1 report)
 - `reports/audit/evidence-pass/`
 
 If you want stable shell commands, install the repo in editable mode from a venv that includes the standard packaging backend (`setuptools`):

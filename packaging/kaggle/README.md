@@ -38,7 +38,7 @@ No other notebook or local runtime path is an official Kaggle leaderboard submis
 - Current public paired Gemini report alias: `reports/m1_binary_vs_narrative_robustness_report.md`
 - Current paired live-report source behind that alias: `reports/live/gemini-first-panel/binary-vs-narrative/latest/report.md` (committed paired `gemini-2.5-flash-lite` run)
 - Historical paired Gemini Flash report retained for provenance/comparison: `reports/live/gemini-first-panel/binary-vs-narrative/history/report__20260323_120000.md`
-- Supporting comparison-only material: `reports/live/gemini-first-panel/comparison/latest/report.md`
+- Supporting comparison material: `reports/live/gemini-first-panel/comparison/latest/report.md`
 
 These report surfaces are supporting evidence only. They are not part of the Kaggle submission path, and current benchmark-status statements still come from the benchmark code, frozen manifests, and benchmark-status docs rather than from any single preserved live report.
 

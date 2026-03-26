@@ -22,13 +22,15 @@ def _binary_labels_for(episode) -> str:
 
 
 def _narrative_json_for(episode) -> str:
-    labels = [label.value for label in episode.probe_targets]
-    return json.dumps({
-        "inferred_rule_before": "pre-shift rule inferred from labeled examples",
-        "shift_evidence": "post-shift observations contradict the pre-shift rule",
-        "inferred_rule_after": "post-shift rule inferred from later labeled examples",
-        "final_binary_answer": labels,
-    })
+    labels = ", ".join(label.value for label in episode.probe_targets)
+    return "\n".join(
+        (
+            "rule_before: pre-shift rule inferred from labeled examples",
+            "shift_evidence: post-shift observations contradict the pre-shift rule",
+            "rule_after: post-shift rule inferred from later labeled examples",
+            f"final_decision: {labels}",
+        )
+    )
 
 
 @dataclass

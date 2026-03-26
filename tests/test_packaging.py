@@ -402,14 +402,16 @@ def test_kaggle_package_helpers_preserve_binary_and_narrative_scoring_contract()
     )
     import json as _json
     assert normalize_narrative_response(
-        _json.dumps({
-            "inferred_rule_before": "pre-shift rule",
-            "shift_evidence": "post-shift observations contradict",
-            "inferred_rule_after": "post-shift rule",
-            "final_binary_answer": ["attract", "repel", "repel", "attract"],
-        })
+        "\n".join(
+            (
+                "rule_before: pre-shift rule",
+                "shift_evidence: post-shift observations contradict",
+                "rule_after: post-shift rule",
+                "final_decision: attract, repel, repel, attract",
+            )
+        )
     ) == ("attract", "repel", "repel", "attract")
-    # Free-form text (not JSON) is rejected by the schema validator.
+    # Free-form text without the contract is rejected by the parser.
     assert normalize_narrative_response(
         "Reasoning about the later rule.\nattract, repel, repel, attract"
     ) is None

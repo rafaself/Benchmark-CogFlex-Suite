@@ -25,12 +25,14 @@ def _labels_text(labels: tuple[InteractionLabel, ...]) -> str:
 
 
 def _narrative_text(labels: tuple[InteractionLabel, ...]) -> str:
-    return json.dumps({
-        "inferred_rule_before": "opposite-sign attract, same-sign repel",
-        "shift_evidence": "post-shift observations inverted the rule",
-        "inferred_rule_after": "same-sign attract, opposite-sign repel",
-        "final_binary_answer": [label.value for label in labels],
-    })
+    return "\n".join(
+        (
+            "rule_before: opposite-sign attract, same-sign repel",
+            "shift_evidence: post-shift observations inverted the rule",
+            "rule_after: same-sign attract, opposite-sign repel",
+            f"final_decision: {', '.join(label.value for label in labels)}",
+        )
+    )
 
 
 def _wrong_labels(episode) -> tuple[InteractionLabel, ...]:
