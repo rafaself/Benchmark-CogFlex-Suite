@@ -25,6 +25,30 @@ on:
         description: "Version note written to Kaggle on new-version uploads"
         required: true
 
+  # Called by the orchestrator workflow. Inputs mirror workflow_dispatch exactly
+  # except environment uses type: string (choice is workflow_dispatch-only).
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment (staging | production)"
+        required: true
+        type: string
+      dataset_id:
+        description: "Kaggle dataset id (owner/slug)"
+        required: true
+        type: string
+      dataset_title:
+        description: "Human-readable dataset title"
+        required: true
+        type: string
+      release_message:
+        description: "Version note for the new dataset version"
+        required: true
+        type: string
+    secrets:
+      KAGGLE_API_TOKEN:
+        required: true
+
 # Only one deploy may run at a time; a queued run is cancelled, not queued,
 # if a newer one arrives for the same environment.
 concurrency:
