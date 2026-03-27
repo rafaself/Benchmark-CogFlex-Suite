@@ -173,14 +173,16 @@ jobs:
       # Patch only the title field. The id and all other fields are owned by
       # the build script and must not be changed here.
       - name: Patch kernel-metadata.json title
+        env:
+          KERNEL_TITLE: ${{ inputs.kernel_title }}
         run: |
           python - <<'EOF'
-          import json
+          import json, os
           from pathlib import Path
 
           meta_path = Path("${{ env.BUNDLE_DIR }}") / "kernel-metadata.json"
           meta = json.loads(meta_path.read_text(encoding="utf-8"))
-          meta["title"] = "${{ inputs.kernel_title }}"
+          meta["title"] = os.environ["KERNEL_TITLE"]
           meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
           print(f"kernel-metadata.json: id={meta['id']!r}  title={meta['title']!r}")
           print(f"  dataset_sources={meta['dataset_sources']!r}")
