@@ -3,13 +3,6 @@ name: Deploy — Kaggle Notebook
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
       kernel_id:
         description: >
           Kaggle kernel id (owner/slug). Must match the canonical id baked into
@@ -29,14 +22,9 @@ on:
         required: true
         default: "raptorengineer/ruleshift-runtime"
 
-  # Called by the orchestrator workflow. Inputs mirror workflow_dispatch exactly
-  # except environment uses type: string (choice is workflow_dispatch-only).
+  # Called by the orchestrator workflow.
   workflow_call:
     inputs:
-      environment:
-        description: "Target environment (staging | production)"
-        required: true
-        type: string
       kernel_id:
         description: "Kaggle kernel id (owner/slug)"
         required: true
@@ -53,9 +41,8 @@ on:
       KAGGLE_API_TOKEN:
         required: true
 
-# Only one notebook deploy may run at a time per environment.
 concurrency:
-  group: deploy-kaggle-notebook-${{ inputs.environment }}
+  group: deploy-kaggle-notebook
   cancel-in-progress: false
 
 env:
@@ -75,7 +62,7 @@ jobs:
   # bypass them.  Notebook smoke tests are included because the notebook
   # is the artifact being deployed.
   validate:
-    name: Validate (${{ inputs.environment }})
+    name: Validate
     runs-on: ubuntu-latest
 
     steps:
@@ -112,10 +99,10 @@ jobs:
 
   # ── Job 2: deploy ─────────────────────────────────────────────────────────────
   deploy:
-    name: Deploy notebook (${{ inputs.environment }})
+    name: Deploy notebook
     runs-on: ubuntu-latest
     needs: validate
-    environment: ${{ inputs.environment }}
+    environment: production
 
     steps:
       - name: Checkout repository

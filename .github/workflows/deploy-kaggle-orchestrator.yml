@@ -21,33 +21,21 @@ on:
           - dataset
           - notebook
           - all
-      environment:
-        description: "Target environment"
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
-
-# Prevent concurrent orchestrated deploys to the same environment.
-# The called workflows enforce their own concurrency independently, so a
-# direct trigger of a dedicated workflow is never blocked by this group.
 concurrency:
-  group: deploy-kaggle-orchestrator-${{ inputs.environment }}
+  group: deploy-kaggle-orchestrator
   cancel-in-progress: false
 
 jobs:
   # ── Dataset deployment ────────────────────────────────────────────────────────
   # Skipped (result=skipped) when target=notebook.
   deploy-dataset:
-    name: Dataset (${{ inputs.environment }})
+    name: Dataset
     if: inputs.target == 'dataset' || inputs.target == 'all'
     uses: ./.github/workflows/deploy-kaggle-dataset.yml
     with:
-      environment: ${{ inputs.environment }}
       dataset_id: "raptorengineer/ruleshift-runtime"
       dataset_title: "RuleShift Runtime"
-      release_message: "Orchestrated release — environment=${{ inputs.environment }}"
+      release_message: "Orchestrated release"
     secrets:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
 
@@ -63,7 +51,7 @@ jobs:
   # deploy-dataset still blocks this job because 'failure' satisfies neither
   # branch of the OR.
   deploy-notebook:
-    name: Notebook (${{ inputs.environment }})
+    name: Notebook
     if: |
       always() &&
       (inputs.target == 'notebook' || inputs.target == 'all') &&
@@ -71,7 +59,6 @@ jobs:
     needs: [deploy-dataset]
     uses: ./.github/workflows/deploy-kaggle-notebook.yml
     with:
-      environment: ${{ inputs.environment }}
       kernel_id: "raptorengineer/ruleshift-notebook-task"
       kernel_title: "RuleShift Notebook Task — Cognitive Flexibility Benchmark"
       runtime_dataset_slug: "raptorengineer/ruleshift-runtime"
