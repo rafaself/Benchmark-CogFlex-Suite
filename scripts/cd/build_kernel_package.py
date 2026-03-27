@@ -24,9 +24,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 _KAGGLE_DIR = REPO_ROOT / "packaging" / "kaggle"
 _MANIFEST_PATH = _KAGGLE_DIR / "frozen_artifacts_manifest.json"
 
+_KERNEL_METADATA_PATH = _KAGGLE_DIR / "kernel-metadata.json"
+
 _KAGGLE_USERNAME = os.environ["KAGGLE_USERNAME"]
 _KERNEL_ID = f"{_KAGGLE_USERNAME}/ruleshift-notebook-task"
-_KERNEL_TITLE = "RuleShift Notebook Task \u2014 Cognitive Flexibility Benchmark"
 
 
 # ---------------------------------------------------------------------------
@@ -58,8 +59,11 @@ def _verify_notebook_hash(notebook_src: Path, manifest: dict) -> None:
 def _build(output_dir: Path, runtime_dataset_slug: str) -> None:
     if not _MANIFEST_PATH.is_file():
         raise FileNotFoundError(f"frozen_artifacts_manifest.json not found at {_MANIFEST_PATH}")
+    if not _KERNEL_METADATA_PATH.is_file():
+        raise FileNotFoundError(f"kernel-metadata.json not found at {_KERNEL_METADATA_PATH}")
 
     manifest = json.loads(_MANIFEST_PATH.read_text(encoding="utf-8"))
+    kernel_title = json.loads(_KERNEL_METADATA_PATH.read_text(encoding="utf-8"))["title"]
 
     notebook_relpath = manifest["entry_points"]["kbench_notebook"]["path"]
     notebook_src = REPO_ROOT / notebook_relpath
@@ -80,7 +84,7 @@ def _build(output_dir: Path, runtime_dataset_slug: str) -> None:
     # Generate kernel-metadata.json
     kernel_metadata = {
         "id": _KERNEL_ID,
-        "title": _KERNEL_TITLE,
+        "title": kernel_title,
         "code_file": notebook_filename,
         "language": "python",
         "kernel_type": "notebook",
