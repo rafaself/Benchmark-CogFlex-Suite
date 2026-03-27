@@ -14,7 +14,7 @@ The checked-in metadata files are the only source of truth for Kaggle deploys:
 Current canonical ids:
 
 - Runtime dataset: `raptorengineer/ruleshift-runtime`
-- Notebook: `raptorengineer/ruleshift-notebook-task`
+- Notebook: `raptorengineer/ruleshift-task`
 
 The deploy workflows read these files directly. They do not accept runtime inputs for ids, titles, dataset sources, or usernames.
 
