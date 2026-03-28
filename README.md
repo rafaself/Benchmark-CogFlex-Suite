@@ -41,14 +41,55 @@ source .venv/bin/activate
 python3 -m pip install -r requirements-dev.txt
 ```
 
-Run the main validation paths:
+Check your environment first:
+
+```bash
+make doctor
+```
+
+This reports whether the private split is mounted and which commands are available.
+
+### Public-safe baseline path (no private dataset required)
+
+A fresh public clone can run the full test suite and contract audit without any private assets:
 
 ```bash
 python3 -m pytest
-make validity
-make reaudit
-make integrity
+make contract-audit
 ```
+
+### Private-required commands
+
+The following commands evaluate on the `private_leaderboard` split and require the authorized private dataset artifact (`private_episodes.json`). Run `make doctor` to confirm the private dataset is mounted before using them.
+
+```bash
+make validity        # R13 anti-shortcut gate (all splits including private)
+make reaudit         # R15 deterministic re-audit (all splits)
+make integrity       # frozen split and artifact integrity (all splits)
+make evidence-pass   # composite: test → validity → reaudit → integrity
+```
+
+To mount the private split locally:
+
+```bash
+export RULESHIFT_PRIVATE_DATASET_ROOT=/path/to/private-dataset
+```
+
+See `packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md` for the artifact generation workflow.
+
+### Command matrix
+
+| Command | Purpose | Requirement | Environment |
+|---|---|---|---|
+| `make test` | Run the test suite | public-safe | any |
+| `make contract-audit` | P0 public artifact contract audit | public-safe | any |
+| `make doctor` | Report environment status | public-safe | any |
+| `make compliance-check` | Public/private isolation + notebook | public-safe | any |
+| `make notebook-check` | Notebook end-to-end smoke test | public-safe | any |
+| `make validity` | R13 anti-shortcut gate | private split | private-enabled |
+| `make reaudit` | R15 deterministic re-audit | private split | private-enabled |
+| `make integrity` | Frozen split integrity | private split | private-enabled |
+| `make evidence-pass` | All checks composite | private split | private-enabled |
 
 ## Kaggle And Private Split Workflow
 

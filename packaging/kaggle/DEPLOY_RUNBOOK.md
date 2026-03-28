@@ -26,7 +26,7 @@ Set it in GitHub Actions secrets. The workflows authenticate the Kaggle CLI with
 
 ## Local Validation Before Deploy
 
-Run the same checks the deploy workflows rely on:
+Run the same checks the deploy workflows rely on (all public-safe, no private dataset required):
 
 ```bash
 python scripts/check_public_private_isolation.py
@@ -35,7 +35,7 @@ python -m pytest tests/test_cd_build.py -v
 python -m pytest tests/test_kbench_notebook.py -v
 ```
 
-If you want a broader local pass first, also run:
+For a broader local pass that includes private-split checks, also run the following (requires the private dataset mounted — run `make doctor` to confirm):
 
 ```bash
 make validity

@@ -1,22 +1,30 @@
 PYTHON ?= .venv/bin/python
 CLI := PYTHONPATH=src $(PYTHON) -m core.cli
 
-.PHONY: help test validity reaudit integrity evidence-pass notebook-check contract-audit compliance-check update-hashes
+.PHONY: help test doctor contract-audit compliance-check notebook-check validity reaudit integrity evidence-pass update-hashes
 
 help:
-	@printf "Available targets:\n"
-	@printf "  make test\n"
-	@printf "  make validity\n"
-	@printf "  make reaudit\n"
-	@printf "  make integrity\n"
-	@printf "  make evidence-pass\n"
-	@printf "  make notebook-check\n"
-	@printf "  make contract-audit\n"
-	@printf "  make compliance-check\n"
-	@printf "  make update-hashes\n"
+	@printf "Public-safe (no private dataset required):\n"
+	@printf "  make test            -- run the test suite\n"
+	@printf "  make contract-audit  -- P0 public artifact contract audit\n"
+	@printf "  make doctor          -- report environment status\n"
+	@printf "\n"
+	@printf "Private-required (need private_episodes.json mounted):\n"
+	@printf "  make validity        -- R13 anti-shortcut gate\n"
+	@printf "  make reaudit         -- R15 deterministic re-audit\n"
+	@printf "  make integrity       -- frozen split integrity\n"
+	@printf "  make evidence-pass   -- composite: test + validity + reaudit + integrity\n"
+	@printf "\n"
+	@printf "Other:\n"
+	@printf "  make compliance-check  -- public/private isolation + notebook\n"
+	@printf "  make notebook-check    -- notebook end-to-end smoke test\n"
+	@printf "  make update-hashes     -- update canonical manifest hashes\n"
 
 test:
 	$(CLI) test
+
+doctor:
+	$(CLI) doctor
 
 validity:
 	$(CLI) validity

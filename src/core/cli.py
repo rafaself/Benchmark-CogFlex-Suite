@@ -24,6 +24,27 @@ from core.validate import (
     serialize_benchmark_validity_report,
 )
 
+_PRIVATE_REQUIRED_ERROR = (
+    "Error: private_leaderboard split is not mounted.\n"
+    "\n"
+    "This command requires the private evaluation dataset (private_episodes.json).\n"
+    "The private_leaderboard split is used by the R13 validity gate, R15 re-audit,\n"
+    "and split integrity checks.\n"
+    "\n"
+    "To mount the private split locally:\n"
+    "  export {env_var}=/path/to/private-dataset\n"
+    "\n"
+    "  The directory must contain private_episodes.json, generated offline with:\n"
+    "    python scripts/generate_private_split_artifact.py --help\n"
+    "\n"
+    "  See packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md for the full workflow.\n"
+    "\n"
+    "Commands that work without the private split (public-only environment):\n"
+    "  make test            -- run the test suite\n"
+    "  make contract-audit  -- validate public artifact contracts\n"
+    "  make doctor          -- report environment status\n"
+)
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -89,6 +110,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_output_argument(contract_audit_parser)
     contract_audit_parser.set_defaults(func=_command_contract_audit)
 
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Report environment status: private split availability and command matrix.",
+    )
+    doctor_parser.set_defaults(func=_command_doctor)
+
     return parser
 
 
@@ -120,6 +147,10 @@ def contract_audit_entrypoint() -> int:
     return main(["contract-audit"])
 
 
+def doctor_entrypoint() -> int:
+    return main(["doctor"])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args, unknown = parser.parse_known_args(argv)
@@ -149,6 +180,8 @@ def _command_test(args: argparse.Namespace) -> int:
 
 
 def _command_validity(args: argparse.Namespace) -> int:
+    if (rc := _preflight_private_split_or_exit()) is not None:
+        return rc
     payload = serialize_benchmark_validity_report(
         run_benchmark_validity_report(gate=R13_VALIDITY_GATE)
     )
@@ -157,18 +190,24 @@ def _command_validity(args: argparse.Namespace) -> int:
 
 
 def _command_reaudit(args: argparse.Namespace) -> int:
+    if (rc := _preflight_private_split_or_exit()) is not None:
+        return rc
     payload = serialize_release_r15_reaudit_report(run_release_r15_reaudit())
     _emit_payload(payload, output_path=args.output)
     return 0
 
 
 def _command_integrity(args: argparse.Namespace) -> int:
+    if (rc := _preflight_private_split_or_exit()) is not None:
+        return rc
     payload = _build_integrity_payload()
     _emit_payload(payload, output_path=args.output)
     return 0
 
 
 def _command_evidence_pass(args: argparse.Namespace) -> int:
+    if (rc := _preflight_private_split_or_exit()) is not None:
+        return rc
     completed = _run_pytest(args.pytest_args)
     payload: dict[str, Any] = {
         "tests": {
@@ -190,6 +229,48 @@ def _command_evidence_pass(args: argparse.Namespace) -> int:
     return 0
 
 
+def _command_doctor(args: argparse.Namespace) -> int:
+    from core.private_split import (
+        PRIVATE_DATASET_ROOT_ENV_VAR,
+        discover_private_dataset_root,
+    )
+
+    private_root = discover_private_dataset_root()
+    lines: list[str] = ["RuleShift Benchmark — Environment Check", ""]
+
+    if private_root is not None:
+        lines.append(f"Private split:  mounted at {private_root}")
+        private_status = "ok"
+    else:
+        lines.append("Private split:  not mounted (public-only environment)")
+        lines.append(
+            f"  To enable:    export {PRIVATE_DATASET_ROOT_ENV_VAR}=/path/to/private-dataset"
+        )
+        lines.append(
+            "  See packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md for the generation workflow."
+        )
+        private_status = "unavailable"
+
+    lines.append("")
+    lines.append(f"{'Command':<22}  {'Requirement':<16}  Status")
+    lines.append(f"{'-' * 22}  {'-' * 16}  {'-' * 11}")
+
+    _COMMAND_MATRIX = (
+        ("make test",           "public-safe",  "ok"),
+        ("make contract-audit", "public-safe",  "ok"),
+        ("make doctor",         "public-safe",  "ok"),
+        ("make validity",       "private split", private_status),
+        ("make reaudit",        "private split", private_status),
+        ("make integrity",      "private split", private_status),
+        ("make evidence-pass",  "private split", private_status),
+    )
+    for cmd, req, status in _COMMAND_MATRIX:
+        lines.append(f"{cmd:<22}  {req:<16}  {status}")
+
+    print("\n".join(lines))
+    return 0
+
+
 def _command_contract_audit(args: argparse.Namespace) -> int:
     payload = run_contract_audit(
         repo_root=_repo_root(),
@@ -197,6 +278,19 @@ def _command_contract_audit(args: argparse.Namespace) -> int:
     )
     _emit_payload(payload, output_path=args.output)
     return 0 if payload["passed"] else 1
+
+
+def _preflight_private_split_or_exit() -> int | None:
+    """Return 1 with a clear error if the private split is not mounted, else None."""
+    from core.private_split import PRIVATE_DATASET_ROOT_ENV_VAR, discover_private_dataset_root
+
+    if discover_private_dataset_root() is not None:
+        return None
+    print(
+        _PRIVATE_REQUIRED_ERROR.format(env_var=PRIVATE_DATASET_ROOT_ENV_VAR),
+        file=sys.stderr,
+    )
+    return 1
 
 
 def _run_pytest(pytest_args: list[str]) -> subprocess.CompletedProcess[str]:

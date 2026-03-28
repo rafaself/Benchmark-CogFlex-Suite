@@ -9,6 +9,7 @@ import sys
 import pytest
 
 from core import cli
+from core.private_split import PRIVATE_DATASET_ROOT_ENV_VAR
 
 
 def test_build_parser_exposes_only_canonical_cli_commands():
@@ -26,6 +27,7 @@ def test_build_parser_exposes_only_canonical_cli_commands():
         "integrity",
         "evidence-pass",
         "contract-audit",
+        "doctor",
     }
 
 
@@ -150,6 +152,7 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
     assert cli.integrity_entrypoint() == 0
     assert cli.evidence_pass_entrypoint() == 0
     assert cli.contract_audit_entrypoint() == 0
+    assert cli.doctor_entrypoint() == 0
 
     assert commands == [
         ["test"],
@@ -158,6 +161,7 @@ def test_entrypoint_aliases_dispatch_to_expected_commands(
         ["integrity"],
         ["evidence-pass"],
         ["contract-audit"],
+        ["doctor"],
     ]
 
 
@@ -189,3 +193,100 @@ def test_main_returns_130_on_keyboard_interrupt(
     assert exit_code == 130
     assert captured.out == ""
     assert captured.err.strip() == "Interrupted."
+
+
+# ---------------------------------------------------------------------------
+# doctor command
+# ---------------------------------------------------------------------------
+
+
+def test_doctor_exits_zero_in_public_only_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.delenv(PRIVATE_DATASET_ROOT_ENV_VAR, raising=False)
+
+    exit_code = cli.main(["doctor"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "not mounted" in captured.out
+    assert "public-only" in captured.out
+    assert PRIVATE_DATASET_ROOT_ENV_VAR in captured.out
+
+
+def test_doctor_reports_unavailable_for_private_commands_in_public_only_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    monkeypatch.delenv(PRIVATE_DATASET_ROOT_ENV_VAR, raising=False)
+
+    cli.main(["doctor"])
+
+    captured = capsys.readouterr()
+    assert "unavailable" in captured.out
+    assert "make validity" in captured.out
+    assert "make reaudit" in captured.out
+    assert "make integrity" in captured.out
+
+
+def test_doctor_exits_zero_with_private_split_mounted(
+    capsys: pytest.CaptureFixture[str],
+):
+    # autouse fixture provides the private split via env var
+    exit_code = cli.main(["doctor"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "mounted at" in captured.out
+    assert "unavailable" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# fail-fast preflight for private-required commands
+# ---------------------------------------------------------------------------
+
+
+def _assert_private_required_fail(
+    command: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.delenv(PRIVATE_DATASET_ROOT_ENV_VAR, raising=False)
+
+    exit_code = cli.main([command])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1, f"{command!r} should exit 1 without private split"
+    assert "private_leaderboard split is not mounted" in captured.err
+    assert PRIVATE_DATASET_ROOT_ENV_VAR in captured.err
+    assert "make doctor" in captured.err
+    assert captured.out == ""
+
+
+def test_validity_fails_fast_without_private_split(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    _assert_private_required_fail("validity", monkeypatch, capsys)
+
+
+def test_reaudit_fails_fast_without_private_split(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    _assert_private_required_fail("reaudit", monkeypatch, capsys)
+
+
+def test_integrity_fails_fast_without_private_split(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    _assert_private_required_fail("integrity", monkeypatch, capsys)
+
+
+def test_evidence_pass_fails_fast_without_private_split(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    _assert_private_required_fail("evidence-pass", monkeypatch, capsys)
