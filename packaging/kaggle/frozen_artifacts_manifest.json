@@ -2,6 +2,15 @@
   "bundle_version": "R16",
   "task_id": "ruleshift_benchmark_v1",
   "task_name": "RuleShift Benchmark v1",
+  "version_roles": {
+    "bundle_version": "packaging_bundle_version",
+    "benchmark_versions": "benchmark_contract_versions",
+    "frozen_split_manifests": "benchmark_contract_split_state",
+    "evidence_releases": [
+      "R13 validity gate",
+      "R15 re-audit"
+    ]
+  },
   "benchmark_versions": {
     "manifest_version": "R14",
     "spec_version": "v1",
@@ -38,7 +47,7 @@
   "source_of_truth": [
     "README.md is the main development source of truth for the current benchmark and workflow.",
     "packaging/kaggle/BENCHMARK_CARD.md is the benchmark-facing summary for the Kaggle surface.",
-    "Local validation and audit outputs produced from the implemented code under src/ remain authoritative."
+    "Implemented code and checked-in manifests under src/ and packaging/kaggle/ define the active contract; validation and audit outputs are evidence, not contract state."
   ],
   "current_emitted_difficulty_labels": [
     "easy",

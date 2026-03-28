@@ -1,10 +1,10 @@
 # Artifact Policy
 
-This document defines which files in the repository are normative inputs, which are generated outputs, and which are archival materials.
+This document defines which files in the repository are benchmark-contract inputs, which are checked-in evidence, which are generated outputs, and which are archival materials.
 
-## Canonical inputs (source-controlled, normative)
+## Canonical benchmark contract inputs (source-controlled, normative)
 
-These files define the benchmark contract. They must not be generated locally and committed without an explicit version bump.
+These files define the active benchmark contract. They must not be generated locally and committed without an explicit version bump.
 
 | File | Purpose |
 |---|---|
@@ -13,6 +13,13 @@ These files define the benchmark contract. They must not be generated locally an
 | `packaging/kaggle/frozen_artifacts_manifest.json` | Kaggle runtime-contract manifest (hashes) |
 | `packaging/kaggle/dataset-metadata.json` | Canonical Kaggle dataset identity |
 | `packaging/kaggle/kernel-metadata.json` | Canonical Kaggle notebook identity |
+
+## Checked-in evidence fixtures (regression evidence, not contract-defining)
+
+These files preserve validation/evidence outputs used by tests. They support regression checks, but they do not define the active benchmark contract.
+
+| File | Purpose |
+|---|---|
 | `tests/fixtures/validation_regression.json` | Regression fixture for episode validation |
 | `tests/fixtures/release_r13_validity_report.json` | Regression fixture for R13 validity gate |
 | `tests/fixtures/release_r15_reaudit_report.json` | Regression fixture for R15 re-audit |
@@ -40,7 +47,8 @@ See `reports/legacy/LEGACY_NOTE.md` for details.
 
 ## Policy
 
-- The `src/frozen_splits/` and `packaging/kaggle/` canonical inputs are the single source of truth for the benchmark contract.
+- The `src/frozen_splits/` and `packaging/kaggle/` canonical benchmark contract inputs are the single source of truth for the active benchmark contract.
+- Checked-in evidence fixtures are regression evidence only. They help detect drift, but they do not define the contract.
 - Generated result files (run artifacts, reports) are not normative. They illustrate what a valid run looks like but do not define the contract.
 - Any file in `reports/legacy/` is archival. It is kept for transparency but does not represent the current split version or evaluation contract.
 - `make contract-audit` uses a run artifact in `reports/` to validate the artifact format contract. When a legacy artifact is present it satisfies the structural check, but the legacy label signals it was not produced against the current splits.

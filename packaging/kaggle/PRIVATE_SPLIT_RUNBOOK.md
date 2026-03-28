@@ -13,6 +13,7 @@ python scripts/generate_private_split_artifact.py \
   --output /external/path/private_episodes.json
 ```
 
+- Here `--benchmark-version R14` means the current frozen split manifest version for the benchmark contract. It is not the validation/evidence release label and not the Kaggle packaging bundle version.
 - Keep the seed file outside the public repo.
 - Keep the output outside the public repo.
 - Do not change `--benchmark-version` without an explicit benchmark version bump.

@@ -28,6 +28,7 @@ The public repo and public Kaggle runtime package contain only the public splits
 
 ## Evidence And Limits
 
+- Version roles: the active benchmark contract remains `RuleShift Benchmark v1` with the checked-in split/schema versions; `R13` and `R15` are validation/evidence release labels, not replacement benchmark versions.
 - Current benchmark validity is anchored by the committed R13 anti-shortcut gate and R15 re-audit artifacts.
 - R13 anti-shortcut validity gate remains the main shortcut-risk check.
 - R15 empirical re-audit indicates the recency shortcut was materially reduced.

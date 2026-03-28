@@ -22,6 +22,19 @@ Each episode contains 5 labeled items and 4 unlabeled probes. The rule family is
 
 Only charge sign matters for the correct label.
 
+## Version Taxonomy
+
+Use the following roles consistently when reading or updating the repo:
+
+| Label/category | Current labels | Represents | Status |
+|---|---|---|---|
+| Benchmark contract version | `RuleShift Benchmark v1`, `spec_version=v1`, `manifest_version=R14`, `generator_version=R13`, `template_set_version=v2`, `difficulty_version=R13`, `seed_bank_version=R14-dev-4` / `R14-public-4` | The implemented benchmark contract and current frozen public split state under `src/` | Current state |
+| Validation / evidence release | `R13` validity gate, `R15` deterministic re-audit | Evidence about the current contract; these labels do not replace the active benchmark contract versions | Evidence |
+| Packaging / deployment bundle version | `bundle_version=R16` in `packaging/kaggle/frozen_artifacts_manifest.json` | The Kaggle packaging bundle identity for deployable public artifacts | Packaging |
+| Archived model-run release | `R18` labels under `reports/legacy/` | Historical model-run evidence preserved for reference only | Archival |
+
+When a label is ambiguous on its own, prefer the role-explicit phrase: `benchmark contract version`, `validation/evidence release`, or `packaging bundle version`.
+
 ## Repository Layout
 
 - `src/tasks/ruleshift_benchmark/`: task-specific rules, schema, generation, rendering, and baselines.
@@ -63,8 +76,8 @@ make contract-audit
 The following commands evaluate on the `private_leaderboard` split and require the authorized private dataset artifact (`private_episodes.json`). Run `make doctor` to confirm the private dataset is mounted before using them.
 
 ```bash
-make validity        # R13 anti-shortcut gate (all splits including private)
-make reaudit         # R15 deterministic re-audit (all splits)
+make validity        # R13 validation/evidence gate (all splits including private)
+make reaudit         # R15 validation/evidence re-audit (all splits)
 make integrity       # frozen split and artifact integrity (all splits)
 make evidence-pass   # composite: test → validity → reaudit → integrity
 ```
@@ -88,8 +101,8 @@ See `packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md` for the artifact generation work
 | `make doctor` | Report environment status | public-safe | any |
 | `make compliance-check` | Public/private isolation + notebook | public-safe | any |
 | `make notebook-check` | Notebook end-to-end smoke test | public-safe | any |
-| `make validity` | R13 anti-shortcut gate | private split | private-enabled |
-| `make reaudit` | R15 deterministic re-audit | private split | private-enabled |
+| `make validity` | R13 anti-shortcut validation/evidence gate | private split | private-enabled |
+| `make reaudit` | R15 deterministic validation/evidence re-audit | private split | private-enabled |
 | `make integrity` | Frozen split integrity | private split | private-enabled |
 | `make evidence-pass` | All checks composite | private split | private-enabled |
 
@@ -106,6 +119,7 @@ See `packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md` for the artifact generation work
 The public runtime package includes only the public code and frozen public split manifests. Never place `private_episodes.json`, private seeds, or any repo-local private fallback in public repo paths or public packaging outputs.
 
 See `reports/ARTIFACT_POLICY.md` for the canonical artifact policy: which files are normative inputs, which are transient local outputs, and which are legacy archival materials.
+See `reports/legacy/LEGACY_NOTE.md` for the historical evidence boundary: `reports/legacy/` is archival evidence, not current contract truth.
 
 Kaggle deployment reads the checked-in metadata files directly. `KAGGLE_API_TOKEN` is the only required deployment secret. `KAGGLE_USERNAME`, runtime dataset slug inputs, and other deploy-time metadata overrides are not part of the current workflow.
 

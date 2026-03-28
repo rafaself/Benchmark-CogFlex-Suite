@@ -17,6 +17,7 @@ Current canonical ids:
 - Notebook: `raptorengineer/ruleshift-task`
 
 The deploy workflows read these files directly. They do not accept runtime inputs for ids, titles, dataset sources, or usernames.
+The packaging bundle label is `bundle_version=R16` in `packaging/kaggle/frozen_artifacts_manifest.json`; it is a deployable bundle label, not the benchmark contract version and not a validation/evidence release label.
 
 ## Required Secret
 
@@ -56,7 +57,7 @@ Workflow: `.github/workflows/deploy-kaggle-dataset.yml`
 
 Manual input:
 
-- `release_message`: Kaggle version note for a new dataset upload
+- `release_message`: Kaggle version note for a new dataset upload. This note is packaging metadata only; it does not change the benchmark contract or evidence release labels.
 
 Behavior:
 
@@ -91,7 +92,7 @@ Workflow: `.github/workflows/deploy-kaggle.yml`
 Manual inputs:
 
 - `target`: `dataset`, `notebook`, or `all`
-- `release_message`: required by the workflow; used by dataset deploys
+- `release_message`: required by the workflow; used by dataset deploys as a Kaggle dataset version note only
 
 Behavior:
 

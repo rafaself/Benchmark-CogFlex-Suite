@@ -58,6 +58,15 @@ def test_kaggle_staging_manifest_resolves_current_frozen_artifacts():
     assert manifest["bundle_version"] == "R16"
     assert manifest["task_id"] == "ruleshift_benchmark_v1"
     assert manifest["task_name"] == "RuleShift Benchmark v1"
+    assert manifest["version_roles"] == {
+        "bundle_version": "packaging_bundle_version",
+        "benchmark_versions": "benchmark_contract_versions",
+        "frozen_split_manifests": "benchmark_contract_split_state",
+        "evidence_releases": [
+            "R13 validity gate",
+            "R15 re-audit",
+        ],
+    }
 
     benchmark_versions = manifest["benchmark_versions"]
     assert benchmark_versions == {
@@ -74,6 +83,11 @@ def test_kaggle_staging_manifest_resolves_current_frozen_artifacts():
     assert tuple(manifest["entry_points"]) == ("kbench_notebook", "kernel_metadata")
     assert manifest["current_emitted_difficulty_labels"] == ["easy", "medium", "hard"]
     assert manifest["reserved_difficulty_labels"] == []
+    assert manifest["source_of_truth"] == [
+        "README.md is the main development source of truth for the current benchmark and workflow.",
+        "packaging/kaggle/BENCHMARK_CARD.md is the benchmark-facing summary for the Kaggle surface.",
+        "Implemented code and checked-in manifests under src/ and packaging/kaggle/ define the active contract; validation and audit outputs are evidence, not contract state.",
+    ]
 
     for partition in _RUNTIME_PARTITIONS:
         artifact = manifest["frozen_split_manifests"][partition]
@@ -232,6 +246,7 @@ def test_benchmark_card_matches_current_implementation_state():
     assert "recency shortcut was materially reduced" in text
     assert "R13 anti-shortcut validity gate" in text
     assert "R15 empirical re-audit" in text
+    assert "validation/evidence release labels" in text
 
 
 def test_docs_do_not_reference_removed_parallel_sources():
@@ -260,6 +275,25 @@ def test_active_docs_identify_one_official_packaged_readiness_anchor():
     assert "reports/live/gemini-first-panel" not in joined
     assert "m1_binary_vs_narrative_robustness_report.md" not in joined
     assert "supporting comparison material" not in lowered
+
+
+def test_active_docs_define_version_roles_consistently():
+    readme_text = _REPO_ROOT.joinpath("README.md").read_text(encoding="utf-8")
+    card_text = _CARD_PATH.read_text(encoding="utf-8")
+    deploy_text = (_KAGGLE_DIR / "DEPLOY_RUNBOOK.md").read_text(encoding="utf-8")
+    private_text = (_KAGGLE_DIR / "PRIVATE_SPLIT_RUNBOOK.md").read_text(encoding="utf-8")
+    joined = "\n".join((readme_text, card_text, deploy_text, private_text))
+
+    assert "## Version Taxonomy" in readme_text
+    assert "Benchmark contract version" in readme_text
+    assert "Validation / evidence release" in readme_text
+    assert "Packaging / deployment bundle version" in readme_text
+    assert "Archived model-run release" in readme_text
+    assert "validation/evidence release labels" in card_text
+    assert "packaging bundle label" in deploy_text
+    assert "not the benchmark contract version" in deploy_text
+    assert "not the validation/evidence release label" in private_text
+    assert "reports/legacy/" in joined
 
 
 def test_packaging_docs_do_not_claim_unsupported_features():

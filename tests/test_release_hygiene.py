@@ -118,6 +118,25 @@ def test_artifact_policy_document_exists():
     policy_path = _REPO_ROOT / "reports" / "ARTIFACT_POLICY.md"
     assert policy_path.exists(), "reports/ARTIFACT_POLICY.md must exist"
     text = policy_path.read_text(encoding="utf-8")
-    assert "Canonical inputs" in text
+    assert "Canonical benchmark contract inputs" in text
+    assert "Checked-in evidence fixtures" in text
     assert "Transient local outputs" in text
     assert "Legacy" in text
+
+
+def test_artifact_policy_distinguishes_contract_inputs_from_evidence():
+    text = (_REPO_ROOT / "reports" / "ARTIFACT_POLICY.md").read_text(encoding="utf-8")
+
+    assert "define the active benchmark contract" in text
+    assert "do not define the active benchmark contract" in text
+    assert "regression evidence only" in text
+
+
+def test_legacy_note_marks_historical_release_labels_as_archival():
+    text = (_REPO_ROOT / "reports" / "legacy" / "LEGACY_NOTE.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "historical model-run release label" in text
+    assert "not the active benchmark contract version" in text
+    assert "not the Kaggle packaging bundle version" in text

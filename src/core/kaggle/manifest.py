@@ -39,6 +39,20 @@ _EXPECTED_BENCHMARK_VERSIONS: Final[dict[str, str]] = {
     "template_set_version": TEMPLATE_SET_VERSION,
     "difficulty_version": DIFFICULTY_VERSION,
 }
+_EXPECTED_VERSION_ROLES: Final[dict[str, object]] = {
+    "bundle_version": "packaging_bundle_version",
+    "benchmark_versions": "benchmark_contract_versions",
+    "frozen_split_manifests": "benchmark_contract_split_state",
+    "evidence_releases": [
+        "R13 validity gate",
+        "R15 re-audit",
+    ],
+}
+_EXPECTED_SOURCE_OF_TRUTH: Final[list[str]] = [
+    "README.md is the main development source of truth for the current benchmark and workflow.",
+    "packaging/kaggle/BENCHMARK_CARD.md is the benchmark-facing summary for the Kaggle surface.",
+    "Implemented code and checked-in manifests under src/ and packaging/kaggle/ define the active contract; validation and audit outputs are evidence, not contract state.",
+]
 _EXPECTED_EMITTED_DIFFICULTIES: Final[list[str]] = ["easy", "medium", "hard"]
 
 
@@ -80,12 +94,16 @@ def validate_kaggle_staging_manifest(
         raise ValueError("task_id must equal ruleshift_benchmark_v1")
     if manifest.get("task_name") != "RuleShift Benchmark v1":
         raise ValueError("task_name must equal RuleShift Benchmark v1")
+    if manifest.get("version_roles") != _EXPECTED_VERSION_ROLES:
+        raise ValueError("version_roles must describe benchmark, evidence, and packaging roles")
 
     benchmark_versions = manifest.get("benchmark_versions")
     if benchmark_versions != _EXPECTED_BENCHMARK_VERSIONS:
         raise ValueError(
             "benchmark_versions must match the canonical split and schema versions"
         )
+    if manifest.get("source_of_truth") != _EXPECTED_SOURCE_OF_TRUTH:
+        raise ValueError("source_of_truth must distinguish active contract state from evidence")
 
     if manifest.get("current_emitted_difficulty_labels") != _EXPECTED_EMITTED_DIFFICULTIES:
         raise ValueError(

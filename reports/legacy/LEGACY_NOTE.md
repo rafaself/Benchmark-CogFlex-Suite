@@ -4,6 +4,7 @@ The files in this directory are archival model run outputs. They are preserved f
 
 ## Why these are legacy
 
+- **Release-label role mismatch**: `R18` in this directory is a historical model-run release label. It is not the active benchmark contract version and not the Kaggle packaging bundle version.
 - **Split version mismatch**: These artifacts were generated against `seed_bank_version` `R14-dev-3` / `R14-public-3` (16 episodes per split). The current frozen splits are `R14-dev-4` / `R14-public-4` (18 episodes per split).
 - **Pre-hardening Narrative contract**: The `m1_*` report predates the Narrative format hardening. The current Narrative contract uses a 4-line structured format; the legacy report reflects the older long JSON format.
 
