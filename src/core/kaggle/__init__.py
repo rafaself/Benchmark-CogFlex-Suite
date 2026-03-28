@@ -21,12 +21,14 @@ from core.kaggle.payload import (
     normalize_count_result_df,
     validate_kaggle_payload,
 )
+from core.kaggle.notebook_status import NotebookStatus
 
 __all__ = [
     "Label",
     "BinaryResponse",
     "ConfidenceInterval",
     "KAGGLE_STAGING_MANIFEST_PATH",
+    "NotebookStatus",
     "REQUIRED_SLICE_DIMENSIONS",
     "build_kaggle_payload",
     "compute_bootstrap_confidence_interval",
