@@ -18,6 +18,7 @@ from core.kaggle.manifest import (
 from core.kaggle.payload import (
     REQUIRED_SLICE_DIMENSIONS,
     build_kaggle_payload,
+    normalize_count_result_df,
     validate_kaggle_payload,
 )
 
@@ -31,6 +32,7 @@ __all__ = [
     "compute_bootstrap_confidence_interval",
     "load_kaggle_staging_manifest",
     "normalize_binary_response",
+    "normalize_count_result_df",
     "normalize_narrative_response",
     "resolve_kaggle_artifact_path",
     "score_episode",

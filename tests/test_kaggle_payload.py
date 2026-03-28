@@ -8,6 +8,7 @@ from core.kaggle import (
     ConfidenceInterval,
     build_kaggle_payload,
     compute_bootstrap_confidence_interval,
+    normalize_count_result_df,
     validate_kaggle_payload,
 )
 
@@ -177,6 +178,46 @@ def test_build_kaggle_payload_missing_columns():
     nar_df = _make_narrative_df()
     with pytest.raises(ValueError, match="must contain 'num_correct' and 'total'"):
         build_kaggle_payload(df, nar_df)
+
+
+def test_normalize_count_result_df_result_tuple_column_preserves_metadata():
+    df = pd.DataFrame(
+        [{"result": (3, 4), "template_id": "t-1", "difficulty": "easy"}],
+        index=["Run #1"],
+    )
+
+    normalized = normalize_count_result_df(df)
+
+    assert list(normalized.index) == ["Run #1"]
+    assert "result" not in normalized.columns
+    assert normalized.loc["Run #1", "num_correct"] == 3
+    assert normalized.loc["Run #1", "total"] == 4
+    assert normalized.loc["Run #1", "template_id"] == "t-1"
+    assert normalized.loc["Run #1", "difficulty"] == "easy"
+
+
+def test_normalize_count_result_df_invalid_type():
+    with pytest.raises(TypeError, match="result_df must be a pandas DataFrame"):
+        normalize_count_result_df("not a dataframe")
+
+
+def test_build_kaggle_payload_result_tuple_column():
+    n = 16
+    bin_df = pd.DataFrame([{"result": (3, 4)}] * n)
+    nar_df = pd.DataFrame([{"result": (2, 4)}] * n)
+
+    payload = build_kaggle_payload(bin_df, nar_df)
+
+    assert payload["primary_result"]["numerator"] == 3 * n
+    assert payload["primary_result"]["denominator"] == 4 * n
+
+
+def test_build_kaggle_payload_result_tuple_column_invalid_shape():
+    bin_df = pd.DataFrame([{"result": (3, 4, 5)}])
+    nar_df = pd.DataFrame([{"num_correct": 2, "total": 4}])
+
+    with pytest.raises(ValueError, match="2-item tuple/list"):
+        build_kaggle_payload(bin_df, nar_df)
 
 
 def test_build_kaggle_payload_score0_score1_columns():
@@ -501,6 +542,7 @@ def test_notebook_uses_canonical_builder_in_real_emitted_artifact_path():
     # Must call the canonical builder and the validator
     assert "build_kaggle_payload" in canonical_source
     assert "validate_kaggle_payload" in canonical_source
+    assert "normalize_count_result_df" in canonical_source
 
     # Must print (emit to notebook output = authoritative Kaggle artifact)
     assert "print(" in canonical_source, (

@@ -27,9 +27,11 @@ class _ResultSet:
         self._rows = rows
 
     def as_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(
-            [{"num_correct": r.score[0], "total": r.score[1], **r.kwargs} for r in self._rows]
-        )
+        rows = [
+            {"run_id": f"Run #{idx + 1}", "result": r.score, **r.kwargs}
+            for idx, r in enumerate(self._rows)
+        ]
+        return pd.DataFrame(rows).set_index("run_id")
 
 
 class _LLMStub:

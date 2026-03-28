@@ -35,6 +35,8 @@ if str(_REPO_ROOT) not in sys.path:
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
+from core.kaggle import normalize_count_result_df
+
 # Install the kbench shim as ``kaggle_benchmarks`` before any notebook code runs.
 import tests.kbench_shim as _shim  # noqa: E402
 
@@ -381,7 +383,7 @@ class TestDryRunEvaluation:
         binary_task = _register_binary_task()
         df = _build_eval_df()
         result = binary_task.evaluate(llm=[kbench.llm], evaluation_data=df)
-        result_df = result.as_dataframe()
+        result_df = normalize_count_result_df(result.as_dataframe())
         assert (result_df["num_correct"] == 0).all()
         assert (result_df["total"] == 4).all()
 

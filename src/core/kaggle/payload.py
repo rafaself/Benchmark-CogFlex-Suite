@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from core.invariance import INVARIANCE_VERSION, PerturbationClass
 from core.kaggle.types import compute_bootstrap_confidence_interval
 from core.slices import SLICE_DIMENSIONS, ErrorType
 from core.splits import MANIFEST_VERSION
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 __all__ = [
     "REQUIRED_SLICE_DIMENSIONS",
     "build_kaggle_payload",
+    "normalize_count_result_df",
     "validate_kaggle_payload",
 ]
 
@@ -175,9 +179,15 @@ def build_kaggle_payload(
     or mismatched in denominator basis.
 
     Args:
-        binary_df: pandas DataFrame containing 'num_correct' and 'total' columns.
-        narrative_df: pandas DataFrame containing 'num_correct' and 'total' columns.
-            Must align with binary_df on episode count and total denominator.
+        binary_df: pandas DataFrame containing count-based task results in one
+            of the supported shapes: canonical ``num_correct``/``total``,
+            Kaggle SDK ``result`` tuples, or legacy ``score_0``/``score_1`` /
+            ``0``/``1`` columns.
+        narrative_df: pandas DataFrame containing count-based task results in
+            one of the supported shapes: canonical ``num_correct``/``total``,
+            Kaggle SDK ``result`` tuples, or legacy ``score_0``/``score_1`` /
+            ``0``/``1`` columns. Must align with binary_df on episode count
+            and total denominator.
         invariance_df: Optional pandas DataFrame with columns
             ``perturbation_class``, ``num_correct``, and ``total``.  When
             supplied, a diagnostic ``invariance`` section is included in the
@@ -195,18 +205,9 @@ def build_kaggle_payload(
         ImportError: If pandas is not available.
         TypeError: If binary_df or narrative_df is not a pandas DataFrame.
     """
-    try:
-        import pandas as pd
-    except ImportError:
-        raise ImportError("pandas is required for build_kaggle_payload")
-
-    if not isinstance(binary_df, pd.DataFrame):
-        raise TypeError("binary_df must be a pandas DataFrame")
-
+    binary_df = normalize_count_result_df(binary_df, dataframe_label="binary_df")
     if binary_df.empty:
         raise ValueError("binary_df cannot be empty; evaluation results are required")
-
-    binary_df = _normalize_result_df(binary_df)
 
     if "num_correct" not in binary_df.columns or "total" not in binary_df.columns:
         raise ValueError(
@@ -221,15 +222,14 @@ def build_kaggle_payload(
             "Narrative evaluation is missing or was skipped"
         )
 
-    if not isinstance(narrative_df, pd.DataFrame):
-        raise TypeError("narrative_df must be a pandas DataFrame")
-
+    narrative_df = normalize_count_result_df(
+        narrative_df,
+        dataframe_label="narrative_df",
+    )
     if narrative_df.empty:
         raise ValueError(
             "narrative_df cannot be empty; Narrative evaluation results are required"
         )
-
-    narrative_df = _normalize_result_df(narrative_df)
 
     if "num_correct" not in narrative_df.columns or "total" not in narrative_df.columns:
         raise ValueError(
@@ -321,6 +321,63 @@ def build_kaggle_payload(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def normalize_count_result_df(
+    df: "pd.DataFrame",
+    *,
+    dataframe_label: str = "result_df",
+) -> "pd.DataFrame":
+    """Normalizes count-based result DataFrames to ``num_correct`` / ``total``.
+
+    Supported input shapes:
+    - canonical ``num_correct`` / ``total`` columns
+    - Kaggle SDK ``result`` column with 2-item tuple/list values
+    - legacy ``score_0`` / ``score_1`` columns
+    - integer ``0`` / ``1`` columns
+
+    Non-result metadata columns are preserved. The returned DataFrame is always
+    a copy of the input.
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        raise ImportError("pandas is required for normalize_count_result_df")
+
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"{dataframe_label} must be a pandas DataFrame")
+
+    out = df.copy()
+
+    if "num_correct" in out.columns and "total" in out.columns:
+        return out
+
+    if "result" in out.columns:
+        invalid_mask = ~out["result"].map(
+            lambda value: isinstance(value, (tuple, list)) and len(value) == 2
+        )
+        if invalid_mask.any():
+            raise ValueError(
+                f"{dataframe_label}.result must contain 2-item tuple/list values"
+            )
+
+        if out.empty:
+            out = out.drop(columns=["result"])
+            out["num_correct"] = pd.Series(index=out.index, dtype="object")
+            out["total"] = pd.Series(index=out.index, dtype="object")
+            return out
+
+        expanded = pd.DataFrame(out["result"].tolist(), index=out.index)
+        out[["num_correct", "total"]] = expanded
+        return out.drop(columns=["result"])
+
+    if "score_0" in out.columns and "score_1" in out.columns:
+        return out.rename(columns={"score_0": "num_correct", "score_1": "total"})
+
+    if 0 in out.columns and 1 in out.columns:
+        return out.rename(columns={0: "num_correct", 1: "total"})
+
+    return out
+
+
 def _reject_dev_rows(df: Any, label: str) -> None:
     if "split" not in df.columns:
         return
@@ -331,19 +388,6 @@ def _reject_dev_rows(df: Any, label: str) -> None:
             "only leaderboard results may be aggregated into the official payload. "
             "Drop the dev split before calling build_kaggle_payload."
         )
-
-
-def _normalize_result_df(df: Any) -> Any:
-    if "num_correct" in df.columns and "total" in df.columns:
-        return df
-    rename_map: dict = {}
-    if "score_0" in df.columns and "score_1" in df.columns:
-        rename_map = {"score_0": "num_correct", "score_1": "total"}
-    elif 0 in df.columns and 1 in df.columns:
-        rename_map = {0: "num_correct", 1: "total"}
-    if rename_map:
-        return df.rename(columns=rename_map)
-    return df
 
 
 def _build_payload_slices(binary_df: Any) -> dict[str, object]:
