@@ -155,7 +155,13 @@ def test_packaging_docs_describe_private_split_as_mount_only():
     assert "private dataset mount" in card_text
     assert "src/frozen_splits/private_leaderboard.json" not in card_text
     assert "packaging/kaggle/private/private_episodes.json" not in notebook_text
-    assert "resolve_private_dataset_root" in notebook_text
+    assert "discover_private_dataset_root" in notebook_text
+
+
+def test_public_kernel_metadata_attaches_only_runtime_dataset():
+    kernel_metadata = _load_kernel_metadata()
+
+    assert kernel_metadata["dataset_sources"] == ["raptorengineer/ruleshift-runtime"]
 
 
 def test_packaging_docs_describe_separate_private_flow():

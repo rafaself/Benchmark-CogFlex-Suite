@@ -13,8 +13,10 @@ from core.private_split import (
     PRIVATE_EPISODES_FILENAME,
     PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION,
     build_private_split_artifact,
+    discover_private_dataset_root,
     load_private_split,
     load_private_split_manifest_info,
+    resolve_private_dataset_root,
 )
 from core.splits import generate_frozen_split, load_frozen_split, load_split_manifest
 from tasks.ruleshift_benchmark.protocol import InteractionLabel, Split
@@ -102,6 +104,24 @@ def test_load_private_split_missing_mount_raises_clear_error(
         match="Private evaluation dataset is not attached",
     ):
         load_private_split()
+
+
+def test_discover_private_dataset_root_returns_none_when_private_dataset_is_absent(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv(PRIVATE_DATASET_ROOT_ENV_VAR, raising=False)
+    assert discover_private_dataset_root() is None
+
+
+def test_resolve_private_dataset_root_still_raises_when_private_dataset_is_absent(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv(PRIVATE_DATASET_ROOT_ENV_VAR, raising=False)
+    with pytest.raises(
+        FileNotFoundError,
+        match="Private evaluation dataset is not attached",
+    ):
+        resolve_private_dataset_root()
 
 
 def test_load_private_split_wrong_partition_raises(

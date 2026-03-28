@@ -87,6 +87,27 @@ def _execute_notebook_cells() -> dict:
     return ns
 
 
+def _execute_notebook_cells_through(cell_id: str) -> dict:
+    """Execute code cells in notebook order through the selected cell id."""
+    cells = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))["cells"]
+    ns: dict = {
+        "__builtins__": __import__("builtins"),
+        "display": lambda *a, **kw: None,
+    }
+    for cell in cells:
+        if cell.get("cell_type") != "code":
+            continue
+        source = "".join(cell.get("source", ()))
+        filtered = "\n".join(
+            line for line in source.splitlines() if not line.strip().startswith("%")
+        )
+        if filtered.strip():
+            exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
+        if cell.get("id") == cell_id:
+            return ns
+    raise KeyError(f"Cell id {cell_id!r} not found in notebook")
+
+
 def _build_eval_df():
     """Reproduce the combined-splits eval_df (all partitions) for unit tests."""
     import pandas as pd
@@ -197,18 +218,16 @@ class TestNotebookBootstrap:
     def test_src_added_to_sys_path(self):
         assert str(_SRC_DIR) in sys.path
 
-    def test_missing_private_dataset_raises_clear_error(
+    def test_missing_private_dataset_does_not_break_public_bootstrap(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ):
         cell2 = _cell_source("cell-2")
         ns: dict = {"Path": Path, "sys": sys}
         monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
-        with pytest.raises(
-            FileNotFoundError,
-            match="Private evaluation dataset is not attached",
-        ):
-            exec(compile(cell2, "<cell-2>", "exec"), ns)  # noqa: S102
+        exec(compile(cell2, "<cell-2>", "exec"), ns)  # noqa: S102
+        assert ns["REPO_ROOT"] == _REPO_ROOT
+        assert ns["PRIVATE_DATASET_ROOT"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -467,16 +486,21 @@ class TestNotebookSourceFidelity:
 
     def test_notebook_uses_mount_only_private_dataset_resolution(self):
         joined = "\n".join(_read_notebook_sources())
-        assert "resolve_private_dataset_root" in joined
+        assert "discover_private_dataset_root" in joined
         assert 'frozen_splits["private_leaderboard"] = load_private_split(PRIVATE_DATASET_ROOT)' in joined
         assert "packaging/kaggle/private/private_episodes.json" not in joined
+
+    def test_notebook_does_not_resolve_private_dataset_during_bootstrap(self):
+        cell2 = _cell_source("cell-2")
+        assert "resolve_private_dataset_root" not in cell2
+        assert "discover_private_dataset_root" not in cell2
 
     def test_notebook_defines_explicit_leaderboard_partition_boundary(self):
         joined = "\n".join(_read_notebook_sources())
         assert '_DEV_PARTITION = "dev"' in joined
         assert '_LEADERBOARD_PARTITIONS = ("public_leaderboard", "private_leaderboard")' in joined
         assert '_PUBLIC_RUNTIME_PARTITIONS = (_DEV_PARTITION, "public_leaderboard")' in joined
-        assert 'for _partition in _LEADERBOARD_PARTITIONS' in joined
+        assert 'for _partition in _available_leaderboard_partitions' in joined
 
     def test_binary_task_signature_matches_eval_df_columns(self):
         """The function params (excluding llm) must match eval_df column names."""
@@ -552,6 +576,26 @@ class TestNotebookEndToEnd:
             "public_leaderboard",
             "private_leaderboard",
         }
+
+    def test_public_only_notebook_execution_stays_up_without_private_dataset(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
+        ns = _execute_notebook_cells()
+        assert ns["PRIVATE_DATASET_ROOT"] is None
+        assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
+        assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
+        assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
+
+    def test_public_only_split_loading_cell_skips_private_leaderboard_when_unavailable(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
+        ns = _execute_notebook_cells_through("cell-3")
+        assert ns["PRIVATE_DATASET_ROOT"] is None
+        assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
 
     def test_leaderboard_df_has_no_episode_overlap_with_dev_df(self, ns):
         dev_ids = set(ns["dev_df"]["episode_id"])

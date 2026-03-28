@@ -73,9 +73,9 @@ def _collect_notebook_compliance_errors() -> list[str]:
     )
 
     # Requirement 3: private split must be loaded only through authorized resolution
-    if "resolve_private_dataset_root" not in all_sources:
+    if "discover_private_dataset_root" not in all_sources:
         errors.append(
-            "official notebook does not call resolve_private_dataset_root; "
+            "official notebook does not call discover_private_dataset_root; "
             "private split must be loaded through the authorized flow"
         )
 

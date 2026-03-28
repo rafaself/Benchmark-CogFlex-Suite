@@ -7,6 +7,7 @@ The private dataset is kept separate from the public runtime package and must
 be attached explicitly in the private evaluation environment.
 
 Entry points:
+    discover_private_dataset_root(...)
     resolve_private_dataset_root(...)
     load_private_split(...)
     load_private_split_manifest_info(...)
@@ -35,6 +36,7 @@ __all__ = [
     "PRIVATE_DATASET_ROOT_ENV_VAR",
     "PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION",
     "build_private_split_artifact",
+    "discover_private_dataset_root",
     "write_private_split_artifact",
     "load_private_split",
     "load_private_split_manifest_info",
@@ -148,15 +150,13 @@ def load_private_split_manifest_info(
     }
 
 
-def resolve_private_dataset_root(
+def discover_private_dataset_root(
     private_dataset_root: Path | str | None = None,
-) -> Path:
-    """Resolve the mounted private dataset directory.
+) -> Path | None:
+    """Return the mounted private dataset directory when available.
 
-    Resolution order:
-      1. Explicit ``private_dataset_root`` argument
-      2. ``RULESHIFT_PRIVATE_DATASET_ROOT`` environment variable
-      3. Kaggle input mounts under ``/kaggle/input``
+    Uses the same resolution order as ``resolve_private_dataset_root`` but
+    returns ``None`` instead of raising when the private dataset is absent.
     """
     if private_dataset_root is not None:
         return _validate_private_dataset_root(
@@ -176,6 +176,23 @@ def resolve_private_dataset_root(
             continue
         for episodes_path in search_root.rglob(PRIVATE_EPISODES_FILENAME):
             return episodes_path.parent
+
+    return None
+
+
+def resolve_private_dataset_root(
+    private_dataset_root: Path | str | None = None,
+) -> Path:
+    """Resolve the mounted private dataset directory.
+
+    Resolution order:
+      1. Explicit ``private_dataset_root`` argument
+      2. ``RULESHIFT_PRIVATE_DATASET_ROOT`` environment variable
+      3. Kaggle input mounts under ``/kaggle/input``
+    """
+    resolved_root = discover_private_dataset_root(private_dataset_root)
+    if resolved_root is not None:
+        return resolved_root
 
     raise FileNotFoundError(
         "Private evaluation dataset is not attached. "
