@@ -11,6 +11,7 @@ from core.kaggle import (
     normalize_count_result_df,
     validate_kaggle_payload,
 )
+from core.slices import EpisodeSliceData, ErrorType, build_slice_report
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +165,47 @@ def test_build_kaggle_payload_valid():
     assert payload["slices"]["shift_position"] == {}
     assert payload["slices"]["transition_type"] == {}
     assert payload["metadata"]["benchmark_version"] is not None
+
+
+def test_build_kaggle_payload_uses_explicit_slice_report_when_provided():
+    bin_df = pd.DataFrame([
+        {"num_correct": 3, "total": 4},
+        {"num_correct": 1, "total": 4},
+    ])
+    nar_df = pd.DataFrame([
+        {"num_correct": 2, "total": 4},
+        {"num_correct": 1, "total": 4},
+    ])
+    slice_report = build_slice_report(
+        (
+            EpisodeSliceData(
+                episode_id="ep-1",
+                template="T1",
+                template_family="canonical",
+                difficulty="easy",
+                shift_position="2",
+                transition_type="R_std_to_R_inv",
+                error_type=ErrorType.OLD_RULE_PERSISTENCE,
+                correct_probes=3,
+                total_probes=4,
+            ),
+            EpisodeSliceData(
+                episode_id="ep-2",
+                template="T2",
+                template_family="observation_log",
+                difficulty="medium",
+                shift_position="3",
+                transition_type="R_inv_to_R_std",
+                error_type=ErrorType.INVALID_NARRATIVE,
+                correct_probes=1,
+                total_probes=4,
+            ),
+        )
+    )
+
+    payload = build_kaggle_payload(bin_df, nar_df, slice_report=slice_report)
+
+    assert payload["slices"] == slice_report.to_dict()
 
 
 def test_build_kaggle_payload_empty_fails():

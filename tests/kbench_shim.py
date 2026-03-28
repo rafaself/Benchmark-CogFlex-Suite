@@ -38,8 +38,19 @@ class _LLMStub:
     """Stub LLM that returns None for any prompt — exercising the task's
     error-handling path and validating the (0, N) fallback shape."""
 
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
     def prompt(self, text: str, *, schema: Any = None) -> None:
+        self.calls.append({"text": text, "schema": schema})
         return None
+
+    @property
+    def call_count(self) -> int:
+        return len(self.calls)
+
+    def reset(self) -> None:
+        self.calls.clear()
 
 
 llm = _LLMStub()
@@ -106,3 +117,4 @@ def get_registry() -> dict[str, _TaskHandle]:
 
 def reset_registry() -> None:
     _registry.clear()
+    llm.reset()

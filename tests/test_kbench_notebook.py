@@ -128,6 +128,8 @@ def _build_eval_df():
                 "difficulty": ep.difficulty.value,
                 "template_id": ep.template_id.value,
                 "template_family": ep.template_family.value,
+                "shift_position": str(ep.shift_after_position),
+                "transition_type": ep.transition.value,
                 "prompt_binary": render_binary_prompt(ep),
                 "prompt_narrative": render_narrative_prompt(ep),
                 "probe_targets": tuple(t.value for t in ep.probe_targets),
@@ -140,9 +142,10 @@ def _register_binary_task():
     """Register only the Binary task as @kbench.task — matching the notebook."""
     from core.kaggle import (
         BinaryResponse,
-        normalize_binary_response,
+        parse_binary_response,
         score_episode,
     )
+    from core.parser import ParseStatus
 
     @kbench.task(
         name="ruleshift_benchmark_v1_binary",
@@ -156,12 +159,23 @@ def _register_binary_task():
         llm,
         prompt_binary: str,
         probe_targets: tuple,
+        episode_id: str | None = None,
+        template_id: str | None = None,
+        template_family: str | None = None,
+        difficulty: str | None = None,
+        shift_position: str | None = None,
+        transition_type: str | None = None,
     ) -> tuple[int, int]:
         try:
             response = llm.prompt(prompt_binary, schema=BinaryResponse)
-            predictions = normalize_binary_response(response)
+            parsed_prediction = parse_binary_response(response)
         except Exception:
-            predictions = None
+            parsed_prediction = parse_binary_response(None)
+        predictions = (
+            tuple(label.value for label in parsed_prediction.labels)
+            if parsed_prediction.status is ParseStatus.VALID
+            else None
+        )
         return score_episode(predictions, probe_targets)
 
     return ruleshift_benchmark_v1_binary
@@ -169,7 +183,8 @@ def _register_binary_task():
 
 def _make_narrative_fn():
     """Return the Narrative function as a plain callable — not a kbench task."""
-    from core.kaggle import normalize_narrative_response, score_episode
+    from core.kaggle import parse_narrative_response, score_episode
+    from core.parser import NarrativeParseStatus
 
     def ruleshift_benchmark_v1_narrative(
         llm,
@@ -178,9 +193,14 @@ def _make_narrative_fn():
     ) -> tuple[int, int]:
         try:
             response = llm.prompt(prompt_narrative)
-            predictions = normalize_narrative_response(response)
+            parsed_result = parse_narrative_response(response)
         except Exception:
-            predictions = None
+            parsed_result = parse_narrative_response(None)
+        predictions = (
+            tuple(label.value for label in parsed_result.output.final_decision)
+            if parsed_result.status is NarrativeParseStatus.VALID and parsed_result.output is not None
+            else None
+        )
         return score_episode(predictions, probe_targets)
 
     return ruleshift_benchmark_v1_narrative
@@ -245,6 +265,8 @@ class TestNotebookImports:
             BinaryResponse,
             normalize_binary_response,
             normalize_narrative_response,
+            parse_binary_response,
+            parse_narrative_response,
             score_episode,
         )
 
@@ -302,9 +324,18 @@ class TestEvalDataframe:
 
     def test_eval_df_has_expected_columns(self):
         df = _build_eval_df()
-        required = {"episode_id", "split", "difficulty", "template_id",
-                     "template_family",
-                     "prompt_binary", "prompt_narrative", "probe_targets"}
+        required = {
+            "episode_id",
+            "split",
+            "difficulty",
+            "template_id",
+            "template_family",
+            "shift_position",
+            "transition_type",
+            "prompt_binary",
+            "prompt_narrative",
+            "probe_targets",
+        }
         assert required.issubset(set(df.columns))
 
     def test_eval_df_row_count_matches_frozen_splits(self):
@@ -622,6 +653,20 @@ class TestNotebookEndToEnd:
             "Binary result row count must equal leaderboard_df row count"
         )
 
+    def test_official_binary_results_preserve_metadata_columns(self, ns):
+        result_df = ns["binary_results"].as_dataframe()
+        for column in (
+            "episode_id",
+            "template_id",
+            "template_family",
+            "difficulty",
+            "shift_position",
+            "transition_type",
+        ):
+            assert column in result_df.columns, (
+                f"Binary results must preserve {column!r} for payload slices"
+            )
+
     def test_official_narrative_result_count_matches_leaderboard(self, ns):
         narrative_results_df = ns["narrative_results_df"]
         assert narrative_results_df is not None
@@ -635,6 +680,11 @@ class TestNotebookEndToEnd:
         assert "split" not in narrative_results_df.columns, (
             "narrative_results_df must not carry a split column"
         )
+
+    def test_narrative_results_df_preserves_episode_id(self, ns):
+        narrative_results_df = ns["narrative_results_df"]
+        assert "episode_id" in narrative_results_df.columns
+        assert tuple(narrative_results_df["episode_id"]) == tuple(ns["leaderboard_df"]["episode_id"])
 
     # ── 7-8: local dev-validation boundaries ─────────────────────────────────
 
@@ -690,6 +740,36 @@ class TestNotebookEndToEnd:
         comp = ns["payload"]["comparison"]
         assert comp["episode_count_aligned"] is True
         assert comp["binary_total_episodes"] == comp["narrative_total_episodes"]
+
+    def test_payload_slices_are_populated_from_leaderboard_metadata(self, ns):
+        slices = ns["payload"]["slices"]
+        assert slices["template"]
+        assert slices["template_family"]
+        assert slices["difficulty"]
+        assert slices["shift_position"]
+        assert slices["transition_type"]
+
+    def test_provider_failures_surface_canonical_unknown_error_type(self, ns):
+        error_counts = ns["payload"]["slices"]["error_type"]
+        assert error_counts["unknown"] == len(ns["leaderboard_df"])
+        assert error_counts["old_rule_persistence"] == 0
+
+    def test_notebook_exposes_diagnostics_summary_and_slice_frames(self, ns):
+        diagnostics_summary = ns["diagnostics_summary"]
+        assert diagnostics_summary["binary_accuracy"] == ns["payload"]["primary_result"]["score"]
+        assert diagnostics_summary["narrative_accuracy"] == ns["payload"]["narrative_result"]["score"]
+        assert "binary_parse_valid_rate" in diagnostics_summary
+        assert "narrative_schema_valid_rate" in diagnostics_summary
+        assert "narrative_parse_failure_count" in diagnostics_summary
+
+        slice_frames = ns["diagnostic_slice_frames"]
+        for key in ("difficulty", "template_family", "shift_position", "transition_type"):
+            assert key in slice_frames
+            assert not slice_frames[key].empty
+
+    def test_diagnostics_do_not_trigger_extra_model_calls(self, ns):
+        expected_calls = 2 * (len(ns["dev_df"]) + len(ns["leaderboard_df"]))
+        assert kbench.llm.call_count == expected_calls
 
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 

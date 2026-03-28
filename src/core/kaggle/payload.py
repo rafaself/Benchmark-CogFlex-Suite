@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from core.invariance import INVARIANCE_VERSION, PerturbationClass
 from core.kaggle.types import compute_bootstrap_confidence_interval
-from core.slices import SLICE_DIMENSIONS, ErrorType
+from core.slices import SLICE_DIMENSIONS, ErrorType, SliceReport
 from core.splits import MANIFEST_VERSION
 
 if TYPE_CHECKING:
@@ -170,6 +170,7 @@ def build_kaggle_payload(
     binary_df: Any,
     narrative_df: Any,
     *,
+    slice_report: SliceReport | None = None,
     invariance_df: Any | None = None,
 ) -> dict[str, object]:
     """Constructs the canonical final Kaggle payload from task results.
@@ -305,7 +306,11 @@ def build_kaggle_payload(
             "binary_denominator": bin_den,
             "narrative_denominator": nar_den,
         },
-        "slices": _build_payload_slices(binary_df),
+        "slices": (
+            slice_report.to_dict()
+            if slice_report is not None
+            else _build_payload_slices(binary_df)
+        ),
         "metadata": {
             "benchmark_version": MANIFEST_VERSION,
         },

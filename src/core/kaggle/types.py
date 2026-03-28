@@ -6,7 +6,9 @@ import random
 from typing import Sequence
 
 from core.parser import (
+    NarrativeParsedResult,
     NarrativeParseStatus,
+    ParsedPrediction,
     ParseStatus,
     parse_binary_output,
     parse_narrative_audit_output,
@@ -17,6 +19,8 @@ __all__ = [
     "Label",
     "BinaryResponse",
     "ConfidenceInterval",
+    "parse_binary_response",
+    "parse_narrative_response",
     "normalize_binary_response",
     "normalize_narrative_response",
     "score_episode",
@@ -46,24 +50,47 @@ class BinaryResponse:
 
 
 def normalize_binary_response(response: object) -> tuple[str, ...] | None:
-    if isinstance(response, BinaryResponse):
-        return response.as_tuple()
-
-    if isinstance(response, str):
-        parsed = parse_binary_output(response)
-        if parsed.status is ParseStatus.VALID:
-            return tuple(label.value for label in parsed.labels)
-
+    parsed = parse_binary_response(response)
+    if parsed.status is ParseStatus.VALID:
+        return tuple(label.value for label in parsed.labels)
     return None
 
 
 def normalize_narrative_response(response: object) -> tuple[str, ...] | None:
-    if isinstance(response, str):
-        parsed = parse_narrative_audit_output(response)
-        if parsed.status is NarrativeParseStatus.VALID and parsed.output is not None:
-            return tuple(label.value for label in parsed.output.final_decision)
-
+    parsed = parse_narrative_response(response)
+    if parsed.status is NarrativeParseStatus.VALID and parsed.output is not None:
+        return tuple(label.value for label in parsed.output.final_decision)
     return None
+
+
+def parse_binary_response(response: object) -> ParsedPrediction:
+    if response is None:
+        return ParsedPrediction.skipped_provider_failure()
+
+    if isinstance(response, BinaryResponse):
+        return ParsedPrediction(
+            labels=tuple(parse_label(label) for label in response.as_tuple()),
+            status=ParseStatus.VALID,
+        )
+
+    if isinstance(response, str):
+        return parse_binary_output(response)
+
+    return ParsedPrediction(labels=(), status=ParseStatus.INVALID)
+
+
+def parse_narrative_response(response: object) -> NarrativeParsedResult:
+    if response is None:
+        return NarrativeParsedResult.skipped_provider_failure()
+
+    if isinstance(response, str):
+        return parse_narrative_audit_output(response)
+
+    return NarrativeParsedResult(
+        output=None,
+        status=NarrativeParseStatus.INVALID_FORMAT,
+        failure_detail="unsupported response type",
+    )
 
 
 def score_episode(

@@ -12,9 +12,12 @@ from core.kaggle import (
     load_kaggle_staging_manifest,
     normalize_binary_response,
     normalize_narrative_response,
+    parse_binary_response,
+    parse_narrative_response,
     score_episode,
     validate_kaggle_staging_manifest,
 )
+from core.parser import NarrativeParseStatus, ParseStatus
 from tasks.ruleshift_benchmark.schema import (
     DIFFICULTY_VERSION,
     GENERATOR_VERSION,
@@ -317,10 +320,9 @@ def test_kaggle_packaging_text_stays_focused_on_benchmark_runtime_path():
 def test_official_kbench_notebook_imports_package_owned_benchmark_logic():
     sources = _read_notebook_sources(_KBENCH_NOTEBOOK_PATH)
 
-    assert (
-        "from core.kaggle import BinaryResponse, Label, normalize_binary_response, "
-        "normalize_narrative_response, score_episode"
-    ) in sources
+    assert "from core.kaggle import (" in sources
+    assert "parse_binary_response" in sources
+    assert "parse_narrative_response" in sources
     assert "load_kaggle_staging_manifest" not in sources
     assert "validate_kaggle_staging_manifest" not in sources
     assert "resolve_kaggle_artifact_path" not in sources
@@ -328,6 +330,8 @@ def test_official_kbench_notebook_imports_package_owned_benchmark_logic():
     assert "release_r15_reaudit_report.json" not in sources
     assert "def normalize_binary_response(" not in sources
     assert "def normalize_narrative_response(" not in sources
+    assert "def parse_binary_response(" not in sources
+    assert "def parse_narrative_response(" not in sources
     assert "def score_binary_episode(" not in sources
     assert "class Label(" not in sources
     assert "class BinaryResponse:" not in sources
@@ -373,6 +377,66 @@ def test_kaggle_package_helpers_preserve_binary_and_narrative_scoring_contract()
         ("attract", "repel", "repel", "attract"),
     ) == (4, 4)
     assert score_episode(None, ("attract", "repel", "repel", "attract")) == (0, 4)
+
+
+def test_kaggle_package_helpers_expose_notebook_parse_helpers():
+    structured = BinaryResponse(
+        Label.attract,
+        Label.repel,
+        Label.repel,
+        Label.attract,
+    )
+
+    structured_binary = parse_binary_response(structured)
+    assert structured_binary.status is ParseStatus.VALID
+    assert tuple(label.value for label in structured_binary.labels) == (
+        "attract",
+        "repel",
+        "repel",
+        "attract",
+    )
+
+    text_binary = parse_binary_response("attract, repel, repel, attract")
+    assert text_binary.status is ParseStatus.VALID
+    assert tuple(label.value for label in text_binary.labels) == (
+        "attract",
+        "repel",
+        "repel",
+        "attract",
+    )
+
+    invalid_binary = parse_binary_response("not a valid answer")
+    assert invalid_binary.status is ParseStatus.INVALID
+
+    missing_binary = parse_binary_response(None)
+    assert missing_binary.status is ParseStatus.SKIPPED_PROVIDER_FAILURE
+
+    valid_narrative = parse_narrative_response(
+        "\n".join(
+            (
+                "rule_before: pre-shift rule",
+                "shift_evidence: post-shift observations contradict",
+                "rule_after: post-shift rule",
+                "final_decision: attract, repel, repel, attract",
+            )
+        )
+    )
+    assert valid_narrative.status is NarrativeParseStatus.VALID
+    assert valid_narrative.output is not None
+    assert tuple(label.value for label in valid_narrative.output.final_decision) == (
+        "attract",
+        "repel",
+        "repel",
+        "attract",
+    )
+
+    invalid_narrative = parse_narrative_response(
+        "Reasoning about the later rule.\nattract, repel, repel, attract"
+    )
+    assert invalid_narrative.status is NarrativeParseStatus.INVALID_FORMAT
+
+    missing_narrative = parse_narrative_response(None)
+    assert missing_narrative.status is NarrativeParseStatus.SKIPPED_PROVIDER_FAILURE
 
 
 def test_public_packaging_does_not_reference_private_assets():

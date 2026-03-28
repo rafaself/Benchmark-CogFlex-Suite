@@ -7,6 +7,8 @@ from core.kaggle.types import (
     compute_bootstrap_confidence_interval,
     normalize_binary_response,
     normalize_narrative_response,
+    parse_binary_response,
+    parse_narrative_response,
     score_episode,
 )
 from core.kaggle.manifest import (
@@ -36,6 +38,8 @@ __all__ = [
     "normalize_binary_response",
     "normalize_count_result_df",
     "normalize_narrative_response",
+    "parse_binary_response",
+    "parse_narrative_response",
     "resolve_kaggle_artifact_path",
     "score_episode",
     "validate_kaggle_payload",
