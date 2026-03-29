@@ -26,6 +26,7 @@ from core.kaggle.payload import (
 from core.kaggle.notebook_status import NotebookStatus
 from core.kaggle.run_logging import (
     BENCHMARK_LOG_FILENAME,
+    EXCEPTIONS_LOG_FILENAME,
     BenchmarkRunContext,
     BenchmarkRunLogger,
     build_run_context,
@@ -35,6 +36,7 @@ __all__ = [
     "Label",
     "BinaryResponse",
     "BENCHMARK_LOG_FILENAME",
+    "EXCEPTIONS_LOG_FILENAME",
     "BenchmarkRunContext",
     "BenchmarkRunLogger",
     "ConfidenceInterval",

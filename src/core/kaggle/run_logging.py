@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import traceback as _tb
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from typing import Any
 
 __all__ = [
     "BENCHMARK_LOG_FILENAME",
+    "EXCEPTIONS_LOG_FILENAME",
     "RUN_ID_ENV_VAR",
     "RUN_OUTPUT_DIR_ENV_VAR",
     "BenchmarkRunContext",
@@ -18,6 +20,7 @@ __all__ = [
 ]
 
 BENCHMARK_LOG_FILENAME = "benchmark_log.jsonl"
+EXCEPTIONS_LOG_FILENAME = "exceptions.jsonl"
 RUN_ID_ENV_VAR = "RULESHIFT_RUN_ID"
 RUN_OUTPUT_DIR_ENV_VAR = "RULESHIFT_RUN_OUTPUT_DIR"
 
@@ -57,6 +60,7 @@ class BenchmarkRunLogger:
         self.context = context
         self.context.output_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.context.output_dir / BENCHMARK_LOG_FILENAME
+        self.exceptions_path = self.context.output_dir / EXCEPTIONS_LOG_FILENAME
 
     def log(
         self,
@@ -89,6 +93,50 @@ class BenchmarkRunLogger:
             handle.flush()
             os.fsync(handle.fileno())
         return record
+
+    def log_exception(
+        self,
+        exc: BaseException,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None = None,
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        tb_text = "".join(_tb.format_exception(type(exc), exc, exc.__traceback__))
+        full_record: dict[str, Any] = {
+            "timestamp": _timestamp_utc(),
+            "run_id": self.context.run_id,
+            "phase": phase,
+            "event": "exception",
+            "level": "error",
+            "episode_id": episode_id,
+            "task_mode": task_mode,
+            "provider": self.context.provider,
+            "model": self.context.model,
+            "status": "exception",
+            "exception_type": type(exc).__name__,
+            "exception_message": str(exc),
+            "traceback": tb_text,
+        }
+        full_record.update(extra_fields)
+        serialized = json.dumps(full_record, ensure_ascii=True, sort_keys=True)
+        with self.exceptions_path.open("a", encoding="utf-8") as handle:
+            handle.write(serialized)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        self.log(
+            phase=phase,
+            event="exception",
+            level="error",
+            status="exception",
+            task_mode=task_mode,
+            episode_id=episode_id,
+            exception_type=type(exc).__name__,
+            exception_message=str(exc),
+        )
+        return full_record
 
 
 def _resolve_run_id(run_id: str | None) -> str:
