@@ -851,6 +851,29 @@ class TestNotebookEndToEnd:
         assert "payload_built" in events
         assert "run_finished" in events
 
+    def test_notebook_writes_diagnostics_summary_artifact(self, ns):
+        summary_path = ns["DIAGNOSTICS_SUMMARY_PATH"]
+        assert summary_path.name == "diagnostics_summary.json"
+        assert summary_path.is_file()
+        assert summary_path.parent == ns["RUN_OUTPUT_DIR"]
+
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        required_fields = {
+            "run_id",
+            "run_valid",
+            "invalidation_reasons",
+            "binary_parse_valid_rate",
+            "narrative_schema_valid_rate",
+            "provider_failure_count",
+            "failure_category_counts",
+            "total_exception_count",
+            "total_logged_events",
+            "started_at",
+            "finished_at",
+        }
+        assert required_fields.issubset(summary)
+        assert summary["run_id"] == "test-run"
+
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 
     def test_choose_cell_is_last_and_selects_binary(self):

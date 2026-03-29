@@ -31,6 +31,11 @@ from core.kaggle.payload import (
     validate_kaggle_payload,
 )
 from core.kaggle.notebook_status import NotebookStatus
+from core.kaggle.diagnostics_summary import (
+    DIAGNOSTICS_SUMMARY_FILENAME,
+    build_diagnostics_summary,
+    write_diagnostics_summary,
+)
 from core.kaggle.run_logging import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
@@ -46,6 +51,7 @@ __all__ = [
     "BinaryResponse",
     "BinaryEpisodeExecution",
     "BENCHMARK_LOG_FILENAME",
+    "DIAGNOSTICS_SUMMARY_FILENAME",
     "EXCEPTIONS_LOG_FILENAME",
     "LIFECYCLE_EVENTS",
     "NarrativeEpisodeExecution",
@@ -58,6 +64,7 @@ __all__ = [
     "NotebookStatus",
     "REQUIRED_SLICE_DIMENSIONS",
     "build_kaggle_payload",
+    "build_diagnostics_summary",
     "build_run_context",
     "compute_bootstrap_confidence_interval",
     "load_kaggle_staging_manifest",
@@ -72,4 +79,5 @@ __all__ = [
     "score_episode",
     "validate_kaggle_payload",
     "validate_kaggle_staging_manifest",
+    "write_diagnostics_summary",
 ]
