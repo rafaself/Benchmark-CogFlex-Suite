@@ -36,6 +36,11 @@ from core.kaggle.diagnostics_summary import (
     build_diagnostics_summary,
     write_diagnostics_summary,
 )
+from core.kaggle.run_manifest import (
+    RUN_MANIFEST_FILENAME,
+    build_run_manifest,
+    write_run_manifest,
+)
 from core.kaggle.run_logging import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
@@ -63,8 +68,10 @@ __all__ = [
     "KAGGLE_STAGING_MANIFEST_PATH",
     "NotebookStatus",
     "REQUIRED_SLICE_DIMENSIONS",
+    "RUN_MANIFEST_FILENAME",
     "build_kaggle_payload",
     "build_diagnostics_summary",
+    "build_run_manifest",
     "build_run_context",
     "compute_bootstrap_confidence_interval",
     "load_kaggle_staging_manifest",
@@ -80,4 +87,5 @@ __all__ = [
     "validate_kaggle_payload",
     "validate_kaggle_staging_manifest",
     "write_diagnostics_summary",
+    "write_run_manifest",
 ]

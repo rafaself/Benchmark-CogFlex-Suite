@@ -874,6 +874,30 @@ class TestNotebookEndToEnd:
         assert required_fields.issubset(summary)
         assert summary["run_id"] == "test-run"
 
+    def test_notebook_writes_run_manifest_artifact(self, ns):
+        manifest_path = ns["RUN_MANIFEST_PATH"]
+        assert manifest_path.name == "run_manifest.json"
+        assert manifest_path.is_file()
+        assert manifest_path.parent == ns["RUN_OUTPUT_DIR"]
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        required_fields = {
+            "run_id",
+            "git_commit",
+            "benchmark_version",
+            "parser_version",
+            "metrics_version",
+            "notebook_bundle_hash",
+            "runtime_dataset_id",
+            "runtime_dataset_version",
+            "provider",
+            "model",
+            "started_at",
+            "finished_at",
+        }
+        assert required_fields.issubset(manifest)
+        assert manifest["run_id"] == "test-run"
+
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 
     def test_choose_cell_is_last_and_selects_binary(self):
