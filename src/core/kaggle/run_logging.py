@@ -16,6 +16,7 @@ __all__ = [
     "RUN_OUTPUT_DIR_ENV_VAR",
     "BenchmarkRunContext",
     "BenchmarkRunLogger",
+    "ExceptionSummary",
     "build_run_context",
 ]
 
@@ -31,6 +32,12 @@ class BenchmarkRunContext:
     output_dir: Path
     provider: str
     model: str
+
+
+@dataclass(frozen=True, slots=True)
+class ExceptionSummary:
+    total: int
+    by_phase: dict[str, int]
 
 
 def build_run_context(
@@ -137,6 +144,34 @@ class BenchmarkRunLogger:
             exception_message=str(exc),
         )
         return full_record
+
+    def summarize_exceptions(self) -> ExceptionSummary:
+        """Read exceptions.jsonl, count by phase, and emit a summary event."""
+        by_phase: dict[str, int] = {}
+        total = 0
+        if self.exceptions_path.exists():
+            for line in self.exceptions_path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    phase_key = "_unparseable"
+                else:
+                    phase_key = record.get("phase", "_unknown")
+                by_phase[phase_key] = by_phase.get(phase_key, 0) + 1
+                total += 1
+        self.log(
+            phase="run",
+            event="exception_summary",
+            level="warning" if total > 0 else "info",
+            status="exceptions_found" if total > 0 else "clean",
+            task_mode="notebook",
+            episode_id=None,
+            total_exceptions=total,
+            by_phase=by_phase,
+        )
+        return ExceptionSummary(total=total, by_phase=by_phase)
 
 
 def _resolve_run_id(run_id: str | None) -> str:

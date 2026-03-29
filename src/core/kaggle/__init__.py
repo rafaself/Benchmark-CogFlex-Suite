@@ -29,6 +29,7 @@ from core.kaggle.run_logging import (
     EXCEPTIONS_LOG_FILENAME,
     BenchmarkRunContext,
     BenchmarkRunLogger,
+    ExceptionSummary,
     build_run_context,
 )
 
@@ -39,6 +40,7 @@ __all__ = [
     "EXCEPTIONS_LOG_FILENAME",
     "BenchmarkRunContext",
     "BenchmarkRunLogger",
+    "ExceptionSummary",
     "ConfidenceInterval",
     "KAGGLE_STAGING_MANIFEST_PATH",
     "NotebookStatus",

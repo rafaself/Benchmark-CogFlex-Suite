@@ -6,6 +6,7 @@ from core.kaggle import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
     BenchmarkRunLogger,
+    ExceptionSummary,
     build_run_context,
 )
 
@@ -258,3 +259,64 @@ def test_log_exception_file_remains_readable_after_multiple_writes(tmp_path):
         record = json.loads(line)
         assert "exception_type" in record
         assert "traceback" in record
+
+
+def test_summarize_exceptions_clean_run(tmp_path):
+    context = build_run_context(
+        repo_root=tmp_path,
+        run_id="run-sum-001",
+        output_dir=tmp_path / "sum-run-1",
+    )
+    logger = BenchmarkRunLogger(context)
+
+    summary = logger.summarize_exceptions()
+
+    assert isinstance(summary, ExceptionSummary)
+    assert summary.total == 0
+    assert summary.by_phase == {}
+
+    log_path = tmp_path / "sum-run-1" / BENCHMARK_LOG_FILENAME
+    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+    assert len(records) == 1
+    record = records[0]
+    assert record["event"] == "exception_summary"
+    assert record["level"] == "info"
+    assert record["status"] == "clean"
+    assert record["total_exceptions"] == 0
+    assert record["by_phase"] == {}
+
+
+def test_summarize_exceptions_counts_by_phase(tmp_path):
+    context = build_run_context(
+        repo_root=tmp_path,
+        llm=_LLMIdentityStub(),
+        run_id="run-sum-002",
+        output_dir=tmp_path / "sum-run-2",
+    )
+    logger = BenchmarkRunLogger(context)
+
+    for phase, exc in [
+        ("official_binary_evaluation", ValueError("bad response")),
+        ("official_binary_evaluation", RuntimeError("timeout")),
+        ("official_narrative_evaluation", OSError("connection lost")),
+    ]:
+        try:
+            raise exc
+        except Exception as e:
+            logger.log_exception(e, phase=phase, task_mode="binary")
+
+    summary = logger.summarize_exceptions()
+
+    assert summary.total == 3
+    assert summary.by_phase == {
+        "official_binary_evaluation": 2,
+        "official_narrative_evaluation": 1,
+    }
+
+    log_path = tmp_path / "sum-run-2" / BENCHMARK_LOG_FILENAME
+    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+    summary_record = [r for r in records if r["event"] == "exception_summary"][0]
+    assert summary_record["level"] == "warning"
+    assert summary_record["status"] == "exceptions_found"
+    assert summary_record["total_exceptions"] == 3
+    assert summary_record["by_phase"]["official_binary_evaluation"] == 2
