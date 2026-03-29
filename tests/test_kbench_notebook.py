@@ -220,6 +220,18 @@ def _clean_kbench_registry():
     kbench.reset_registry()
 
 
+@pytest.fixture(autouse=True)
+def _run_output_dir(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RULESHIFT_RUN_OUTPUT_DIR", str(tmp_path / "notebook-run"))
+    monkeypatch.setenv("RULESHIFT_RUN_ID", "test-run")
+    yield
+    monkeypatch.delenv("RULESHIFT_RUN_OUTPUT_DIR", raising=False)
+    monkeypatch.delenv("RULESHIFT_RUN_ID", raising=False)
+
+
 # ---------------------------------------------------------------------------
 # notebook bootstrap
 # ---------------------------------------------------------------------------
@@ -793,6 +805,38 @@ class TestNotebookEndToEnd:
     def test_diagnostics_do_not_trigger_extra_model_calls(self, ns):
         expected_calls = 2 * (len(ns["dev_df"]) + len(ns["leaderboard_df"]))
         assert kbench.llm.call_count == expected_calls
+
+    def test_notebook_creates_run_scoped_benchmark_log(self, ns):
+        log_path = ns["RUN_LOG_PATH"]
+        assert log_path.name == "benchmark_log.jsonl"
+        assert log_path.is_file()
+        assert log_path.parent == ns["RUN_OUTPUT_DIR"]
+
+        records = [
+            json.loads(line)
+            for line in log_path.read_text(encoding="utf-8").splitlines()
+        ]
+        assert records
+
+        required_fields = {
+            "timestamp",
+            "run_id",
+            "phase",
+            "event",
+            "level",
+            "episode_id",
+            "task_mode",
+            "provider",
+            "model",
+            "status",
+        }
+        for record in records:
+            assert required_fields.issubset(record)
+            assert record["run_id"] == "test-run"
+
+        assert records[0]["event"] == "startup"
+        assert any(record["event"] == "shutdown" for record in records)
+        assert any(record["event"] == "episode_scored" for record in records)
 
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 

@@ -24,15 +24,25 @@ from core.kaggle.payload import (
     validate_kaggle_payload,
 )
 from core.kaggle.notebook_status import NotebookStatus
+from core.kaggle.run_logging import (
+    BENCHMARK_LOG_FILENAME,
+    BenchmarkRunContext,
+    BenchmarkRunLogger,
+    build_run_context,
+)
 
 __all__ = [
     "Label",
     "BinaryResponse",
+    "BENCHMARK_LOG_FILENAME",
+    "BenchmarkRunContext",
+    "BenchmarkRunLogger",
     "ConfidenceInterval",
     "KAGGLE_STAGING_MANIFEST_PATH",
     "NotebookStatus",
     "REQUIRED_SLICE_DIMENSIONS",
     "build_kaggle_payload",
+    "build_run_context",
     "compute_bootstrap_confidence_interval",
     "load_kaggle_staging_manifest",
     "normalize_binary_response",
