@@ -6,7 +6,11 @@ from core.kaggle import (
     BENCHMARK_LOG_FILENAME,
     EPISODE_RESULTS_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
+    FAILURE_CATEGORY_INVALID_PREDICTION_SHAPE,
+    FAILURE_CATEGORY_TIMEOUT,
     OPERATIONAL_FAILURE_STATUS,
+    OUTCOME_KIND_MODEL_PARSE_FAILURE,
+    OUTCOME_KIND_OPERATIONAL_FAILURE,
     BenchmarkRunLogger,
     EpisodeResultLedgerWriter,
     build_run_context,
@@ -77,10 +81,13 @@ def test_run_binary_episode_marks_provider_exceptions_as_operational_failures(tm
     ]
     assert log_records[2]["status"] == "failed"
     assert log_records[2]["failure_stage"] == "provider_call"
+    assert log_records[2]["failure_category"] == FAILURE_CATEGORY_TIMEOUT
     assert log_records[4]["status"] == OPERATIONAL_FAILURE_STATUS
     assert log_records[4]["detail"].startswith("Operational failure during provider_call")
+    assert log_records[4]["failure_category"] == FAILURE_CATEGORY_TIMEOUT
     assert log_records[5]["status"] == OPERATIONAL_FAILURE_STATUS
     assert log_records[5]["level"] == "error"
+    assert log_records[5]["failure_category"] == FAILURE_CATEGORY_TIMEOUT
 
     exception_records = [
         json.loads(line)
@@ -92,6 +99,7 @@ def test_run_binary_episode_marks_provider_exceptions_as_operational_failures(tm
     assert exception_records[0]["episode_id"] == "ep-001"
     assert exception_records[0]["failure_stage"] == "provider_call"
     assert exception_records[0]["exception_type"] == "RuntimeError"
+    assert exception_records[0]["failure_category"] == FAILURE_CATEGORY_TIMEOUT
 
     ledger_records = [
         json.loads(line)
@@ -109,6 +117,8 @@ def test_run_binary_episode_marks_provider_exceptions_as_operational_failures(tm
         "model": "shim-model",
         "call_status": "failed",
         "parse_status": OPERATIONAL_FAILURE_STATUS,
+        "outcome_kind": OUTCOME_KIND_OPERATIONAL_FAILURE,
+        "failure_category": FAILURE_CATEGORY_TIMEOUT,
         "latency_ms": ledger_records[0]["latency_ms"],
         "prediction": None,
         "target": ["attract", "repel", "attract", "repel"],
@@ -165,9 +175,13 @@ def test_run_narrative_episode_marks_scoring_exceptions_as_operational_failures(
         "episode_scored",
     ]
     assert log_records[3]["status"] == "invalid_format"
+    assert log_records[3]["failure_category"] == "narrative_parse_failure"
+    assert log_records[3]["outcome_kind"] == OUTCOME_KIND_MODEL_PARSE_FAILURE
     assert log_records[5]["failure_stage"] == "episode_scoring"
     assert log_records[5]["status"] == OPERATIONAL_FAILURE_STATUS
+    assert log_records[5]["failure_category"] == FAILURE_CATEGORY_INVALID_PREDICTION_SHAPE
     assert log_records[6]["status"] == OPERATIONAL_FAILURE_STATUS
+    assert log_records[6]["failure_category"] == FAILURE_CATEGORY_INVALID_PREDICTION_SHAPE
 
     exception_records = [
         json.loads(line)
@@ -177,3 +191,4 @@ def test_run_narrative_episode_marks_scoring_exceptions_as_operational_failures(
     ]
     assert len(exception_records) == 1
     assert exception_records[0]["failure_stage"] == "episode_scoring"
+    assert exception_records[0]["failure_category"] == FAILURE_CATEGORY_INVALID_PREDICTION_SHAPE

@@ -5,6 +5,7 @@ import json
 from core.kaggle import (
     DIAGNOSTICS_SUMMARY_FILENAME,
     BenchmarkRunLogger,
+    EpisodeResultLedgerWriter,
     build_run_context,
     write_diagnostics_summary,
 )
@@ -17,6 +18,7 @@ def test_write_diagnostics_summary_creates_compact_run_health_artifact(tmp_path)
         output_dir=tmp_path / "diag-run",
     )
     logger = BenchmarkRunLogger(context)
+    ledger = EpisodeResultLedgerWriter(context)
 
     logger.log_run_started(output_dir=str(context.output_dir))
     logger.log_provider_call_failed(
@@ -59,6 +61,34 @@ def test_write_diagnostics_summary_creates_compact_run_health_artifact(tmp_path)
         reason="official_binary_evaluation_failed",
         detail="Binary evaluation failed",
     )
+    ledger.write_record(
+        episode_id="ep-001",
+        split="public_leaderboard",
+        task_mode="binary",
+        call_status="failed",
+        parse_status="operational_failure",
+        outcome_kind="operational_failure",
+        failure_category="provider_failure",
+        latency_ms=8,
+        prediction=None,
+        target=["attract", "repel", "attract", "repel"],
+        score={"num_correct": 0, "total": 4},
+        exception_ref="exceptions.jsonl#2026-03-29T12:00:00Z",
+    )
+    ledger.write_record(
+        episode_id="ep-002",
+        split="public_leaderboard",
+        task_mode="narrative",
+        call_status="completed",
+        parse_status="invalid_format",
+        outcome_kind="model_parse_failure",
+        failure_category="narrative_parse_failure",
+        latency_ms=6,
+        prediction=None,
+        target=["attract", "repel", "attract", "repel"],
+        score={"num_correct": 0, "total": 4},
+        exception_ref=None,
+    )
     logger.log_run_finished(output_dir=str(context.output_dir), total_exceptions=1)
 
     summary_path = write_diagnostics_summary(
@@ -78,8 +108,8 @@ def test_write_diagnostics_summary_creates_compact_run_health_artifact(tmp_path)
         "narrative_schema_valid_rate": 0.75,
         "provider_failure_count": 1,
         "failure_category_counts": {
-            "provider_call": 1,
-            "invalid_format": 1,
+            "provider_failure": 1,
+            "narrative_parse_failure": 1,
         },
         "total_exception_count": 1,
         "total_logged_events": 7,

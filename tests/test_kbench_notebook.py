@@ -919,6 +919,8 @@ class TestNotebookEndToEnd:
             "model",
             "call_status",
             "parse_status",
+            "outcome_kind",
+            "failure_category",
             "latency_ms",
             "prediction",
             "target",
@@ -928,6 +930,13 @@ class TestNotebookEndToEnd:
         for record in records:
             assert required_fields.issubset(record)
             assert record["run_id"] == "test-run"
+
+        assert {record["outcome_kind"] for record in records} == {
+            "operational_failure",
+        }
+        assert {record["failure_category"] for record in records} == {
+            "provider_failure",
+        }
 
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 

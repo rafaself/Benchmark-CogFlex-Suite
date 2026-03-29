@@ -3,6 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from time import monotonic
 from core.kaggle.episode_ledger import EpisodeResultLedgerWriter
+from core.kaggle.failure_categories import (
+    OUTCOME_KIND_OPERATIONAL_FAILURE,
+    classify_binary_parse_status,
+    classify_narrative_parse_status,
+    classify_operational_exception,
+)
 from core.kaggle.run_logging import EXCEPTIONS_LOG_FILENAME
 from core.kaggle.run_logging import BenchmarkRunLogger
 from core.kaggle.types import (
@@ -115,14 +121,22 @@ def run_binary_episode(
             parse_status=parsed_prediction.status.value,
         )
     else:
+        outcome_kind, failure_category = classify_binary_parse_status(
+            parsed_prediction.status,
+        )
         logger.log_response_parse_failed(
             phase=phase,
             task_mode=task_mode,
             episode_id=episode_id,
             status=parsed_prediction.status.value,
             parse_status=parsed_prediction.status.value,
+            outcome_kind=outcome_kind,
+            failure_category=failure_category,
         )
 
+    outcome_kind, failure_category = classify_binary_parse_status(
+        parsed_prediction.status,
+    )
     try:
         predictions = (
             tuple(label.value for label in parsed_prediction.labels)
@@ -150,6 +164,8 @@ def run_binary_episode(
         episode_id=episode_id,
         level="info" if parsed_prediction.status is ParseStatus.VALID else "warning",
         status=parsed_prediction.status.value,
+        outcome_kind=outcome_kind,
+        failure_category=failure_category,
         num_correct=score[0],
         total=score[1],
     )
@@ -160,6 +176,8 @@ def run_binary_episode(
             task_mode=task_mode,
             call_status="completed",
             parse_status=parsed_prediction.status.value,
+            outcome_kind=outcome_kind,
+            failure_category=failure_category,
             latency_ms=_duration_ms(call_started_at),
             prediction=_binary_prediction_payload(parsed_prediction),
             target=_labels_payload(probe_targets),
@@ -244,6 +262,9 @@ def run_narrative_episode(
             parse_status=parsed_result.status.value,
         )
     else:
+        outcome_kind, failure_category = classify_narrative_parse_status(
+            parsed_result.status,
+        )
         logger.log_response_parse_failed(
             phase=phase,
             task_mode=task_mode,
@@ -251,8 +272,13 @@ def run_narrative_episode(
             status=parsed_result.status.value,
             parse_status=parsed_result.status.value,
             failure_detail=parsed_result.failure_detail,
+            outcome_kind=outcome_kind,
+            failure_category=failure_category,
         )
 
+    outcome_kind, failure_category = classify_narrative_parse_status(
+        parsed_result.status,
+    )
     try:
         predictions = (
             tuple(label.value for label in parsed_result.output.final_decision)
@@ -280,6 +306,8 @@ def run_narrative_episode(
         episode_id=episode_id,
         level="info" if parsed_result.status is NarrativeParseStatus.VALID else "warning",
         status=parsed_result.status.value,
+        outcome_kind=outcome_kind,
+        failure_category=failure_category,
         num_correct=score[0],
         total=score[1],
     )
@@ -290,6 +318,8 @@ def run_narrative_episode(
             task_mode=task_mode,
             call_status="completed",
             parse_status=parsed_result.status.value,
+            outcome_kind=outcome_kind,
+            failure_category=failure_category,
             latency_ms=_duration_ms(call_started_at),
             prediction=_narrative_prediction_payload(parsed_result),
             target=_labels_payload(probe_targets),
@@ -316,6 +346,10 @@ def _binary_operational_failure(
     latency_ms: int | None,
     failure_stage: str,
 ) -> BinaryEpisodeExecution:
+    failure_category = classify_operational_exception(
+        exc=exc,
+        failure_stage=failure_stage,
+    )
     exception_ref = _log_operational_failure(
         exc,
         logger=logger,
@@ -323,6 +357,7 @@ def _binary_operational_failure(
         task_mode=task_mode,
         episode_id=episode_id,
         failure_stage=failure_stage,
+        failure_category=failure_category,
     )
     score = (0, PROBE_COUNT)
     logger.log_episode_scored(
@@ -331,6 +366,8 @@ def _binary_operational_failure(
         episode_id=episode_id,
         level="error",
         status=OPERATIONAL_FAILURE_STATUS,
+        outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
+        failure_category=failure_category,
         num_correct=score[0],
         total=score[1],
         failure_stage=failure_stage,
@@ -342,6 +379,8 @@ def _binary_operational_failure(
             task_mode=task_mode,
             call_status="failed" if failure_stage == "provider_call" else "completed",
             parse_status=OPERATIONAL_FAILURE_STATUS,
+            outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
+            failure_category=failure_category,
             latency_ms=latency_ms,
             prediction=None,
             target=_labels_payload(target),
@@ -368,6 +407,10 @@ def _narrative_operational_failure(
     latency_ms: int | None,
     failure_stage: str,
 ) -> NarrativeEpisodeExecution:
+    failure_category = classify_operational_exception(
+        exc=exc,
+        failure_stage=failure_stage,
+    )
     exception_ref = _log_operational_failure(
         exc,
         logger=logger,
@@ -375,6 +418,7 @@ def _narrative_operational_failure(
         task_mode=task_mode,
         episode_id=episode_id,
         failure_stage=failure_stage,
+        failure_category=failure_category,
     )
     score = (0, PROBE_COUNT)
     logger.log_episode_scored(
@@ -383,6 +427,8 @@ def _narrative_operational_failure(
         episode_id=episode_id,
         level="error",
         status=OPERATIONAL_FAILURE_STATUS,
+        outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
+        failure_category=failure_category,
         num_correct=score[0],
         total=score[1],
         failure_stage=failure_stage,
@@ -394,6 +440,8 @@ def _narrative_operational_failure(
             task_mode=task_mode,
             call_status="failed" if failure_stage == "provider_call" else "completed",
             parse_status=OPERATIONAL_FAILURE_STATUS,
+            outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
+            failure_category=failure_category,
             latency_ms=latency_ms,
             prediction=None,
             target=_labels_payload(target),
@@ -415,6 +463,7 @@ def _log_operational_failure(
     task_mode: str,
     episode_id: str | None,
     failure_stage: str,
+    failure_category: str,
 ) -> str:
     detail = _format_operational_failure_detail(failure_stage, exc)
     if failure_stage == "provider_call":
@@ -425,6 +474,8 @@ def _log_operational_failure(
             exception_type=type(exc).__name__,
             exception_message=str(exc),
             failure_stage=failure_stage,
+            failure_category=failure_category,
+            outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
             detail=detail,
         )
     exception_record = logger.log_exception(
@@ -433,6 +484,8 @@ def _log_operational_failure(
         task_mode=task_mode,
         episode_id=episode_id,
         failure_stage=failure_stage,
+        failure_category=failure_category,
+        outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
     )
     logger.log_response_parse_failed(
         phase=phase,
@@ -442,6 +495,8 @@ def _log_operational_failure(
         level="error",
         parse_status=OPERATIONAL_FAILURE_STATUS,
         failure_stage=failure_stage,
+        failure_category=failure_category,
+        outcome_kind=OUTCOME_KIND_OPERATIONAL_FAILURE,
         detail=detail,
     )
     return f"{EXCEPTIONS_LOG_FILENAME}#{exception_record['timestamp']}"

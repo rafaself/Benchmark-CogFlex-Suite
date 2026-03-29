@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from core.kaggle.episode_ledger import EPISODE_RESULTS_FILENAME
 from core.kaggle.run_logging import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
@@ -34,6 +35,7 @@ def build_diagnostics_summary(
     """
     log_records = _read_jsonl_records(context.output_dir / BENCHMARK_LOG_FILENAME)
     exception_records = _read_jsonl_records(context.output_dir / EXCEPTIONS_LOG_FILENAME)
+    episode_records = _read_jsonl_records(context.output_dir / EPISODE_RESULTS_FILENAME)
     invalidation_reasons = _collect_invalidation_reasons(log_records)
 
     return {
@@ -42,11 +44,14 @@ def build_diagnostics_summary(
         "invalidation_reasons": invalidation_reasons,
         "binary_parse_valid_rate": binary_parse_valid_rate,
         "narrative_schema_valid_rate": narrative_schema_valid_rate,
-        "provider_failure_count": sum(
-            1 for record in log_records
-            if record.get("event") == "provider_call_failed"
+        "provider_failure_count": _provider_failure_count(
+            episode_records=episode_records,
+            log_records=log_records,
         ),
-        "failure_category_counts": _collect_failure_category_counts(log_records),
+        "failure_category_counts": _collect_failure_category_counts(
+            episode_records=episode_records,
+            log_records=log_records,
+        ),
         "total_exception_count": len(exception_records),
         "total_logged_events": len(log_records),
         "started_at": _find_event_timestamp(log_records, event="run_started"),
@@ -106,9 +111,19 @@ def _collect_invalidation_reasons(log_records: list[dict[str, Any]]) -> list[str
 
 
 def _collect_failure_category_counts(
+    *,
+    episode_records: list[dict[str, Any]],
     log_records: list[dict[str, Any]],
 ) -> dict[str, int]:
     counts: dict[str, int] = {}
+    if episode_records:
+        for record in episode_records:
+            category = record.get("failure_category")
+            if not isinstance(category, str) or not category:
+                continue
+            counts[category] = counts.get(category, 0) + 1
+        return counts
+
     for record in log_records:
         if record.get("event") != "response_parse_failed":
             continue
@@ -117,8 +132,31 @@ def _collect_failure_category_counts(
     return counts
 
 
+def _provider_failure_count(
+    *,
+    episode_records: list[dict[str, Any]],
+    log_records: list[dict[str, Any]],
+) -> int:
+    provider_side_categories = {
+        "provider_failure",
+        "timeout",
+        "transport_failure",
+    }
+    if episode_records:
+        return sum(
+            1
+            for record in episode_records
+            if record.get("failure_category") in provider_side_categories
+        )
+    return sum(
+        1 for record in log_records
+        if record.get("failure_category") in provider_side_categories
+        or record.get("event") == "provider_call_failed"
+    )
+
+
 def _failure_category(record: dict[str, Any]) -> str:
-    for key in ("failure_stage", "parse_status", "status"):
+    for key in ("failure_category", "failure_stage", "parse_status", "status"):
         value = record.get(key)
         if isinstance(value, str) and value:
             return value
