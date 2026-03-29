@@ -12,6 +12,7 @@ from typing import Any
 __all__ = [
     "BENCHMARK_LOG_FILENAME",
     "EXCEPTIONS_LOG_FILENAME",
+    "LIFECYCLE_EVENTS",
     "RUN_ID_ENV_VAR",
     "RUN_OUTPUT_DIR_ENV_VAR",
     "BenchmarkRunContext",
@@ -22,6 +23,25 @@ __all__ = [
 
 BENCHMARK_LOG_FILENAME = "benchmark_log.jsonl"
 EXCEPTIONS_LOG_FILENAME = "exceptions.jsonl"
+LIFECYCLE_EVENTS = frozenset(
+    {
+        "run_started",
+        "bootstrap_started",
+        "bootstrap_finished",
+        "phase_started",
+        "episode_started",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "provider_call_failed",
+        "response_parsed",
+        "response_parse_failed",
+        "episode_scored",
+        "phase_finished",
+        "payload_built",
+        "run_finished",
+        "run_invalidated",
+    }
+)
 RUN_ID_ENV_VAR = "RULESHIFT_RUN_ID"
 RUN_OUTPUT_DIR_ENV_VAR = "RULESHIFT_RUN_OUTPUT_DIR"
 
@@ -100,6 +120,283 @@ class BenchmarkRunLogger:
             handle.flush()
             os.fsync(handle.fileno())
         return record
+
+    def log_lifecycle(
+        self,
+        *,
+        phase: str,
+        event: str,
+        status: str,
+        task_mode: str,
+        episode_id: str | None,
+        level: str = "info",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        if event not in LIFECYCLE_EVENTS:
+            raise ValueError(f"unsupported lifecycle event: {event}")
+        return self.log(
+            phase=phase,
+            event=event,
+            level=level,
+            status=status,
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_run_started(self, **extra_fields: Any) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase="run",
+            event="run_started",
+            level="info",
+            status="started",
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_bootstrap_started(self, **extra_fields: Any) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase="bootstrap",
+            event="bootstrap_started",
+            level="info",
+            status="started",
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_bootstrap_finished(
+        self,
+        *,
+        status: str = "completed",
+        level: str = "info",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase="bootstrap",
+            event="bootstrap_finished",
+            level=level,
+            status=status,
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_phase_started(
+        self,
+        *,
+        phase: str,
+        task_mode: str = "notebook",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="phase_started",
+            level="info",
+            status="started",
+            task_mode=task_mode,
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_phase_finished(
+        self,
+        *,
+        phase: str,
+        task_mode: str = "notebook",
+        status: str = "completed",
+        level: str = "info",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="phase_finished",
+            level=level,
+            status=status,
+            task_mode=task_mode,
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_episode_started(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="episode_started",
+            level="info",
+            status="started",
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_provider_call_started(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="provider_call_started",
+            level="info",
+            status="started",
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_provider_call_succeeded(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="provider_call_succeeded",
+            level="info",
+            status="completed",
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_provider_call_failed(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        level: str = "error",
+        status: str = "failed",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="provider_call_failed",
+            level=level,
+            status=status,
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_response_parsed(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        status: str = "valid",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="response_parsed",
+            level="info",
+            status=status,
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_response_parse_failed(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        status: str,
+        level: str = "warning",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="response_parse_failed",
+            level=level,
+            status=status,
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_episode_scored(
+        self,
+        *,
+        phase: str,
+        task_mode: str,
+        episode_id: str | None,
+        status: str,
+        level: str = "info",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="episode_scored",
+            level=level,
+            status=status,
+            task_mode=task_mode,
+            episode_id=episode_id,
+            **extra_fields,
+        )
+
+    def log_payload_built(self, **extra_fields: Any) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase="canonical_payload",
+            event="payload_built",
+            level="info",
+            status="completed",
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_run_finished(
+        self,
+        *,
+        status: str = "completed",
+        level: str = "info",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase="run",
+            event="run_finished",
+            level=level,
+            status=status,
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
+
+    def log_run_invalidated(
+        self,
+        *,
+        phase: str,
+        status: str = "invalidated",
+        level: str = "error",
+        **extra_fields: Any,
+    ) -> dict[str, Any]:
+        return self.log_lifecycle(
+            phase=phase,
+            event="run_invalidated",
+            level=level,
+            status=status,
+            task_mode="notebook",
+            episode_id=None,
+            **extra_fields,
+        )
 
     def log_exception(
         self,

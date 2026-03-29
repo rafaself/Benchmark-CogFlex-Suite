@@ -356,8 +356,8 @@ def test_official_kbench_notebook_imports_package_owned_benchmark_logic():
     sources = _read_notebook_sources(_KBENCH_NOTEBOOK_PATH)
 
     assert "from core.kaggle import (" in sources
-    assert "parse_binary_response" in sources
-    assert "parse_narrative_response" in sources
+    assert "run_binary_episode" in sources
+    assert "run_narrative_episode" in sources
     assert "load_kaggle_staging_manifest" not in sources
     assert "validate_kaggle_staging_manifest" not in sources
     assert "resolve_kaggle_artifact_path" not in sources

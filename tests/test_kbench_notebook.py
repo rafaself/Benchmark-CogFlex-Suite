@@ -142,11 +142,14 @@ def _build_eval_df():
 def _register_binary_task():
     """Register only the Binary task as @kbench.task — matching the notebook."""
     from core.kaggle import (
-        BinaryResponse,
-        parse_binary_response,
-        score_episode,
+        BenchmarkRunLogger,
+        build_run_context,
+        run_binary_episode,
     )
-    from core.parser import ParseStatus
+
+    run_logger = BenchmarkRunLogger(
+        build_run_context(repo_root=_REPO_ROOT, llm=kbench.llm)
+    )
 
     @kbench.task(
         name="ruleshift_benchmark_v1_binary",
@@ -167,42 +170,44 @@ def _register_binary_task():
         shift_position: str | None = None,
         transition_type: str | None = None,
     ) -> tuple[int, int]:
-        try:
-            response = llm.prompt(prompt_binary, schema=BinaryResponse)
-        except Exception:
-            response = None
-        parsed_prediction = parse_binary_response(response)
-        predictions = (
-            tuple(label.value for label in parsed_prediction.labels)
-            if parsed_prediction.status is ParseStatus.VALID
-            else None
+        result = run_binary_episode(
+            llm=llm,
+            prompt_binary=prompt_binary,
+            probe_targets=probe_targets,
+            logger=run_logger,
+            phase="test_binary",
+            task_mode="binary",
+            episode_id=episode_id,
         )
-        return score_episode(predictions, probe_targets)
+        return result.score
 
     return ruleshift_benchmark_v1_binary
 
 
 def _make_narrative_fn():
     """Return the Narrative function as a plain callable — not a kbench task."""
-    from core.kaggle import parse_narrative_response, score_episode
-    from core.parser import NarrativeParseStatus
+    from core.kaggle import BenchmarkRunLogger, build_run_context, run_narrative_episode
+
+    run_logger = BenchmarkRunLogger(
+        build_run_context(repo_root=_REPO_ROOT, llm=kbench.llm)
+    )
 
     def ruleshift_benchmark_v1_narrative(
         llm,
         prompt_narrative: str,
         probe_targets: tuple,
+        episode_id: str | None = None,
     ) -> tuple[int, int]:
-        try:
-            response = llm.prompt(prompt_narrative)
-        except Exception:
-            response = None
-        parsed_result = parse_narrative_response(response)
-        predictions = (
-            tuple(label.value for label in parsed_result.output.final_decision)
-            if parsed_result.status is NarrativeParseStatus.VALID and parsed_result.output is not None
-            else None
+        result = run_narrative_episode(
+            llm=llm,
+            prompt_narrative=prompt_narrative,
+            probe_targets=probe_targets,
+            logger=run_logger,
+            phase="test_narrative",
+            task_mode="narrative",
+            episode_id=episode_id,
         )
-        return score_episode(predictions, probe_targets)
+        return result.score
 
     return ruleshift_benchmark_v1_narrative
 
@@ -834,9 +839,17 @@ class TestNotebookEndToEnd:
             assert required_fields.issubset(record)
             assert record["run_id"] == "test-run"
 
-        assert records[0]["event"] == "startup"
-        assert any(record["event"] == "shutdown" for record in records)
-        assert any(record["event"] == "episode_scored" for record in records)
+        events = [record["event"] for record in records]
+        assert events[0] == "run_started"
+        assert "bootstrap_started" in events
+        assert "bootstrap_finished" in events
+        assert "phase_started" in events
+        assert "episode_started" in events
+        assert "provider_call_started" in events
+        assert "response_parse_failed" in events
+        assert "episode_scored" in events
+        assert "payload_built" in events
+        assert "run_finished" in events
 
     # ── 12: %choose boundary ─────────────────────────────────────────────────
 

@@ -11,6 +11,13 @@ from core.kaggle.types import (
     parse_narrative_response,
     score_episode,
 )
+from core.kaggle.execution import (
+    OPERATIONAL_FAILURE_STATUS,
+    BinaryEpisodeExecution,
+    NarrativeEpisodeExecution,
+    run_binary_episode,
+    run_narrative_episode,
+)
 from core.kaggle.manifest import (
     KAGGLE_STAGING_MANIFEST_PATH,
     load_kaggle_staging_manifest,
@@ -27,6 +34,7 @@ from core.kaggle.notebook_status import NotebookStatus
 from core.kaggle.run_logging import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
+    LIFECYCLE_EVENTS,
     BenchmarkRunContext,
     BenchmarkRunLogger,
     ExceptionSummary,
@@ -36,8 +44,12 @@ from core.kaggle.run_logging import (
 __all__ = [
     "Label",
     "BinaryResponse",
+    "BinaryEpisodeExecution",
     "BENCHMARK_LOG_FILENAME",
     "EXCEPTIONS_LOG_FILENAME",
+    "LIFECYCLE_EVENTS",
+    "NarrativeEpisodeExecution",
+    "OPERATIONAL_FAILURE_STATUS",
     "BenchmarkRunContext",
     "BenchmarkRunLogger",
     "ExceptionSummary",
@@ -55,6 +67,8 @@ __all__ = [
     "parse_binary_response",
     "parse_narrative_response",
     "resolve_kaggle_artifact_path",
+    "run_binary_episode",
+    "run_narrative_episode",
     "score_episode",
     "validate_kaggle_payload",
     "validate_kaggle_staging_manifest",

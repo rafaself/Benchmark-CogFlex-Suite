@@ -5,6 +5,7 @@ import json
 from core.kaggle import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
+    LIFECYCLE_EVENTS,
     BenchmarkRunLogger,
     ExceptionSummary,
     build_run_context,
@@ -25,21 +26,13 @@ def test_benchmark_run_logger_appends_valid_json_lines(tmp_path):
     )
     logger = BenchmarkRunLogger(context)
 
-    logger.log(
-        phase="run",
-        event="startup",
-        level="info",
-        status="started",
-        task_mode="notebook",
-        episode_id=None,
-    )
-    logger.log(
+    logger.log_run_started()
+    logger.log_episode_scored(
         phase="official_binary_evaluation",
-        event="episode_scored",
-        level="warning",
-        status="skipped_provider_failure",
         task_mode="binary",
         episode_id="ep-001",
+        level="warning",
+        status="skipped_provider_failure",
         num_correct=0,
         total=4,
     )
@@ -71,10 +64,11 @@ def test_benchmark_run_logger_appends_valid_json_lines(tmp_path):
         assert record["provider"] == "shim-provider"
         assert record["model"] == "shim-model"
 
-    assert records[0]["event"] == "startup"
+    assert records[0]["event"] == "run_started"
     assert records[1]["episode_id"] == "ep-001"
     assert records[1]["num_correct"] == 0
     assert records[1]["total"] == 4
+    assert records[1]["event"] in LIFECYCLE_EVENTS
 
 
 def test_benchmark_run_logger_flushes_single_event_without_close(tmp_path):
@@ -85,22 +79,90 @@ def test_benchmark_run_logger_flushes_single_event_without_close(tmp_path):
     )
     logger = BenchmarkRunLogger(context)
 
-    logger.log(
-        phase="run",
-        event="startup",
-        level="info",
-        status="started",
-        task_mode="notebook",
-        episode_id=None,
-    )
+    logger.log_run_started()
 
     log_path = tmp_path / "partial-run" / BENCHMARK_LOG_FILENAME
     line = log_path.read_text(encoding="utf-8").splitlines()[0]
     record = json.loads(line)
 
     assert record["run_id"] == "run-456"
-    assert record["event"] == "startup"
+    assert record["event"] == "run_started"
     assert record["status"] == "started"
+
+
+def test_lifecycle_helpers_emit_reconstructable_sequence(tmp_path):
+    context = build_run_context(
+        repo_root=tmp_path,
+        llm=_LLMIdentityStub(),
+        run_id="run-life-001",
+        output_dir=tmp_path / "life-run",
+    )
+    logger = BenchmarkRunLogger(context)
+
+    logger.log_run_started(output_dir=str(context.output_dir))
+    logger.log_bootstrap_started(detail="loading splits", total=2)
+    logger.log_bootstrap_finished(detail="splits ready", processed=2, total=2)
+    logger.log_phase_started(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        detail="running binary evaluation",
+        total=1,
+    )
+    logger.log_episode_started(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        episode_id="ep-001",
+    )
+    logger.log_provider_call_started(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        episode_id="ep-001",
+    )
+    logger.log_provider_call_succeeded(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        episode_id="ep-001",
+    )
+    logger.log_response_parsed(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        episode_id="ep-001",
+        parse_status="valid",
+    )
+    logger.log_episode_scored(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        episode_id="ep-001",
+        status="valid",
+        num_correct=4,
+        total=4,
+    )
+    logger.log_phase_finished(
+        phase="official_binary_evaluation",
+        task_mode="binary",
+        processed=1,
+        total=1,
+    )
+    logger.log_payload_built(total_episodes=1)
+    logger.log_run_finished(total_episodes=1)
+
+    log_path = tmp_path / "life-run" / BENCHMARK_LOG_FILENAME
+    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+
+    assert [record["event"] for record in records] == [
+        "run_started",
+        "bootstrap_started",
+        "bootstrap_finished",
+        "phase_started",
+        "episode_started",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "response_parsed",
+        "episode_scored",
+        "phase_finished",
+        "payload_built",
+        "run_finished",
+    ]
 
 
 def test_build_run_context_defaults_unknown_identity(tmp_path):
@@ -284,6 +346,28 @@ def test_summarize_exceptions_clean_run(tmp_path):
     assert record["status"] == "clean"
     assert record["total_exceptions"] == 0
     assert record["by_phase"] == {}
+
+
+def test_log_run_invalidated_emits_lifecycle_record(tmp_path):
+    context = build_run_context(
+        repo_root=tmp_path,
+        run_id="run-invalid-001",
+        output_dir=tmp_path / "invalid-run",
+    )
+    logger = BenchmarkRunLogger(context)
+
+    logger.log_run_invalidated(
+        phase="canonical_payload",
+        detail="payload prerequisites missing",
+        reason="narrative_results_df_missing",
+    )
+
+    log_path = tmp_path / "invalid-run" / BENCHMARK_LOG_FILENAME
+    record = json.loads(log_path.read_text(encoding="utf-8").splitlines()[0])
+    assert record["event"] == "run_invalidated"
+    assert record["phase"] == "canonical_payload"
+    assert record["status"] == "invalidated"
+    assert record["reason"] == "narrative_results_df_missing"
 
 
 def test_summarize_exceptions_counts_by_phase(tmp_path):
