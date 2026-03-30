@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: ruleshift-benchmark
-Version: 0.0.0
-Summary: Challenge runtime for RuleShift Benchmark.
-Requires-Python: >=3.11
-License-File: LICENSE
-Dynamic: license-file
