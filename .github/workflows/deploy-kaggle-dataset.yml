@@ -82,7 +82,7 @@ jobs:
       # ── Build ─────────────────────────────────────────────────────────────────
       - name: Build runtime dataset package
         run: |
-          python scripts/cd/build_runtime_dataset_package.py \
+          python scripts/build_runtime_dataset_package.py \
             --output-dir "$PACKAGE_DIR"
 
       - name: Upload runtime dataset build artifacts

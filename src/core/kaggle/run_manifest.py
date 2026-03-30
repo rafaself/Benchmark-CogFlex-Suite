@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -79,6 +80,10 @@ def write_run_manifest(
 
 
 def _resolve_git_commit(repo_root: Path) -> str | None:
+    github_sha = _string_or_none(os.environ.get("GITHUB_SHA"))
+    if github_sha is not None:
+        return github_sha
+
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],

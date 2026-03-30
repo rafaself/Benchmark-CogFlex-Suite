@@ -16,6 +16,10 @@ _CANONICAL_DATASET_METADATA = json.loads(
     (_REPO_ROOT / "packaging" / "kaggle" / "dataset-metadata.json").read_text(encoding="utf-8")
 )
 _FORBIDDEN_FILENAMES = ("private_leaderboard.json", "private_episodes.json")
+_WORKFLOW_EXPECTED_SCRIPTS = {
+    ".github/workflows/deploy-kaggle-dataset.yml": "scripts/build_runtime_dataset_package.py",
+    ".github/workflows/deploy-kaggle-notebook.yml": "scripts/build_kernel_package.py",
+}
 _EXPECTED_RUNTIME_SOURCE_FILES = {
     "src/core/__init__.py",
     "src/core/kaggle/__init__.py",
@@ -74,6 +78,13 @@ def test_canonical_metadata_is_runtime_ready():
         assert owner and slug, f"{name} id must be owner/slug"
 
     assert _CANONICAL_DATASET_METADATA["id"] in _CANONICAL_KERNEL_METADATA["dataset_sources"]
+
+
+def test_deploy_workflows_reference_canonical_build_scripts():
+    for workflow_path, expected_script in _WORKFLOW_EXPECTED_SCRIPTS.items():
+        workflow_text = (_REPO_ROOT / workflow_path).read_text(encoding="utf-8")
+        assert expected_script in workflow_text
+        assert "scripts/cd/" not in workflow_text
 
 
 @pytest.fixture(scope="module")

@@ -75,7 +75,7 @@ jobs:
       # from packaging/kaggle — no fields are generated at build time.
       - name: Build kernel bundle
         run: |
-          python scripts/cd/build_kernel_package.py \
+          python scripts/build_kernel_package.py \
             --output-dir "$BUNDLE_DIR"
 
       - name: Upload kernel build artifacts
