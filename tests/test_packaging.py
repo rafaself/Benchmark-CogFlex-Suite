@@ -86,6 +86,11 @@ def test_readme_describes_runtime_surface_without_maintainer_or_benchmark_card_w
     assert "packaging/kaggle/BENCHMARK_CARD.md" not in readme_text
     assert "tools/maintainer" not in readme_text
     assert "contract-audit" not in readme_text
+    assert "`score`" in readme_text
+    assert "`manifest_version`" in readme_text
+    assert "`narrative_result`" not in readme_text
+    assert "`comparison`" not in readme_text
+    assert "`slices`" not in readme_text
 
 
 def test_notebook_imports_runtime_helpers_only():

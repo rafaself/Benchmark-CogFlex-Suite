@@ -10,6 +10,20 @@ RuleShift Benchmark is a narrow Executive Functions benchmark for cognitive flex
 - `packaging/kaggle/`: official notebook, runtime metadata, and the public packaging manifest.
 - `scripts/`: the public build scripts and shared packaging helpers for the runtime dataset and notebook bundle.
 
+## Official Kaggle Contract
+
+The Kaggle release path has one official benchmark contract, emitted by the notebook for the frozen leaderboard evaluation path. The official payload contains exactly these fields:
+
+- `score`
+- `numerator`
+- `denominator`
+- `total_episodes`
+- `benchmark_version`
+- `split`
+- `manifest_version`
+
+The official contract does not include narrative result requirements, comparison fields, diagnostics summary fields, slice fields, or extra release-only metadata.
+
 The public runtime package includes only:
 
 - `src/core/kaggle/`

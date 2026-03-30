@@ -45,7 +45,7 @@ from core.kaggle.manifest import (
     validate_kaggle_staging_manifest,
 )
 from core.kaggle.payload import (
-    REQUIRED_SLICE_DIMENSIONS,
+    REQUIRED_PAYLOAD_FIELDS,
     build_kaggle_payload,
     normalize_count_result_df,
     validate_kaggle_payload,
@@ -100,7 +100,7 @@ __all__ = [
     "ConfidenceInterval",
     "KAGGLE_STAGING_MANIFEST_PATH",
     "NotebookStatus",
-    "REQUIRED_SLICE_DIMENSIONS",
+    "REQUIRED_PAYLOAD_FIELDS",
     "RUN_MANIFEST_FILENAME",
     "build_kaggle_payload",
     "build_diagnostics_summary",

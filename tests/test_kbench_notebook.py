@@ -84,9 +84,17 @@ def test_notebook_executes_end_to_end_with_private_mount():
     assert set(registry) == {"ruleshift_benchmark_v1_binary"}
 
     validate_kaggle_payload(ns["payload"])
-    assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
-    assert ns["payload"]["narrative_result"]["total_episodes"] == len(ns["leaderboard_df"])
-    assert ns["payload"]["comparison"]["episode_count_aligned"] is True
+    assert set(ns["payload"]) == {
+        "score",
+        "numerator",
+        "denominator",
+        "total_episodes",
+        "benchmark_version",
+        "split",
+        "manifest_version",
+    }
+    assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["split"] == "frozen_leaderboard"
 
     assert ns["RUN_LOG_PATH"].is_file()
     assert ns["DIAGNOSTICS_SUMMARY_PATH"].is_file()
@@ -101,7 +109,8 @@ def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest
     assert ns["PRIVATE_DATASET_ROOT"] is None
     assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
     assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
-    assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["split"] == "public_leaderboard"
 
 
 def test_last_code_cell_selects_binary_task():
