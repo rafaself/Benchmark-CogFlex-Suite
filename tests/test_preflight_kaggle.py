@@ -20,6 +20,7 @@ def test_preflight_script_runs_successfully():
     assert result.returncode == 0, result.stderr or result.stdout
     assert "=== RuleShift Kaggle Preflight ===" in result.stdout
     assert "[preflight] import runtime modules: ok" in result.stdout
+    assert "[preflight] validate BinaryResponse schema compatibility: ok" in result.stdout
     assert "[preflight] exercise minimal binary task path: ok" in result.stdout
     assert "[preflight] surface structural provider failures: ok" in result.stdout
     assert "=== Preflight Passed ===" in result.stdout

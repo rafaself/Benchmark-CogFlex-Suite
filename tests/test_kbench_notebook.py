@@ -200,10 +200,28 @@ def test_last_code_cell_selects_binary_task():
     assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"]
 
 
-def test_notebook_does_not_monkeypatch_binary_response():
-    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    source = _read_notebook_sources()
+def test_notebook_repairs_stale_binary_response_runtime(monkeypatch: pytest.MonkeyPatch):
+    from core.kaggle import runner as runner_module
 
-    assert all(cell.get("id") != "cell-binary-response-monkeypatch" for cell in notebook["cells"])
-    assert "RUNNER_MODULE.BinaryResponse = BinaryResponse" not in source
-    assert "Monkey-patched core.kaggle.runner.BinaryResponse without slots" not in source
+    def _stale_as_tuple(self) -> tuple[str, str, str, str]:
+        return (
+            self.probe_6.value,
+            self.probe_7.value,
+            self.probe_8.value,
+            self.probe_9.value,
+        )
+
+    monkeypatch.setattr(runner_module.BinaryResponse, "as_tuple", _stale_as_tuple)
+
+    ns = _execute_notebook_cells()
+    repaired = runner_module.normalize_binary_response(
+        runner_module.BinaryResponse(
+            probe_6="attract",
+            probe_7="repel",
+            probe_8="attract",
+            probe_9="repel",
+        )
+    )
+
+    assert repaired == ("attract", "repel", "attract", "repel")
+    assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])

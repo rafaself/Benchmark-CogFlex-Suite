@@ -65,11 +65,21 @@ def _load_leaderboard(load_leaderboard_dataframe):
     return private_root, frozen_splits, leaderboard_df
 
 
-def _validate_schema_path(BinaryResponse, Label, normalize_binary_response, probe_targets: tuple[str, ...]) -> None:
-    response = BinaryResponse(*(Label(value) for value in probe_targets))
-    normalized = normalize_binary_response(response)
-    if normalized != probe_targets:
-        raise ValueError("BinaryResponse normalization did not preserve probe targets")
+def _validate_binary_response_compatibility(
+    BinaryResponse,
+    Label,
+    normalize_binary_response,
+    probe_targets: tuple[str, ...],
+) -> None:
+    enum_response = BinaryResponse(*(Label(value) for value in probe_targets))
+    enum_normalized = normalize_binary_response(enum_response)
+    if enum_normalized != probe_targets:
+        raise ValueError("enum-backed BinaryResponse normalization did not preserve probe targets")
+
+    string_response = BinaryResponse(*probe_targets)
+    string_normalized = normalize_binary_response(string_response)
+    if string_normalized != probe_targets:
+        raise ValueError("string-backed BinaryResponse normalization did not preserve probe targets")
 
 
 def _exercise_minimal_task_path(
@@ -157,8 +167,8 @@ def main() -> int:
     probe_targets = tuple(row["probe_targets"])
 
     _run_stage(
-        "validate BinaryResponse schema path",
-        lambda: _validate_schema_path(
+        "validate BinaryResponse schema compatibility",
+        lambda: _validate_binary_response_compatibility(
             runtime["BinaryResponse"],
             runtime["Label"],
             runtime["normalize_binary_response"],
