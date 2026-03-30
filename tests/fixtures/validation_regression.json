@@ -456,8 +456,7 @@
       "binary_parse_valid_rate": 1.0,
       "narrative_schema_valid_rate": 1.0,
       "narrative_parse_failure_count": 0,
-      "slice_report": null,
-      "invariance_report": null
+      "slice_report": null
     }
   }
 }

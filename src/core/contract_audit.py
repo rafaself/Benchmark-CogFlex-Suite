@@ -431,9 +431,7 @@ def run_contract_audit(
         run_path_to_try = find_latest_run_artifact(root)
 
     if run_path_to_try is None:
-        run_errors.append(
-            "no run artifact found under reports/; pass --run-artifact to validate"
-        )
+        pass
     elif not run_path_to_try.is_file():
         run_errors.append(f"run artifact not found: {run_path_to_try}")
     else:

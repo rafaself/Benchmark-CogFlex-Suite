@@ -15,7 +15,6 @@ The Binary task is the scored evaluation path for the benchmark.
 - Frozen rule family: `R_std`, `R_inv`
 - Current emitted difficulty labels: `easy`, `medium`, `hard`
 - Diagnostic reporting axes include `template_family`, difficulty, shift position, transition type, and error type
-- Invariance reporting is diagnostic-only
 - Official Kaggle submission surface: `packaging/kaggle/ruleshift_notebook_task.ipynb`
 
 ## Split Contract

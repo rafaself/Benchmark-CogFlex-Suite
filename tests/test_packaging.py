@@ -242,7 +242,6 @@ def test_benchmark_card_matches_current_implementation_state():
     assert "medium" in text
     assert "hard" in text
     assert "template_family" in text
-    assert "Invariance reporting is diagnostic-only" in text
     assert "recency shortcut was materially reduced" in text
     assert "R13 anti-shortcut validity gate" in text
     assert "R15 empirical re-audit" in text
@@ -288,12 +287,10 @@ def test_active_docs_define_version_roles_consistently():
     assert "Benchmark contract version" in readme_text
     assert "Validation / evidence release" in readme_text
     assert "Packaging / deployment bundle version" in readme_text
-    assert "Archived model-run release" in readme_text
     assert "validation/evidence release labels" in card_text
     assert "packaging bundle label" in deploy_text
     assert "not the benchmark contract version" in deploy_text
     assert "not the validation/evidence release label" in private_text
-    assert "reports/legacy/" in joined
 
 
 def test_packaging_docs_do_not_claim_unsupported_features():

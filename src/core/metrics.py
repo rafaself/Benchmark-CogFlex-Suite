@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, TYPE_CHECKING
+from typing import Iterable
 
 from core.parser import NarrativeParsedResult, NarrativeParseStatus, ParseStatus, ParsedPrediction
 from tasks.ruleshift_benchmark.protocol import (
@@ -9,10 +9,6 @@ from tasks.ruleshift_benchmark.protocol import (
     InteractionLabel,
     parse_label,
 )
-
-if TYPE_CHECKING:
-    from core.invariance import InvarianceReport
-    from core.slices import SliceReport
 
 __all__ = [
     "METRIC_VERSION",
@@ -37,11 +33,7 @@ class MetricSummary:
     # Mandatory evaluation slices across all required dimensions.
     # None only when episodes were not supplied to compute_metrics; populated
     # by run_model_benchmark which has access to the Episode objects.
-    slice_report: "SliceReport | None" = None
-    # Optional invariance report: per-perturbation-class accuracy on perturbed
-    # prompts.  None when run_model_benchmark was called with run_invariance=False
-    # (the default).  Diagnostic only — does not affect the leaderboard metric.
-    invariance_report: "InvarianceReport | None" = None
+    slice_report: object | None = None
 
 
 def compute_post_shift_probe_accuracy(

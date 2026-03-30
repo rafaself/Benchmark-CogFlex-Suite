@@ -31,7 +31,6 @@ Use the following roles consistently when reading or updating the repo:
 | Benchmark contract version | `RuleShift Benchmark v1`, `spec_version=v1`, `manifest_version=R14`, `generator_version=R13`, `template_set_version=v2`, `difficulty_version=R13`, `seed_bank_version=R14-dev-4` / `R14-public-4` | The implemented benchmark contract and current frozen public split state under `src/` | Current state |
 | Validation / evidence release | `R13` validity gate, `R15` deterministic re-audit | Evidence about the current contract; these labels do not replace the active benchmark contract versions | Evidence |
 | Packaging / deployment bundle version | `bundle_version=R16` in `packaging/kaggle/frozen_artifacts_manifest.json` | The Kaggle packaging bundle identity for deployable public artifacts | Packaging |
-| Archived model-run release | `R18` labels under `reports/legacy/` | Historical model-run evidence preserved for reference only | Archival |
 
 When a label is ambiguous on its own, prefer the role-explicit phrase: `benchmark contract version`, `validation/evidence release`, or `packaging bundle version`.
 
@@ -116,10 +115,19 @@ See `packaging/kaggle/PRIVATE_SPLIT_RUNBOOK.md` for the artifact generation work
 - Canonical Kaggle notebook metadata: `packaging/kaggle/kernel-metadata.json`
 - Kaggle runtime-contract manifest: `packaging/kaggle/frozen_artifacts_manifest.json`
 
-The public runtime package includes only the public code and frozen public split manifests. Never place `private_episodes.json`, private seeds, or any repo-local private fallback in public repo paths or public packaging outputs.
+The public runtime package includes only the notebook-required source subset:
 
-See `reports/ARTIFACT_POLICY.md` for the canonical artifact policy: which files are normative inputs, which are transient local outputs, and which are legacy archival materials.
-See `reports/legacy/LEGACY_NOTE.md` for the historical evidence boundary: `reports/legacy/` is archival evidence, not current contract truth.
+- `src/core/kaggle/`
+- `src/core/parser.py`
+- `src/core/metrics.py`
+- `src/core/slices.py`
+- `src/core/splits.py`
+- `src/core/private_split.py`
+- `src/core/validate/{episode.py,dataset.py}`
+- `src/tasks/ruleshift_benchmark/{generator.py,protocol.py,render.py,rules.py,schema.py}`
+- `src/frozen_splits/{dev.json,public_leaderboard.json}`
+
+Maintainer-only audit, CLI, report, and release-validation modules stay in the repository but are not staged into the public Kaggle runtime dataset. Never place `private_episodes.json`, private seeds, or any repo-local private fallback in public repo paths or public packaging outputs.
 
 Kaggle deployment reads the checked-in metadata files directly. `KAGGLE_API_TOKEN` is the only required deployment secret. `KAGGLE_USERNAME`, runtime dataset slug inputs, and other deploy-time metadata overrides are not part of the current workflow.
 

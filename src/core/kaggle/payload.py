@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final
 
-from core.invariance import INVARIANCE_VERSION, PerturbationClass
 from core.kaggle.types import compute_bootstrap_confidence_interval
 from core.slices import SLICE_DIMENSIONS, ErrorType, SliceReport
 from core.splits import MANIFEST_VERSION
@@ -171,7 +170,6 @@ def build_kaggle_payload(
     narrative_df: Any,
     *,
     slice_report: SliceReport | None = None,
-    invariance_df: Any | None = None,
 ) -> dict[str, object]:
     """Constructs the canonical final Kaggle payload from task results.
 
@@ -189,17 +187,10 @@ def build_kaggle_payload(
             Kaggle SDK ``result`` tuples, or legacy ``score_0``/``score_1`` /
             ``0``/``1`` columns. Must align with binary_df on episode count
             and total denominator.
-        invariance_df: Optional pandas DataFrame with columns
-            ``perturbation_class``, ``num_correct``, and ``total``.  When
-            supplied, a diagnostic ``invariance`` section is included in the
-            payload.  Not required for leaderboard compliance; does not affect
-            ``primary_result``.
 
     Returns:
         A dictionary representing the JSON payload to be emitted, including
         primary_result, narrative_result, comparison, slices, and metadata.
-        If ``invariance_df`` is provided an additional ``invariance`` key is
-        present with per-perturbation-class accuracy (diagnostic only).
 
     Raises:
         ValueError: If binary_df or narrative_df is missing, empty, or misaligned.
@@ -316,9 +307,6 @@ def build_kaggle_payload(
         },
     }
 
-    if invariance_df is not None:
-        payload["invariance"] = _build_invariance_payload(invariance_df)
-
     return payload
 
 
@@ -434,24 +422,3 @@ def _error_type_counts(df: Any) -> dict[str, int]:
         else:
             counts[ErrorType.PREMATURE_SWITCH.value] += 1
     return counts
-
-
-def _build_invariance_payload(invariance_df: Any) -> dict[str, object]:
-    by_class: dict[str, object] = {}
-    for pc in PerturbationClass:
-        subset = invariance_df[invariance_df["perturbation_class"] == pc.value]
-        if len(subset) == 0:
-            continue
-        nc = int(subset["num_correct"].sum())
-        tot = int(subset["total"].sum())
-        by_class[pc.value] = {
-            "perturbation_class": pc.value,
-            "episode_count": len(subset),
-            "correct_probes": nc,
-            "total_probes": tot,
-            "accuracy": nc / tot if tot > 0 else 0.0,
-        }
-    return {
-        "version": INVARIANCE_VERSION,
-        "by_class": by_class,
-    }

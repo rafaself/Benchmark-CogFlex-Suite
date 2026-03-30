@@ -5,12 +5,11 @@ import json
 from pathlib import Path
 from typing import Any, Final, cast
 
-from core.validate import (
+from core.validate.dataset import (
     DatasetDistributionSummary,
-    ValidationIssue,
-    normalize_episode_payload,
     validate_dataset,
 )
+from core.validate.episode import ValidationIssue, normalize_episode_payload
 from tasks.ruleshift_benchmark.generator import generate_episode
 from tasks.ruleshift_benchmark.protocol import (
     Difficulty,

@@ -51,6 +51,37 @@ _CANONICAL_DATASET_METADATA = json.loads(
     (_REPO_ROOT / "packaging" / "kaggle" / "dataset-metadata.json").read_text(encoding="utf-8")
 )
 _FORBIDDEN_FILENAMES = ("private_leaderboard.json", "private_episodes.json")
+_EXPECTED_RUNTIME_SOURCE_FILES = {
+    "src/core/__init__.py",
+    "src/core/kaggle/__init__.py",
+    "src/core/kaggle/diagnostics_summary.py",
+    "src/core/kaggle/episode_ledger.py",
+    "src/core/kaggle/execution.py",
+    "src/core/kaggle/failure_categories.py",
+    "src/core/kaggle/manifest.py",
+    "src/core/kaggle/notebook_status.py",
+    "src/core/kaggle/payload.py",
+    "src/core/kaggle/run_logging.py",
+    "src/core/kaggle/run_manifest.py",
+    "src/core/kaggle/types.py",
+    "src/core/metrics.py",
+    "src/core/parser.py",
+    "src/core/private_split.py",
+    "src/core/slices.py",
+    "src/core/splits.py",
+    "src/core/validate/__init__.py",
+    "src/core/validate/dataset.py",
+    "src/core/validate/episode.py",
+    "src/frozen_splits/dev.json",
+    "src/frozen_splits/public_leaderboard.json",
+    "src/tasks/__init__.py",
+    "src/tasks/ruleshift_benchmark/__init__.py",
+    "src/tasks/ruleshift_benchmark/generator.py",
+    "src/tasks/ruleshift_benchmark/protocol.py",
+    "src/tasks/ruleshift_benchmark/render.py",
+    "src/tasks/ruleshift_benchmark/rules.py",
+    "src/tasks/ruleshift_benchmark/schema.py",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +254,29 @@ class TestRuntimeDatasetPackage:
         assert splits_dir.is_dir()
         present = {p.name for p in splits_dir.iterdir() if p.is_file()}
         assert present == {"dev.json", "public_leaderboard.json"}
+
+    def test_runtime_dataset_stages_only_the_explicit_runtime_source_subset(self, package_dir: Path):
+        packaged_src_files = {
+            path for path in _files_in(package_dir)
+            if path.startswith("src/")
+        }
+        assert packaged_src_files == _EXPECTED_RUNTIME_SOURCE_FILES
+
+    def test_runtime_dataset_omits_maintainer_only_modules(self, package_dir: Path):
+        packaged_src_files = _files_in(package_dir)
+        for omitted in (
+            "src/core/cli.py",
+            "src/core/contract_audit.py",
+            "src/core/invariance.py",
+            "src/core/report_outputs.py",
+            "src/core/validate/gate.py",
+            "src/core/audit/__init__.py",
+            "src/core/audit/core.py",
+            "src/core/audit/release.py",
+            "src/core/audit/reporting.py",
+            "src/tasks/ruleshift_benchmark/baselines.py",
+        ):
+            assert omitted not in packaged_src_files
 
     def test_frozen_artifacts_manifest_is_present(self, package_dir: Path):
         assert (package_dir / "packaging" / "kaggle" / "frozen_artifacts_manifest.json").is_file()

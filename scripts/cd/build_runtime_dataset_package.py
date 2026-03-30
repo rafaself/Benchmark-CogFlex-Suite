@@ -2,7 +2,7 @@
 """Build the public Kaggle runtime dataset package.
 
 Produces a clean directory ready for Kaggle dataset upload containing:
-  - src/           (benchmark logic + frozen public split manifests)
+  - src/           (runtime-only benchmark logic + frozen public split manifests)
   - packaging/kaggle/frozen_artifacts_manifest.json
   - dataset-metadata.json  (from packaging/kaggle, augmented with resources)
 
@@ -38,6 +38,37 @@ _FORBIDDEN_FILENAMES = frozenset(
     )
 )
 _IGNORED_DIRS = frozenset((".git", ".venv", ".pytest_cache", "__pycache__"))
+_RUNTIME_SOURCE_RELPATHS = (
+    "src/core/__init__.py",
+    "src/core/kaggle/__init__.py",
+    "src/core/kaggle/diagnostics_summary.py",
+    "src/core/kaggle/episode_ledger.py",
+    "src/core/kaggle/execution.py",
+    "src/core/kaggle/failure_categories.py",
+    "src/core/kaggle/manifest.py",
+    "src/core/kaggle/notebook_status.py",
+    "src/core/kaggle/payload.py",
+    "src/core/kaggle/run_logging.py",
+    "src/core/kaggle/run_manifest.py",
+    "src/core/kaggle/types.py",
+    "src/core/metrics.py",
+    "src/core/parser.py",
+    "src/core/private_split.py",
+    "src/core/slices.py",
+    "src/core/splits.py",
+    "src/core/validate/__init__.py",
+    "src/core/validate/dataset.py",
+    "src/core/validate/episode.py",
+    "src/frozen_splits/dev.json",
+    "src/frozen_splits/public_leaderboard.json",
+    "src/tasks/__init__.py",
+    "src/tasks/ruleshift_benchmark/__init__.py",
+    "src/tasks/ruleshift_benchmark/generator.py",
+    "src/tasks/ruleshift_benchmark/protocol.py",
+    "src/tasks/ruleshift_benchmark/render.py",
+    "src/tasks/ruleshift_benchmark/rules.py",
+    "src/tasks/ruleshift_benchmark/schema.py",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +116,23 @@ def _verify_split_manifest_hashes(
             )
 
 
+def _copy_runtime_source_subset(output_dir: Path) -> None:
+    missing_sources = [
+        relpath for relpath in _RUNTIME_SOURCE_RELPATHS
+        if not (REPO_ROOT / relpath).is_file()
+    ]
+    if missing_sources:
+        raise FileNotFoundError(
+            "Missing runtime source files: " + ", ".join(missing_sources)
+        )
+
+    for relpath in _RUNTIME_SOURCE_RELPATHS:
+        source = REPO_ROOT / relpath
+        destination = output_dir / relpath
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
@@ -111,12 +159,7 @@ def _build(output_dir: Path, audit_manifest_path: Path | None = None) -> None:
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
 
-    # Copy src/, excluding compiled bytecode caches
-    shutil.copytree(
-        src_dir,
-        output_dir / "src",
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
-    )
+    _copy_runtime_source_subset(output_dir)
 
     # Copy frozen_artifacts_manifest.json into packaging/kaggle/ mirror
     manifest_dest_dir = output_dir / "packaging" / "kaggle"
