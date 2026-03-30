@@ -45,7 +45,7 @@ def test_run_binary_task_scores_string_and_mapping_responses():
     ) == (4, 4)
 
 
-def test_run_binary_task_treats_invalid_outputs_as_zero_score():
+def test_run_binary_task_raises_for_non_scoreable_response():
     @dataclass(frozen=True)
     class _BadShapeLLM:
         def prompt(self, *_args, **_kwargs):
@@ -53,11 +53,15 @@ def test_run_binary_task_treats_invalid_outputs_as_zero_score():
 
     targets = ("attract", "repel", "attract", "repel")
 
-    assert run_binary_task(
-        llm=_BadShapeLLM(),
-        prompt_binary="prompt",
-        probe_targets=targets,
-    ) == (0, 4)
+    with pytest.raises(
+        KaggleExecutionError,
+        match=r"unscoreable response of type dict",
+    ):
+        run_binary_task(
+            llm=_BadShapeLLM(),
+            prompt_binary="prompt",
+            probe_targets=targets,
+        )
 
 
 def test_run_binary_task_surfaces_provider_exception():

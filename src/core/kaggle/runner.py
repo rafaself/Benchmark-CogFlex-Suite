@@ -26,7 +26,7 @@ class Label(str, Enum):
     repel = "repel"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class BinaryResponse:
     probe_6: Label
     probe_7: Label
@@ -121,7 +121,13 @@ def run_binary_task(
         response = llm.prompt(prompt_binary, schema=BinaryResponse)
     except Exception as exc:
         raise KaggleExecutionError("llm.prompt failed before producing a scoreable response") from exc
-    return score_episode(normalize_binary_response(response), probe_targets)
+
+    normalized_response = normalize_binary_response(response)
+    if normalized_response is None:
+        raise KaggleExecutionError(
+            f"llm.prompt returned an unscoreable response of type {type(response).__name__}"
+        )
+    return score_episode(normalized_response, probe_targets)
 
 
 def normalize_binary_response(response: object) -> tuple[str, ...] | None:

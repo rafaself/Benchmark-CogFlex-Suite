@@ -38,15 +38,19 @@ class _ResultSet:
 
 
 class _LLMStub:
-    """Stub LLM that returns None for any prompt — exercising the task's
-    error-handling path and validating the (0, N) fallback shape."""
+    """Stub LLM that returns a valid binary response for notebook execution."""
 
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
 
-    def prompt(self, text: str, *, schema: Any = None) -> None:
+    def prompt(self, text: str, *, schema: Any = None) -> dict[str, str]:
         self.calls.append({"text": text, "schema": schema})
-        return None
+        return {
+            "probe_6": "attract",
+            "probe_7": "repel",
+            "probe_8": "attract",
+            "probe_9": "repel",
+        }
 
     @property
     def call_count(self) -> int:
