@@ -198,3 +198,20 @@ def test_last_code_cell_selects_binary_task():
     magic_lines = [line.strip() for line in "".join(last_code.get("source", ())).splitlines() if line.strip().startswith("%")]
 
     assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"]
+
+
+def test_notebook_monkeypatches_binary_response_before_payload_execution():
+    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
+    payload_index = next(
+        index
+        for index, cell in enumerate(notebook["cells"])
+        if cell.get("cell_type") == "code"
+        and "payload = ruleshift_benchmark_v1_binary(kbench.llm)" in "".join(cell.get("source", ()))
+    )
+    patch_cell = notebook["cells"][payload_index - 1]
+    patch_source = "".join(patch_cell.get("source", ()))
+
+    assert patch_cell["cell_type"] == "code"
+    assert patch_cell["id"] == "cell-binary-response-monkeypatch"
+    assert "@dataclass(frozen=True)" in patch_source
+    assert "RUNNER_MODULE.BinaryResponse = BinaryResponse" in patch_source
