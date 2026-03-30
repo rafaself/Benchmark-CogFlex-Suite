@@ -65,7 +65,8 @@ def test_run_binary_task_raises_for_non_scoreable_response():
         )
 
 
-def test_binary_response_uses_concrete_label_field_types():
+def test_binary_response_matches_kaggle_structured_output_requirements():
+    assert getattr(BinaryResponse, "__slots__", None) is None
     assert [field.type for field in fields(BinaryResponse)] == [Label, Label, Label, Label]
 
 
