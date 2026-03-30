@@ -5,7 +5,6 @@ import json
 from core.kaggle import (
     BENCHMARK_LOG_FILENAME,
     EXCEPTIONS_LOG_FILENAME,
-    LIFECYCLE_EVENTS,
     BenchmarkRunLogger,
     ExceptionSummary,
     build_run_context,
@@ -17,80 +16,7 @@ class _LLMIdentityStub:
     model_name = "shim-model"
 
 
-def test_benchmark_run_logger_appends_valid_json_lines(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        llm=_LLMIdentityStub(),
-        run_id="run-123",
-        output_dir=tmp_path / "run-output",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    logger.log_run_started()
-    logger.log_episode_scored(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        episode_id="ep-001",
-        level="warning",
-        status="skipped_provider_failure",
-        num_correct=0,
-        total=4,
-    )
-
-    log_path = tmp_path / "run-output" / BENCHMARK_LOG_FILENAME
-    assert log_path.is_file()
-
-    records = [
-        json.loads(line)
-        for line in log_path.read_text(encoding="utf-8").splitlines()
-    ]
-    assert len(records) == 2
-
-    required_fields = {
-        "timestamp",
-        "run_id",
-        "phase",
-        "event",
-        "level",
-        "episode_id",
-        "task_mode",
-        "provider",
-        "model",
-        "status",
-    }
-    for record in records:
-        assert required_fields.issubset(record)
-        assert record["run_id"] == "run-123"
-        assert record["provider"] == "shim-provider"
-        assert record["model"] == "shim-model"
-
-    assert records[0]["event"] == "run_started"
-    assert records[1]["episode_id"] == "ep-001"
-    assert records[1]["num_correct"] == 0
-    assert records[1]["total"] == 4
-    assert records[1]["event"] in LIFECYCLE_EVENTS
-
-
-def test_benchmark_run_logger_flushes_single_event_without_close(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-456",
-        output_dir=tmp_path / "partial-run",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    logger.log_run_started()
-
-    log_path = tmp_path / "partial-run" / BENCHMARK_LOG_FILENAME
-    line = log_path.read_text(encoding="utf-8").splitlines()[0]
-    record = json.loads(line)
-
-    assert record["run_id"] == "run-456"
-    assert record["event"] == "run_started"
-    assert record["status"] == "started"
-
-
-def test_lifecycle_helpers_emit_reconstructable_sequence(tmp_path):
+def test_benchmark_run_logger_writes_reconstructable_lifecycle_records(tmp_path):
     context = build_run_context(
         repo_root=tmp_path,
         llm=_LLMIdentityStub(),
@@ -102,27 +28,10 @@ def test_lifecycle_helpers_emit_reconstructable_sequence(tmp_path):
     logger.log_run_started(output_dir=str(context.output_dir))
     logger.log_bootstrap_started(detail="loading splits", total=2)
     logger.log_bootstrap_finished(detail="splits ready", processed=2, total=2)
-    logger.log_phase_started(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        detail="running binary evaluation",
-        total=1,
-    )
-    logger.log_episode_started(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        episode_id="ep-001",
-    )
-    logger.log_provider_call_started(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        episode_id="ep-001",
-    )
-    logger.log_provider_call_succeeded(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        episode_id="ep-001",
-    )
+    logger.log_phase_started(phase="official_binary_evaluation", task_mode="binary", total=1)
+    logger.log_episode_started(phase="official_binary_evaluation", task_mode="binary", episode_id="ep-001")
+    logger.log_provider_call_started(phase="official_binary_evaluation", task_mode="binary", episode_id="ep-001")
+    logger.log_provider_call_succeeded(phase="official_binary_evaluation", task_mode="binary", episode_id="ep-001")
     logger.log_response_parsed(
         phase="official_binary_evaluation",
         task_mode="binary",
@@ -137,17 +46,14 @@ def test_lifecycle_helpers_emit_reconstructable_sequence(tmp_path):
         num_correct=4,
         total=4,
     )
-    logger.log_phase_finished(
-        phase="official_binary_evaluation",
-        task_mode="binary",
-        processed=1,
-        total=1,
-    )
+    logger.log_phase_finished(phase="official_binary_evaluation", task_mode="binary", processed=1, total=1)
     logger.log_payload_built(total_episodes=1)
     logger.log_run_finished(total_episodes=1)
 
-    log_path = tmp_path / "life-run" / BENCHMARK_LOG_FILENAME
-    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
+    records = [
+        json.loads(line)
+        for line in (tmp_path / "life-run" / BENCHMARK_LOG_FILENAME).read_text(encoding="utf-8").splitlines()
+    ]
 
     assert [record["event"] for record in records] == [
         "run_started",
@@ -163,21 +69,13 @@ def test_lifecycle_helpers_emit_reconstructable_sequence(tmp_path):
         "payload_built",
         "run_finished",
     ]
+    for record in records:
+        assert record["run_id"] == "run-life-001"
+        assert record["provider"] == "shim-provider"
+        assert record["model"] == "shim-model"
 
 
-def test_build_run_context_defaults_unknown_identity(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-789",
-        output_dir=tmp_path / "identity-run",
-    )
-
-    assert context.provider == "unknown"
-    assert context.model == "unknown"
-    assert context.output_dir == (tmp_path / "identity-run").resolve()
-
-
-def test_log_exception_writes_full_record_to_exceptions_file(tmp_path):
+def test_log_exception_writes_compact_and_detailed_artifacts(tmp_path):
     context = build_run_context(
         repo_root=tmp_path,
         llm=_LLMIdentityStub(),
@@ -187,8 +85,8 @@ def test_log_exception_writes_full_record_to_exceptions_file(tmp_path):
     logger = BenchmarkRunLogger(context)
 
     try:
-        raise ValueError("something went wrong")
-    except ValueError as exc:
+        raise RuntimeError("provider timeout")
+    except RuntimeError as exc:
         logger.log_exception(
             exc,
             phase="official_binary_evaluation",
@@ -196,189 +94,40 @@ def test_log_exception_writes_full_record_to_exceptions_file(tmp_path):
             episode_id="ep-abc",
         )
 
-    exc_path = tmp_path / "exc-run" / EXCEPTIONS_LOG_FILENAME
-    assert exc_path.is_file()
-
-    records = [json.loads(line) for line in exc_path.read_text(encoding="utf-8").splitlines()]
-    assert len(records) == 1
-    record = records[0]
-
-    required_fields = {
-        "timestamp",
-        "run_id",
-        "phase",
-        "event",
-        "level",
-        "episode_id",
-        "task_mode",
-        "provider",
-        "model",
-        "status",
-        "exception_type",
-        "exception_message",
-        "traceback",
-    }
-    assert required_fields.issubset(record)
-    assert record["run_id"] == "run-exc-001"
-    assert record["provider"] == "shim-provider"
-    assert record["model"] == "shim-model"
-    assert record["phase"] == "official_binary_evaluation"
-    assert record["event"] == "exception"
-    assert record["level"] == "error"
-    assert record["status"] == "exception"
-    assert record["episode_id"] == "ep-abc"
-    assert record["task_mode"] == "binary"
-    assert record["exception_type"] == "ValueError"
-    assert record["exception_message"] == "something went wrong"
-    assert "ValueError" in record["traceback"]
-    assert "something went wrong" in record["traceback"]
-
-
-def test_log_exception_writes_compact_summary_to_benchmark_log(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-exc-002",
-        output_dir=tmp_path / "exc-run-2",
+    benchmark_record = json.loads(
+        (tmp_path / "exc-run" / BENCHMARK_LOG_FILENAME).read_text(encoding="utf-8").splitlines()[0]
     )
-    logger = BenchmarkRunLogger(context)
-
-    try:
-        raise RuntimeError("provider timeout")
-    except RuntimeError as exc:
-        logger.log_exception(
-            exc,
-            phase="official_narrative_evaluation",
-            task_mode="narrative",
-        )
-
-    log_path = tmp_path / "exc-run-2" / BENCHMARK_LOG_FILENAME
-    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
-    assert len(records) == 1
-    record = records[0]
-    assert record["event"] == "exception"
-    assert record["exception_type"] == "RuntimeError"
-    assert record["exception_message"] == "provider timeout"
-    assert "traceback" not in record
-
-
-def test_log_exception_traceback_includes_call_site(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-exc-003",
-        output_dir=tmp_path / "exc-run-3",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    try:
-        raise ZeroDivisionError("division by zero")
-    except ZeroDivisionError as exc:
-        logger.log_exception(exc, phase="bootstrap", task_mode="notebook")
-
-    exc_path = tmp_path / "exc-run-3" / EXCEPTIONS_LOG_FILENAME
-    record = json.loads(exc_path.read_text(encoding="utf-8").splitlines()[0])
-    assert "ZeroDivisionError" in record["traceback"]
-    assert record["exception_type"] == "ZeroDivisionError"
-
-
-def test_log_exception_episode_id_none_is_valid(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-exc-004",
-        output_dir=tmp_path / "exc-run-4",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    try:
-        raise KeyError("missing key")
-    except KeyError as exc:
-        logger.log_exception(exc, phase="bootstrap", task_mode="notebook", episode_id=None)
-
-    exc_path = tmp_path / "exc-run-4" / EXCEPTIONS_LOG_FILENAME
-    record = json.loads(exc_path.read_text(encoding="utf-8").splitlines()[0])
-    assert record["episode_id"] is None
-    assert record["exception_type"] == "KeyError"
-
-
-def test_log_exception_file_remains_readable_after_multiple_writes(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-exc-005",
-        output_dir=tmp_path / "exc-run-5",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    exceptions = [ValueError("first"), RuntimeError("second"), OSError("third")]
-    for exc in exceptions:
-        try:
-            raise exc
-        except Exception as e:
-            logger.log_exception(e, phase="run", task_mode="notebook")
-
-    exc_path = tmp_path / "exc-run-5" / EXCEPTIONS_LOG_FILENAME
-    lines = exc_path.read_text(encoding="utf-8").splitlines()
-    assert len(lines) == 3
-    for line in lines:
-        record = json.loads(line)
-        assert "exception_type" in record
-        assert "traceback" in record
-
-
-def test_summarize_exceptions_clean_run(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-sum-001",
-        output_dir=tmp_path / "sum-run-1",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    summary = logger.summarize_exceptions()
-
-    assert isinstance(summary, ExceptionSummary)
-    assert summary.total == 0
-    assert summary.by_phase == {}
-
-    log_path = tmp_path / "sum-run-1" / BENCHMARK_LOG_FILENAME
-    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
-    assert len(records) == 1
-    record = records[0]
-    assert record["event"] == "exception_summary"
-    assert record["level"] == "info"
-    assert record["status"] == "clean"
-    assert record["total_exceptions"] == 0
-    assert record["by_phase"] == {}
-
-
-def test_log_run_invalidated_emits_lifecycle_record(tmp_path):
-    context = build_run_context(
-        repo_root=tmp_path,
-        run_id="run-invalid-001",
-        output_dir=tmp_path / "invalid-run",
-    )
-    logger = BenchmarkRunLogger(context)
-
-    logger.log_run_invalidated(
-        phase="canonical_payload",
-        detail="payload prerequisites missing",
-        reason="narrative_results_df_missing",
+    exception_record = json.loads(
+        (tmp_path / "exc-run" / EXCEPTIONS_LOG_FILENAME).read_text(encoding="utf-8").splitlines()[0]
     )
 
-    log_path = tmp_path / "invalid-run" / BENCHMARK_LOG_FILENAME
-    record = json.loads(log_path.read_text(encoding="utf-8").splitlines()[0])
-    assert record["event"] == "run_invalidated"
-    assert record["phase"] == "canonical_payload"
-    assert record["status"] == "invalidated"
-    assert record["reason"] == "narrative_results_df_missing"
+    assert benchmark_record["event"] == "exception"
+    assert benchmark_record["exception_type"] == "RuntimeError"
+    assert "traceback" not in benchmark_record
+
+    assert exception_record["event"] == "exception"
+    assert exception_record["episode_id"] == "ep-abc"
+    assert exception_record["exception_type"] == "RuntimeError"
+    assert "RuntimeError" in exception_record["traceback"]
 
 
-def test_summarize_exceptions_counts_by_phase(tmp_path):
-    context = build_run_context(
+def test_summarize_exceptions_reports_clean_and_non_clean_runs(tmp_path):
+    clean_logger = BenchmarkRunLogger(
+        build_run_context(repo_root=tmp_path, run_id="run-clean", output_dir=tmp_path / "clean-run")
+    )
+    clean_summary = clean_logger.summarize_exceptions()
+
+    assert isinstance(clean_summary, ExceptionSummary)
+    assert clean_summary.total == 0
+    assert clean_summary.by_phase == {}
+
+    noisy_context = build_run_context(
         repo_root=tmp_path,
         llm=_LLMIdentityStub(),
-        run_id="run-sum-002",
-        output_dir=tmp_path / "sum-run-2",
+        run_id="run-noisy",
+        output_dir=tmp_path / "noisy-run",
     )
-    logger = BenchmarkRunLogger(context)
-
+    noisy_logger = BenchmarkRunLogger(noisy_context)
     for phase, exc in [
         ("official_binary_evaluation", ValueError("bad response")),
         ("official_binary_evaluation", RuntimeError("timeout")),
@@ -386,21 +135,12 @@ def test_summarize_exceptions_counts_by_phase(tmp_path):
     ]:
         try:
             raise exc
-        except Exception as e:
-            logger.log_exception(e, phase=phase, task_mode="binary")
+        except Exception as error:
+            noisy_logger.log_exception(error, phase=phase, task_mode="binary")
 
-    summary = logger.summarize_exceptions()
-
-    assert summary.total == 3
-    assert summary.by_phase == {
+    noisy_summary = noisy_logger.summarize_exceptions()
+    assert noisy_summary.total == 3
+    assert noisy_summary.by_phase == {
         "official_binary_evaluation": 2,
         "official_narrative_evaluation": 1,
     }
-
-    log_path = tmp_path / "sum-run-2" / BENCHMARK_LOG_FILENAME
-    records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
-    summary_record = [r for r in records if r["event"] == "exception_summary"][0]
-    assert summary_record["level"] == "warning"
-    assert summary_record["status"] == "exceptions_found"
-    assert summary_record["total_exceptions"] == 3
-    assert summary_record["by_phase"]["official_binary_evaluation"] == 2

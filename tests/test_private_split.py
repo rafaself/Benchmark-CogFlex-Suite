@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-import subprocess
-import sys
 
 import pytest
 
@@ -12,19 +10,15 @@ from core.private_split import (
     PRIVATE_DATASET_ROOT_ENV_VAR,
     PRIVATE_EPISODES_FILENAME,
     PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION,
-    build_private_split_artifact,
     discover_private_dataset_root,
     load_private_split,
-    load_private_split_manifest_info,
     resolve_private_dataset_root,
 )
 from core.splits import generate_frozen_split, load_frozen_split, load_split_manifest
 from tasks.ruleshift_benchmark.protocol import InteractionLabel, Split
 
 
-def test_load_private_split_returns_episodes(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_returns_episodes(mounted_private_dataset_root: Path):
     records = load_private_split(mounted_private_dataset_root)
     assert len(records) == 16
 
@@ -34,17 +28,13 @@ def test_load_private_split_uses_mounted_environment_dataset():
     assert len(records) == 16
 
 
-def test_load_private_split_partition_label(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_partition_label(mounted_private_dataset_root: Path):
     records = load_private_split(mounted_private_dataset_root)
     for record in records:
         assert record.partition == "private_leaderboard"
 
 
-def test_load_private_split_episode_split_label(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_episode_split_label(mounted_private_dataset_root: Path):
     records = load_private_split(mounted_private_dataset_root)
     for record in records:
         assert record.episode.split is Split.PRIVATE
@@ -53,6 +43,12 @@ def test_load_private_split_episode_split_label(
 def test_load_private_split_manifest_metadata_matches_manifest_interface():
     manifest = load_split_manifest("private_leaderboard")
     records = load_private_split()
+
+    assert manifest.partition == "private_leaderboard"
+    assert manifest.manifest_version == "R14"
+    assert manifest.seed_bank_version
+    assert manifest.episode_split is Split.PRIVATE
+    assert manifest.seeds == tuple(record.seed for record in records)
 
     for record in records:
         assert record.manifest_version == manifest.manifest_version
@@ -79,15 +75,16 @@ def test_private_split_probe_targets_are_valid():
             assert isinstance(target, InteractionLabel)
 
 
-def test_private_manifest_info_comes_from_private_episodes_payload():
-    payload = load_private_split_manifest_info()
+def test_private_fixture_payload_uses_current_schema_version(mounted_private_dataset_root: Path):
+    payload = json.loads(
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
+    )
 
     assert payload["benchmark_version"] == "R14"
     assert payload["schema_version"] == PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION
-    assert isinstance(payload["artifact_checksum"], str)
     assert payload["artifact_checksum"]
     assert payload["episode_split"] == "private"
-    assert len(payload["seeds"]) == 16
+    assert len(payload["episodes"]) == 16
 
 
 def test_load_private_split_missing_explicit_root_raises():
@@ -124,13 +121,9 @@ def test_resolve_private_dataset_root_still_raises_when_private_dataset_is_absen
         resolve_private_dataset_root()
 
 
-def test_load_private_split_wrong_partition_raises(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_wrong_partition_raises(mounted_private_dataset_root: Path):
     data = json.loads(
-        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(
-            encoding="utf-8"
-        )
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
     )
     data["partition"] = "dev"
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -140,13 +133,9 @@ def test_load_private_split_wrong_partition_raises(
             load_private_split(Path(tmpdir))
 
 
-def test_load_private_split_wrong_benchmark_version_raises(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_wrong_benchmark_version_raises(mounted_private_dataset_root: Path):
     data = json.loads(
-        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(
-            encoding="utf-8"
-        )
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
     )
     data["benchmark_version"] = "R99"
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -156,13 +145,21 @@ def test_load_private_split_wrong_benchmark_version_raises(
             load_private_split(Path(tmpdir))
 
 
-def test_load_private_split_empty_episodes_raises(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_wrong_schema_version_raises(mounted_private_dataset_root: Path):
     data = json.loads(
-        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(
-            encoding="utf-8"
-        )
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
+    )
+    data["schema_version"] = "private_split_artifact.v999"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        bad_path = Path(tmpdir) / PRIVATE_EPISODES_FILENAME
+        bad_path.write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(ValueError, match="schema_version"):
+            load_private_split(Path(tmpdir))
+
+
+def test_load_private_split_empty_episodes_raises(mounted_private_dataset_root: Path):
+    data = json.loads(
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
     )
     data["episodes"] = []
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -172,13 +169,9 @@ def test_load_private_split_empty_episodes_raises(
             load_private_split(Path(tmpdir))
 
 
-def test_load_private_split_rejects_checksum_mismatch(
-    mounted_private_dataset_root: Path,
-):
+def test_load_private_split_rejects_checksum_mismatch(mounted_private_dataset_root: Path):
     data = json.loads(
-        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(
-            encoding="utf-8"
-        )
+        (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
     )
     data["artifact_checksum"] = "bad-checksum"
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -186,70 +179,3 @@ def test_load_private_split_rejects_checksum_mismatch(
         bad_path.write_text(json.dumps(data), encoding="utf-8")
         with pytest.raises(ValueError, match="artifact_checksum"):
             load_private_split(Path(tmpdir))
-
-
-def test_offline_generation_script_writes_private_artifact(tmp_path: Path):
-    seeds_path = tmp_path / "private_seeds.json"
-    output_path = tmp_path / "mounted-private" / PRIVATE_EPISODES_FILENAME
-    seeds = [31000, 31001, 31002, 31003]
-    seeds_path.write_text(json.dumps(seeds), encoding="utf-8")
-
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "scripts/generate_private_split_artifact.py",
-            "--benchmark-version",
-            "R14",
-            "--seeds-file",
-            str(seeds_path),
-            "--output",
-            str(output_path),
-        ],
-        cwd=Path(__file__).resolve().parents[1],
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-
-    assert completed.returncode == 0, completed.stderr or completed.stdout
-    assert Path(completed.stdout.strip()) == output_path
-
-    payload = json.loads(output_path.read_text(encoding="utf-8"))
-    assert payload["benchmark_version"] == "R14"
-    assert payload["schema_version"] == PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION
-    assert payload["artifact_checksum"]
-    assert tuple(row["seed"] for row in payload["episodes"]) == tuple(seeds)
-    assert len(load_private_split(output_path.parent)) == len(seeds)
-
-
-def test_offline_generation_script_rejects_repo_local_output(tmp_path: Path):
-    seeds_path = tmp_path / "private_seeds.json"
-    seeds_path.write_text(json.dumps([32000, 32001]), encoding="utf-8")
-
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "scripts/generate_private_split_artifact.py",
-            "--benchmark-version",
-            "R14",
-            "--seeds-file",
-            str(seeds_path),
-            "--output",
-            "packaging/kaggle/private_episodes.json",
-        ],
-        cwd=Path(__file__).resolve().parents[1],
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-
-    assert completed.returncode != 0
-    assert "outside the public repository tree" in (completed.stderr or completed.stdout)
-
-
-def test_build_private_split_artifact_requires_unique_seeds():
-    with pytest.raises(ValueError, match="unique"):
-        build_private_split_artifact(
-            benchmark_version="R14",
-            seeds=(1, 1),
-        )

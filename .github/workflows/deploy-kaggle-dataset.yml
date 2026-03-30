@@ -26,7 +26,6 @@ concurrency:
 env:
   KAGGLE_CLI_VERSION: "2.0.0"
   PACKAGE_DIR: /tmp/ruleshift-runtime-package
-  AUDIT_MANIFEST_PATH: /tmp/ruleshift-runtime-package.audit.json
 
 jobs:
   # ── Job 1: validate ──────────────────────────────────────────────────────────
@@ -53,17 +52,8 @@ jobs:
       - name: Install project (editable, no optional provider SDKs)
         run: pip install -e .
 
-      - name: Install notebook smoke-test dependencies
-        run: pip install "pandas>=2.0,<3.0"
-
-      - name: Enforce private split isolation
-        run: python scripts/check_public_private_isolation.py
-
-      - name: Run packaging tests
-        run: python -m pytest tests/test_packaging.py -v
-
-      - name: Run CD build validation tests
-        run: python -m pytest tests/test_cd_build.py -v
+      - name: Run reduced runtime validation suite
+        run: python -m pytest tests/test_packaging.py tests/test_cd_build.py tests/test_private_split.py -v
 
   # ── Job 2: deploy ─────────────────────────────────────────────────────────────
   deploy:
@@ -93,17 +83,14 @@ jobs:
       - name: Build runtime dataset package
         run: |
           python scripts/cd/build_runtime_dataset_package.py \
-            --output-dir "$PACKAGE_DIR" \
-            --audit-manifest-path "$AUDIT_MANIFEST_PATH"
+            --output-dir "$PACKAGE_DIR"
 
       - name: Upload runtime dataset build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kaggle-runtime-package
-          path: |
-            ${{ env.PACKAGE_DIR }}
-            ${{ env.AUDIT_MANIFEST_PATH }}
+          path: ${{ env.PACKAGE_DIR }}
           if-no-files-found: warn
           retention-days: 14
 

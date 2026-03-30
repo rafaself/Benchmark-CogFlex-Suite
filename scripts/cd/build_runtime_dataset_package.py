@@ -13,17 +13,11 @@ forbidden file is detected in the source tree before copying.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
 from pathlib import Path
-
-from _kaggle_build_audit import (
-    assert_dataset_metadata_matches_canonical,
-    assert_sorted_unique_resource_paths,
-    sha256,
-    write_audit_manifest,
-)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _KAGGLE_DIR = REPO_ROOT / "packaging" / "kaggle"
@@ -56,9 +50,6 @@ _RUNTIME_SOURCE_RELPATHS = (
     "src/core/private_split.py",
     "src/core/slices.py",
     "src/core/splits.py",
-    "src/core/validate/__init__.py",
-    "src/core/validate/dataset.py",
-    "src/core/validate/episode.py",
     "src/frozen_splits/dev.json",
     "src/frozen_splits/public_leaderboard.json",
     "src/tasks/__init__.py",
@@ -107,7 +98,7 @@ def _verify_split_manifest_hashes(
         dest = output_dir / entry["path"]
         if not dest.is_file():
             raise FileNotFoundError(f"Expected split manifest not found in output: {dest}")
-        actual = sha256(dest)
+        actual = _sha256(dest)
         expected = entry["sha256"]
         if actual != expected:
             raise ValueError(
@@ -133,11 +124,51 @@ def _copy_runtime_source_subset(output_dir: Path) -> None:
         shutil.copy2(source, destination)
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _assert_dataset_metadata_matches_canonical(
+    canonical: dict[str, object],
+    packaged: dict[str, object],
+) -> None:
+    expected_keys = set(canonical) | {"resources"}
+    actual_keys = set(packaged)
+
+    if actual_keys != expected_keys:
+        raise ValueError("Packaged dataset-metadata.json has unexpected keys")
+    for key, value in canonical.items():
+        if packaged.get(key) != value:
+            raise ValueError(f"Packaged dataset-metadata.json drifted at {key!r}")
+
+    resources = packaged.get("resources")
+    if not isinstance(resources, list) or not resources:
+        raise ValueError("resources must be a non-empty list")
+
+
+def _assert_sorted_unique_resource_paths(packaged: dict[str, object]) -> None:
+    resources = packaged.get("resources")
+    if not isinstance(resources, list):
+        raise ValueError("resources must be a list")
+
+    paths = [entry.get("path") for entry in resources if isinstance(entry, dict)]
+    if len(paths) != len(resources):
+        raise ValueError("resources entries must be mappings")
+    if any(not isinstance(path, str) or not path for path in paths):
+        raise ValueError("resources entries must contain non-empty string paths")
+    if paths != sorted(paths):
+        raise ValueError("resources paths must be sorted lexicographically")
+    if len(paths) != len(set(paths)):
+        raise ValueError("resources paths must be unique")
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
 
-def _build(output_dir: Path, audit_manifest_path: Path | None = None) -> None:
+def _build(output_dir: Path) -> None:
     src_dir = REPO_ROOT / "src"
     frozen_manifests_path = _KAGGLE_DIR / "frozen_artifacts_manifest.json"
 
@@ -183,21 +214,11 @@ def _build(output_dir: Path, audit_manifest_path: Path | None = None) -> None:
     )
 
     packaged_metadata = json.loads(packaged_metadata_path.read_text(encoding="utf-8"))
-    assert_dataset_metadata_matches_canonical(
+    _assert_dataset_metadata_matches_canonical(
         canonical=json.loads(_DATASET_METADATA_PATH.read_text(encoding="utf-8")),
         packaged=packaged_metadata,
     )
-    assert_sorted_unique_resource_paths(packaged_metadata)
-
-    if audit_manifest_path is not None:
-        write_audit_manifest(
-            manifest_path=audit_manifest_path,
-            artifact_kind="runtime_dataset_package",
-            canonical_metadata_path=_DATASET_METADATA_PATH,
-            packaged_metadata_path=packaged_metadata_path,
-            metadata_contract="canonical_fields_plus_resources",
-            output_dir=output_dir,
-        )
+    _assert_sorted_unique_resource_paths(packaged_metadata)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -210,21 +231,13 @@ def _build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Output directory for the runtime package.",
     )
-    parser.add_argument(
-        "--audit-manifest-path",
-        type=Path,
-        help="Optional path for a JSON audit manifest describing the built package.",
-    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     output_dir = args.output_dir.resolve()
-    audit_manifest_path = (
-        args.audit_manifest_path.resolve() if args.audit_manifest_path is not None else None
-    )
-    _build(output_dir, audit_manifest_path=audit_manifest_path)
+    _build(output_dir)
     print(output_dir)
     return 0
 

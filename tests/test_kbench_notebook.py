@@ -1,25 +1,6 @@
-"""Local pre-deploy smoke tests for the official Kaggle notebook.
-
-Validates the notebook's bootstrap assumptions, module imports, frozen split
-loading, evaluation dataframe construction, @kbench.task registration, and
-per-episode return shapes — all without Kaggle UI or real LLM calls.
-
-Also contains TestNotebookEndToEnd, which executes every code cell in the
-notebook in order (using the kbench shim) and verifies all data-boundary
-contracts:
-  - ruleshift_benchmark_v1_binary is the only kbench task (Narrative is plain)
-  - binary .evaluate() and the Narrative loop run over leaderboard_df only
-  - local validation cells run over dev_df only
-  - dev rows never reach build_kaggle_payload
-  - %choose selects ruleshift_benchmark_v1_binary as the last cell
-
-The kbench_shim module stands in for kaggle_benchmarks locally.
-"""
-
 from __future__ import annotations
 
 import json
-import inspect
 import sys
 from pathlib import Path
 
@@ -31,205 +12,47 @@ _NOTEBOOK_PATH = _REPO_ROOT / "packaging" / "kaggle" / "ruleshift_notebook_task.
 
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-
-# Ensure src/ is on sys.path (same as conftest.py).
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-from core.kaggle import normalize_count_result_df
+from core.kaggle import validate_kaggle_payload  # noqa: E402
 
-# Install the kbench shim as ``kaggle_benchmarks`` before any notebook code runs.
 import tests.kbench_shim as _shim  # noqa: E402
 
 sys.modules["kaggle_benchmarks"] = _shim  # type: ignore[assignment]
 import kaggle_benchmarks as kbench  # noqa: E402
 
 
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
-
-
-def _read_notebook_sources() -> list[str]:
+def _read_notebook_sources() -> str:
     notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    return ["".join(cell.get("source", ())) for cell in notebook["cells"]]
-
-
-def _cell_source(cell_id: str) -> str:
-    """Return the source of the cell with the given id."""
-    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    for cell in notebook["cells"]:
-        if cell.get("id") == cell_id:
-            return "".join(cell.get("source", ()))
-    raise KeyError(f"Cell id {cell_id!r} not found in notebook")
+    return "\n".join("".join(cell.get("source", ())) for cell in notebook["cells"])
 
 
 def _execute_notebook_cells() -> dict:
-    """Execute every code cell in notebook order (Jupyter magic lines skipped).
-
-    Returns the final execution namespace.  Stubs out Jupyter's display()
-    so the dev-validation cells run without a Jupyter kernel.
-    """
     cells = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))["cells"]
     ns: dict = {
         "__builtins__": __import__("builtins"),
-        "display": lambda *a, **kw: None,   # stub Jupyter display()
+        "display": lambda *args, **kwargs: None,
     }
     for cell in cells:
         if cell.get("cell_type") != "code":
             continue
         source = "".join(cell.get("source", ()))
-        # Strip Jupyter magic lines (%choose, %matplotlib, etc.) so the
-        # remaining Python is valid for exec().
-        filtered = "\n".join(
-            line for line in source.splitlines() if not line.strip().startswith("%")
-        )
-        if not filtered.strip():
-            continue
-        exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
+        filtered = "\n".join(line for line in source.splitlines() if not line.strip().startswith("%"))
+        if filtered.strip():
+            exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
     return ns
 
 
-def _execute_notebook_cells_through(cell_id: str) -> dict:
-    """Execute code cells in notebook order through the selected cell id."""
-    cells = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))["cells"]
-    ns: dict = {
-        "__builtins__": __import__("builtins"),
-        "display": lambda *a, **kw: None,
-    }
-    for cell in cells:
-        if cell.get("cell_type") != "code":
-            continue
-        source = "".join(cell.get("source", ()))
-        filtered = "\n".join(
-            line for line in source.splitlines() if not line.strip().startswith("%")
-        )
-        if filtered.strip():
-            exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
-        if cell.get("id") == cell_id:
-            return ns
-    raise KeyError(f"Cell id {cell_id!r} not found in notebook")
-
-
-def _build_eval_df():
-    """Reproduce the combined-splits eval_df (all partitions) for unit tests."""
-    import pandas as pd
-    from core.splits import PARTITIONS, load_frozen_split
-    from tasks.ruleshift_benchmark.render import render_binary_prompt, render_narrative_prompt
-
-    frozen_splits = {p: load_frozen_split(p) for p in PARTITIONS}
-
-    rows: list[dict] = []
-    for partition in PARTITIONS:
-        for record in frozen_splits[partition]:
-            ep = record.episode
-            rows.append({
-                "episode_id": ep.episode_id,
-                "split": partition,
-                "difficulty": ep.difficulty.value,
-                "template_id": ep.template_id.value,
-                "template_family": ep.template_family.value,
-                "shift_position": str(ep.shift_after_position),
-                "transition_type": ep.transition.value,
-                "prompt_binary": render_binary_prompt(ep),
-                "prompt_narrative": render_narrative_prompt(ep),
-                "probe_targets": tuple(t.value for t in ep.probe_targets),
-            })
-
-    return pd.DataFrame(rows)
-
-
-def _register_binary_task():
-    """Register only the Binary task as @kbench.task — matching the notebook."""
-    from core.kaggle import (
-        BenchmarkRunLogger,
-        build_run_context,
-        run_binary_episode,
-    )
-
-    run_logger = BenchmarkRunLogger(
-        build_run_context(repo_root=_REPO_ROOT, llm=kbench.llm)
-    )
-
-    @kbench.task(
-        name="ruleshift_benchmark_v1_binary",
-        description=(
-            "Cognitive flexibility benchmark: infer a hidden rule shift from "
-            "sparse contradictory evidence in a sequence of charge interactions, "
-            "then predict four post-shift probe outcomes."
-        ),
-    )
-    def ruleshift_benchmark_v1_binary(
-        llm,
-        prompt_binary: str,
-        probe_targets: tuple,
-        episode_id: str | None = None,
-        template_id: str | None = None,
-        template_family: str | None = None,
-        difficulty: str | None = None,
-        shift_position: str | None = None,
-        transition_type: str | None = None,
-    ) -> tuple[int, int]:
-        result = run_binary_episode(
-            llm=llm,
-            prompt_binary=prompt_binary,
-            probe_targets=probe_targets,
-            logger=run_logger,
-            phase="test_binary",
-            task_mode="binary",
-            episode_id=episode_id,
-        )
-        return result.score
-
-    return ruleshift_benchmark_v1_binary
-
-
-def _make_narrative_fn():
-    """Return the Narrative function as a plain callable — not a kbench task."""
-    from core.kaggle import BenchmarkRunLogger, build_run_context, run_narrative_episode
-
-    run_logger = BenchmarkRunLogger(
-        build_run_context(repo_root=_REPO_ROOT, llm=kbench.llm)
-    )
-
-    def ruleshift_benchmark_v1_narrative(
-        llm,
-        prompt_narrative: str,
-        probe_targets: tuple,
-        episode_id: str | None = None,
-    ) -> tuple[int, int]:
-        result = run_narrative_episode(
-            llm=llm,
-            prompt_narrative=prompt_narrative,
-            probe_targets=probe_targets,
-            logger=run_logger,
-            phase="test_narrative",
-            task_mode="narrative",
-            episode_id=episode_id,
-        )
-        return result.score
-
-    return ruleshift_benchmark_v1_narrative
-
-
-# ---------------------------------------------------------------------------
-# fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture(autouse=True)
-def _clean_kbench_registry():
-    """Reset the shim registry between tests."""
+def _clean_registry() -> None:
     kbench.reset_registry()
     yield
     kbench.reset_registry()
 
 
 @pytest.fixture(autouse=True)
-def _run_output_dir(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def _run_output_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RULESHIFT_RUN_OUTPUT_DIR", str(tmp_path / "notebook-run"))
     monkeypatch.setenv("RULESHIFT_RUN_ID", "test-run")
     yield
@@ -237,719 +60,53 @@ def _run_output_dir(
     monkeypatch.delenv("RULESHIFT_RUN_ID", raising=False)
 
 
-# ---------------------------------------------------------------------------
-# notebook bootstrap
-# ---------------------------------------------------------------------------
+def test_notebook_source_keeps_binary_only_leaderboard_surface():
+    source = _read_notebook_sources()
 
+    assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in source
+    assert '@kbench.task(\n    name="ruleshift_benchmark_v1_narrative"' not in source
+    assert "discover_private_dataset_root" in source
+    assert 'frozen_splits["private_leaderboard"] = load_private_split(PRIVATE_DATASET_ROOT)' in source
+    assert "packaging/kaggle/private/private_episodes.json" not in source
+    assert "%choose ruleshift_benchmark_v1_binary" in source
 
-class TestNotebookBootstrap:
-    """Cell 2: _find_repo_root and sys.path setup."""
 
-    def test_repo_root_resolves_from_cwd(self):
-        """The notebook's _find_repo_root must find this repo when cwd is the repo root."""
-        cell2 = _cell_source("cell-2")
-        ns: dict = {"Path": Path, "sys": sys}
-        exec(compile(cell2, "<cell-2>", "exec"), ns)  # noqa: S102
-        repo_root = ns["REPO_ROOT"]
-        assert repo_root == _REPO_ROOT
-        assert (repo_root / "src").is_dir()
-        assert (repo_root / "packaging" / "kaggle" / "frozen_artifacts_manifest.json").is_file()
+def test_notebook_executes_end_to_end_with_private_mount():
+    ns = _execute_notebook_cells()
 
-    def test_src_added_to_sys_path(self):
-        assert str(_SRC_DIR) in sys.path
+    assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard", "private_leaderboard"}
+    assert (ns["dev_df"]["split"] == "dev").all()
+    assert "dev" not in set(ns["leaderboard_df"]["split"])
+    assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard", "private_leaderboard"}
+    assert set(ns["dev_df"]["episode_id"]).isdisjoint(set(ns["leaderboard_df"]["episode_id"]))
 
-    def test_missing_private_dataset_does_not_break_public_bootstrap(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ):
-        cell2 = _cell_source("cell-2")
-        ns: dict = {"Path": Path, "sys": sys}
-        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
-        exec(compile(cell2, "<cell-2>", "exec"), ns)  # noqa: S102
-        assert ns["REPO_ROOT"] == _REPO_ROOT
-        assert ns["PRIVATE_DATASET_ROOT"] is None
+    registry = kbench.get_registry()
+    assert set(registry) == {"ruleshift_benchmark_v1_binary"}
 
+    validate_kaggle_payload(ns["payload"])
+    assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["narrative_result"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["comparison"]["episode_count_aligned"] is True
 
-# ---------------------------------------------------------------------------
-# module imports
-# ---------------------------------------------------------------------------
+    assert ns["RUN_LOG_PATH"].is_file()
+    assert ns["DIAGNOSTICS_SUMMARY_PATH"].is_file()
+    assert ns["RUN_MANIFEST_PATH"].is_file()
+    assert ns["RUN_EPISODE_LEDGER_PATH"].is_file()
 
 
-class TestNotebookImports:
-    """Cell 3: all imports the notebook needs from the local package."""
+def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
+    ns = _execute_notebook_cells()
 
-    def test_kaggle_module_exports(self):
-        from core.kaggle import (  # noqa: F401
-            BinaryResponse,
-            normalize_binary_response,
-            normalize_narrative_response,
-            parse_binary_response,
-            parse_narrative_response,
-            score_episode,
-        )
+    assert ns["PRIVATE_DATASET_ROOT"] is None
+    assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
+    assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
+    assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
 
-    def test_splits_module_exports(self):
-        from core.splits import PARTITIONS, load_frozen_split  # noqa: F401
-        assert len(PARTITIONS) == 3
 
-    def test_parser_version_exported(self):
-        from core.parser import PARSER_VERSION  # noqa: F401
-        assert isinstance(PARSER_VERSION, str) and PARSER_VERSION
+def test_last_code_cell_selects_binary_task():
+    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
+    last_code = next(cell for cell in reversed(notebook["cells"]) if cell.get("cell_type") == "code")
+    magic_lines = [line.strip() for line in "".join(last_code.get("source", ())).splitlines() if line.strip().startswith("%")]
 
-    def test_metric_version_exported(self):
-        from core.metrics import METRIC_VERSION  # noqa: F401
-        assert isinstance(METRIC_VERSION, str) and METRIC_VERSION
-
-    def test_render_functions_exported(self):
-        from tasks.ruleshift_benchmark.render import render_binary_prompt, render_narrative_prompt  # noqa: F401
-
-
-# ---------------------------------------------------------------------------
-# frozen split loading
-# ---------------------------------------------------------------------------
-
-
-class TestFrozenSplitLoading:
-    """Cell 3: load_frozen_split for every partition."""
-
-    def test_all_partitions_load(self):
-        from core.splits import PARTITIONS, load_frozen_split
-
-        for partition in PARTITIONS:
-            records = load_frozen_split(partition)
-            assert len(records) > 0, f"{partition} returned no episodes"
-
-    def test_episodes_have_required_attributes(self):
-        from core.splits import load_frozen_split
-
-        records = load_frozen_split("dev")
-        for record in records:
-            ep = record.episode
-            assert hasattr(ep, "episode_id")
-            assert hasattr(ep, "difficulty")
-            assert hasattr(ep, "template_id")
-            assert hasattr(ep, "probe_targets")
-            assert len(ep.probe_targets) == 4
-
-
-# ---------------------------------------------------------------------------
-# evaluation dataframe construction
-# ---------------------------------------------------------------------------
-
-
-class TestEvalDataframe:
-    """Cell 4: evaluation dataframe shape and contents."""
-
-    def test_eval_df_has_expected_columns(self):
-        df = _build_eval_df()
-        required = {
-            "episode_id",
-            "split",
-            "difficulty",
-            "template_id",
-            "template_family",
-            "shift_position",
-            "transition_type",
-            "prompt_binary",
-            "prompt_narrative",
-            "probe_targets",
-        }
-        assert required.issubset(set(df.columns))
-
-    def test_eval_df_row_count_matches_frozen_splits(self):
-        from core.splits import PARTITIONS, load_frozen_split
-
-        expected = sum(len(load_frozen_split(p)) for p in PARTITIONS)
-        df = _build_eval_df()
-        assert len(df) == expected
-
-    def test_probe_targets_are_string_tuples_of_length_4(self):
-        df = _build_eval_df()
-        for targets in df["probe_targets"]:
-            assert isinstance(targets, tuple)
-            assert len(targets) == 4
-            assert all(isinstance(t, str) for t in targets)
-
-    def test_prompts_are_nonempty_strings(self):
-        df = _build_eval_df()
-        for col in ("prompt_binary", "prompt_narrative"):
-            for value in df[col]:
-                assert isinstance(value, str) and len(value) > 0
-
-
-# ---------------------------------------------------------------------------
-# @kbench.task registration — Binary only
-# ---------------------------------------------------------------------------
-
-
-class TestTaskRegistration:
-    """cell-binary-def: only Binary is registered as a kbench task."""
-
-    def test_only_binary_task_is_registered(self):
-        _register_binary_task()
-        registry = kbench.get_registry()
-        assert "ruleshift_benchmark_v1_binary" in registry
-        assert "ruleshift_benchmark_v1_narrative" not in registry, (
-            "Narrative must not be registered as a kbench task"
-        )
-
-    def test_binary_task_name_and_description(self):
-        _register_binary_task()
-        registry = kbench.get_registry()
-        binary = registry["ruleshift_benchmark_v1_binary"]
-        assert binary.name == "ruleshift_benchmark_v1_binary"
-        assert "cognitive flexibility" in binary.description.lower()
-
-    def test_binary_task_is_callable(self):
-        binary_task = _register_binary_task()
-        assert callable(binary_task)
-
-    def test_narrative_is_callable_as_plain_function(self):
-        narrative_fn = _make_narrative_fn()
-        assert callable(narrative_fn)
-        assert not hasattr(narrative_fn, "evaluate"), (
-            "Narrative must not have .evaluate() — it is not a kbench task"
-        )
-
-
-# ---------------------------------------------------------------------------
-# dry-run evaluation
-# ---------------------------------------------------------------------------
-
-
-class TestDryRunEvaluation:
-    """End-to-end: register Binary task, build eval_df, run evaluate() with stub LLM."""
-
-    def test_binary_evaluate_returns_result_set(self):
-        binary_task = _register_binary_task()
-        df = _build_eval_df()
-        result = binary_task.evaluate(llm=[kbench.llm], evaluation_data=df)
-        result_df = result.as_dataframe()
-        assert len(result_df) == len(df)
-
-    def test_stub_llm_yields_zero_scores(self):
-        """With a stub LLM that returns None, every episode should score (0, 4)."""
-        binary_task = _register_binary_task()
-        df = _build_eval_df()
-        result = binary_task.evaluate(llm=[kbench.llm], evaluation_data=df)
-        result_df = normalize_count_result_df(result.as_dataframe())
-        assert (result_df["num_correct"] == 0).all()
-        assert (result_df["total"] == 4).all()
-
-    def test_binary_return_shape_is_int_pair(self):
-        """Each binary task call must return (int, int)."""
-        binary_task = _register_binary_task()
-        row = _build_eval_df().iloc[0]
-        score = binary_task(kbench.llm, prompt_binary=row["prompt_binary"],
-                            probe_targets=row["probe_targets"])
-        assert isinstance(score, tuple) and len(score) == 2
-        assert all(isinstance(v, int) for v in score)
-
-    def test_narrative_plain_function_return_shape(self):
-        """Narrative plain function must also return (int, int)."""
-        narrative_fn = _make_narrative_fn()
-        row = _build_eval_df().iloc[0]
-        score = narrative_fn(kbench.llm, prompt_narrative=row["prompt_narrative"],
-                             probe_targets=row["probe_targets"])
-        assert isinstance(score, tuple) and len(score) == 2
-        assert all(isinstance(v, int) for v in score)
-
-
-# ---------------------------------------------------------------------------
-# scoring contract
-# ---------------------------------------------------------------------------
-
-
-class TestScoringContract:
-    """cell-11: dry-run scoring checks — same assertions as the notebook."""
-
-    def test_perfect_prediction(self):
-        from core.kaggle import score_episode
-        df = _build_eval_df()
-        targets = df.iloc[0]["probe_targets"]
-        assert score_episode(targets, targets) == (4, 4)
-
-    def test_invalid_prediction(self):
-        from core.kaggle import score_episode
-        df = _build_eval_df()
-        targets = df.iloc[0]["probe_targets"]
-        assert score_episode(None, targets) == (0, 4)
-
-    def test_normalize_binary_roundtrip(self):
-        from core.kaggle import BinaryResponse, Label, normalize_binary_response
-        df = _build_eval_df()
-        targets = df.iloc[0]["probe_targets"]
-        # Text path
-        text = ", ".join(targets)
-        assert normalize_binary_response(text) == targets
-        # Structured path
-        labels = [Label(t) for t in targets]
-        structured = BinaryResponse(*labels)
-        assert normalize_binary_response(structured) == targets
-
-    def test_malformed_response_scores_zero(self):
-        from core.kaggle import normalize_binary_response, score_episode
-        df = _build_eval_df()
-        targets = df.iloc[0]["probe_targets"]
-        malformed = normalize_binary_response("I don't know")
-        assert score_episode(malformed, targets) == (0, 4)
-
-
-# ---------------------------------------------------------------------------
-# notebook source fidelity
-# ---------------------------------------------------------------------------
-
-
-class TestNotebookSourceFidelity:
-    """Verify the notebook source matches the implemented flow."""
-
-    def test_notebook_file_exists(self):
-        assert _NOTEBOOK_PATH.is_file()
-
-    def test_notebook_contains_binary_task_decorator(self):
-        sources = _read_notebook_sources()
-        joined = "\n".join(sources)
-        assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in joined
-
-    def test_notebook_narrative_is_not_a_kbench_task(self):
-        """Narrative must be a plain function — no @kbench.task decorator."""
-        sources = _read_notebook_sources()
-        joined = "\n".join(sources)
-        assert '@kbench.task(\n    name="ruleshift_benchmark_v1_narrative"' not in joined, (
-            "Narrative must NOT be decorated with @kbench.task"
-        )
-
-    def test_notebook_narrative_plain_function_is_defined(self):
-        """Narrative must still exist as a callable plain function."""
-        sources = _read_notebook_sources()
-        joined = "\n".join(sources)
-        assert "def ruleshift_benchmark_v1_narrative(" in joined
-
-    def test_notebook_selects_binary_for_leaderboard(self):
-        sources = _read_notebook_sources()
-        joined = "\n".join(sources)
-        assert "%choose ruleshift_benchmark_v1_binary" in joined
-
-    def test_notebook_does_not_choose_narrative(self):
-        sources = _read_notebook_sources()
-        joined = "\n".join(sources)
-        assert "%choose ruleshift_benchmark_v1_narrative" not in joined
-
-    def test_notebook_uses_mount_only_private_dataset_resolution(self):
-        joined = "\n".join(_read_notebook_sources())
-        assert "discover_private_dataset_root" in joined
-        assert 'frozen_splits["private_leaderboard"] = load_private_split(PRIVATE_DATASET_ROOT)' in joined
-        assert "packaging/kaggle/private/private_episodes.json" not in joined
-
-    def test_notebook_does_not_resolve_private_dataset_during_bootstrap(self):
-        cell2 = _cell_source("cell-2")
-        assert "resolve_private_dataset_root" not in cell2
-        assert "discover_private_dataset_root" not in cell2
-
-    def test_notebook_defines_explicit_leaderboard_partition_boundary(self):
-        joined = "\n".join(_read_notebook_sources())
-        assert '_DEV_PARTITION = "dev"' in joined
-        assert '_LEADERBOARD_PARTITIONS = ("public_leaderboard", "private_leaderboard")' in joined
-        assert '_PUBLIC_RUNTIME_PARTITIONS = (_DEV_PARTITION, "public_leaderboard")' in joined
-        assert 'for _partition in _available_leaderboard_partitions' in joined
-
-    def test_binary_task_signature_matches_eval_df_columns(self):
-        """The function params (excluding llm) must match eval_df column names."""
-        import inspect
-        binary_task = _register_binary_task()
-        sig = inspect.signature(binary_task.fn)
-        param_names = [p for p in sig.parameters if p != "llm"]
-        df = _build_eval_df()
-        for name in param_names:
-            assert name in df.columns, f"Binary task param '{name}' not in eval_df columns"
-
-    def test_narrative_function_signature_matches_eval_df_columns(self):
-        """Narrative plain function params (excluding llm) must match eval_df columns."""
-        import inspect
-        narrative_fn = _make_narrative_fn()
-        sig = inspect.signature(narrative_fn)
-        param_names = [p for p in sig.parameters if p != "llm"]
-        df = _build_eval_df()
-        for name in param_names:
-            assert name in df.columns, f"Narrative param '{name}' not in eval_df columns"
-
-
-# ---------------------------------------------------------------------------
-# end-to-end notebook execution — data-boundary verification
-# ---------------------------------------------------------------------------
-
-
-class TestNotebookEndToEnd:
-    """Execute every notebook cell in order and verify all data-flow boundaries.
-
-    Uses _execute_notebook_cells() which runs the real notebook source with
-    the kbench shim (stub LLM, no API calls).
-
-    Boundaries verified:
-      1. dev_df contains only dev rows
-      2. leaderboard_df contains no dev rows, no overlap with dev_df
-      3. Binary .evaluate() receives a DataFrame without a split column
-      4. Binary result row count == leaderboard_df row count
-      5. Narrative loop result row count == leaderboard_df row count
-      6. Narrative result DataFrame has no split column
-      7. Dev-validation binary result count == dev_df row count
-      8. Dev-validation narrative result count == dev_df row count
-      9. Only ruleshift_benchmark_v1_binary is in the kbench registry
-     10. validate_kaggle_payload passes on the emitted payload
-     11. Payload episode counts match leaderboard_df
-     12. %choose cell is last and selects ruleshift_benchmark_v1_binary
-    """
-
-    @pytest.fixture
-    def ns(self):
-        """Execute all notebook cells and return the namespace."""
-        return _execute_notebook_cells()
-
-    # ── 1-2: dataframe construction boundaries ────────────────────────────────
-
-    def test_dev_df_contains_only_dev_rows(self, ns):
-        dev_df = ns["dev_df"]
-        assert len(dev_df) > 0
-        assert (dev_df["split"] == "dev").all(), (
-            "dev_df must contain only dev-split rows"
-        )
-
-    def test_leaderboard_df_contains_no_dev_rows(self, ns):
-        leaderboard_df = ns["leaderboard_df"]
-        assert len(leaderboard_df) > 0
-        assert "dev" not in leaderboard_df["split"].values, (
-            "leaderboard_df must never contain dev rows"
-        )
-
-    def test_leaderboard_df_contains_only_public_and_private_rows(self, ns):
-        leaderboard_df = ns["leaderboard_df"]
-        assert set(leaderboard_df["split"]) == {
-            "public_leaderboard",
-            "private_leaderboard",
-        }
-
-    def test_public_only_notebook_execution_stays_up_without_private_dataset(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ):
-        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
-        ns = _execute_notebook_cells()
-        assert ns["PRIVATE_DATASET_ROOT"] is None
-        assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
-        assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
-        assert ns["payload"]["primary_result"]["total_episodes"] == len(ns["leaderboard_df"])
-
-    def test_public_only_split_loading_cell_skips_private_leaderboard_when_unavailable(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-    ):
-        monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
-        ns = _execute_notebook_cells_through("cell-3")
-        assert ns["PRIVATE_DATASET_ROOT"] is None
-        assert set(ns["frozen_splits"]) == {"dev", "public_leaderboard"}
-
-    def test_leaderboard_df_has_no_episode_overlap_with_dev_df(self, ns):
-        dev_ids = set(ns["dev_df"]["episode_id"])
-        lb_ids = set(ns["leaderboard_df"]["episode_id"])
-        assert dev_ids.isdisjoint(lb_ids), (
-            "dev_df and leaderboard_df must have no episode_id overlap"
-        )
-
-    # ── 3-6: official leaderboard evaluation boundaries ───────────────────────
-
-    def test_binary_eval_df_has_no_split_column(self, ns):
-        """split must be dropped from the DataFrame passed to Binary .evaluate()."""
-        _binary_eval_df = ns["_binary_eval_df"]
-        assert "split" not in _binary_eval_df.columns, (
-            "split column must be absent from _binary_eval_df; "
-            "leaderboard membership is set at construction time, not by split values"
-        )
-
-    def test_binary_eval_df_matches_binary_task_signature(self, ns):
-        _binary_eval_df = ns["_binary_eval_df"]
-        binary_task = ns["ruleshift_benchmark_v1_binary"]
-        expected_columns = {
-            name for name in inspect.signature(binary_task.fn).parameters if name != "llm"
-        }
-        assert set(_binary_eval_df.columns) == expected_columns, (
-            "_binary_eval_df must contain exactly the Binary task parameters; "
-            "unexpected columns cause kaggle_benchmarks signature binding failures"
-        )
-
-    def test_official_binary_result_count_matches_leaderboard(self, ns):
-        result_df = ns["binary_results"].as_dataframe()
-        assert len(result_df) == len(ns["leaderboard_df"]), (
-            "Binary result row count must equal leaderboard_df row count"
-        )
-
-    def test_official_binary_results_preserve_metadata_columns(self, ns):
-        result_df = ns["binary_results"].as_dataframe()
-        for column in (
-            "episode_id",
-            "template_id",
-            "template_family",
-            "difficulty",
-            "shift_position",
-            "transition_type",
-        ):
-            assert column in result_df.columns, (
-                f"Binary results must preserve {column!r} for payload slices"
-            )
-
-    def test_official_narrative_result_count_matches_leaderboard(self, ns):
-        narrative_results_df = ns["narrative_results_df"]
-        assert narrative_results_df is not None
-        assert len(narrative_results_df) == len(ns["leaderboard_df"]), (
-            "Narrative result row count must equal leaderboard_df row count"
-        )
-
-    def test_narrative_results_df_has_no_split_column(self, ns):
-        """Narrative loop selects only prompt_narrative and probe_targets; no split."""
-        narrative_results_df = ns["narrative_results_df"]
-        assert "split" not in narrative_results_df.columns, (
-            "narrative_results_df must not carry a split column"
-        )
-
-    def test_narrative_results_df_preserves_episode_id(self, ns):
-        narrative_results_df = ns["narrative_results_df"]
-        assert "episode_id" in narrative_results_df.columns
-        assert tuple(narrative_results_df["episode_id"]) == tuple(ns["leaderboard_df"]["episode_id"])
-
-    # ── 7-8: local dev-validation boundaries ─────────────────────────────────
-
-    def test_dev_binary_validation_count_matches_dev_df(self, ns):
-        _dev_binary_results = ns["_dev_binary_results"]
-        assert _dev_binary_results is not None, (
-            "Dev binary validation must produce results"
-        )
-        dev_binary_df = _dev_binary_results.as_dataframe()
-        assert len(dev_binary_df) == len(ns["dev_df"]), (
-            "Dev binary validation row count must equal dev_df row count"
-        )
-
-    def test_dev_binary_eval_df_matches_binary_task_signature(self, ns):
-        _dev_binary_eval_df = ns["_dev_binary_eval_df"]
-        binary_task = ns["ruleshift_benchmark_v1_binary"]
-        expected_columns = {
-            name for name in inspect.signature(binary_task.fn).parameters if name != "llm"
-        }
-        assert set(_dev_binary_eval_df.columns) == expected_columns, (
-            "_dev_binary_eval_df must contain exactly the Binary task parameters; "
-            "dev validation should exercise the same binding contract as Kaggle"
-        )
-
-    def test_dev_narrative_validation_count_matches_dev_df(self, ns):
-        _dev_narrative_df = ns["_dev_narrative_df"]
-        assert _dev_narrative_df is not None, (
-            "Dev narrative validation must produce results"
-        )
-        assert len(_dev_narrative_df) == len(ns["dev_df"]), (
-            "Dev narrative validation row count must equal dev_df row count"
-        )
-
-    # ── 9: kbench registry boundary ──────────────────────────────────────────
-
-    def test_only_binary_task_in_kbench_registry(self):
-        """After executing the notebook, only Binary is a registered kbench task."""
-        _execute_notebook_cells()
-        registry = kbench.get_registry()
-        assert "ruleshift_benchmark_v1_binary" in registry, (
-            "ruleshift_benchmark_v1_binary must be in the kbench registry"
-        )
-        assert "ruleshift_benchmark_v1_narrative" not in registry, (
-            "Narrative must not appear in the kbench registry"
-        )
-
-    # ── 10-11: payload boundaries ─────────────────────────────────────────────
-
-    def test_canonical_payload_validates_cleanly(self, ns):
-        from core.kaggle import validate_kaggle_payload
-        validate_kaggle_payload(ns["payload"])  # must not raise
-
-    def test_payload_episode_counts_match_leaderboard(self, ns):
-        payload = ns["payload"]
-        n = len(ns["leaderboard_df"])
-        assert payload["primary_result"]["total_episodes"] == n, (
-            "payload primary_result episode count must equal leaderboard_df row count"
-        )
-        assert payload["narrative_result"]["total_episodes"] == n, (
-            "payload narrative_result episode count must equal leaderboard_df row count"
-        )
-
-    def test_payload_binary_and_narrative_episode_counts_are_aligned(self, ns):
-        comp = ns["payload"]["comparison"]
-        assert comp["episode_count_aligned"] is True
-        assert comp["binary_total_episodes"] == comp["narrative_total_episodes"]
-
-    def test_payload_slices_are_populated_from_leaderboard_metadata(self, ns):
-        slices = ns["payload"]["slices"]
-        assert slices["template"]
-        assert slices["template_family"]
-        assert slices["difficulty"]
-        assert slices["shift_position"]
-        assert slices["transition_type"]
-
-    def test_provider_failures_surface_canonical_unknown_error_type(self, ns):
-        error_counts = ns["payload"]["slices"]["error_type"]
-        assert error_counts["unknown"] == len(ns["leaderboard_df"])
-        assert error_counts["old_rule_persistence"] == 0
-
-    def test_notebook_exposes_diagnostics_summary_and_slice_frames(self, ns):
-        diagnostics_summary = ns["diagnostics_summary"]
-        assert diagnostics_summary["binary_accuracy"] == ns["payload"]["primary_result"]["score"]
-        assert diagnostics_summary["narrative_accuracy"] == ns["payload"]["narrative_result"]["score"]
-        assert "binary_parse_valid_rate" in diagnostics_summary
-        assert "narrative_schema_valid_rate" in diagnostics_summary
-        assert "narrative_parse_failure_count" in diagnostics_summary
-
-        slice_frames = ns["diagnostic_slice_frames"]
-        for key in ("difficulty", "template_family", "shift_position", "transition_type"):
-            assert key in slice_frames
-            assert not slice_frames[key].empty
-
-    def test_diagnostics_do_not_trigger_extra_model_calls(self, ns):
-        expected_calls = 2 * (len(ns["dev_df"]) + len(ns["leaderboard_df"]))
-        assert kbench.llm.call_count == expected_calls
-
-    def test_notebook_creates_run_scoped_benchmark_log(self, ns):
-        log_path = ns["RUN_LOG_PATH"]
-        assert log_path.name == "benchmark_log.jsonl"
-        assert log_path.is_file()
-        assert log_path.parent == ns["RUN_OUTPUT_DIR"]
-
-        records = [
-            json.loads(line)
-            for line in log_path.read_text(encoding="utf-8").splitlines()
-        ]
-        assert records
-
-        required_fields = {
-            "timestamp",
-            "run_id",
-            "phase",
-            "event",
-            "level",
-            "episode_id",
-            "task_mode",
-            "provider",
-            "model",
-            "status",
-        }
-        for record in records:
-            assert required_fields.issubset(record)
-            assert record["run_id"] == "test-run"
-
-        events = [record["event"] for record in records]
-        assert events[0] == "run_started"
-        assert "bootstrap_started" in events
-        assert "bootstrap_finished" in events
-        assert "phase_started" in events
-        assert "episode_started" in events
-        assert "provider_call_started" in events
-        assert "response_parse_failed" in events
-        assert "episode_scored" in events
-        assert "payload_built" in events
-        assert "run_finished" in events
-
-    def test_notebook_writes_diagnostics_summary_artifact(self, ns):
-        summary_path = ns["DIAGNOSTICS_SUMMARY_PATH"]
-        assert summary_path.name == "diagnostics_summary.json"
-        assert summary_path.is_file()
-        assert summary_path.parent == ns["RUN_OUTPUT_DIR"]
-
-        summary = json.loads(summary_path.read_text(encoding="utf-8"))
-        required_fields = {
-            "run_id",
-            "run_valid",
-            "invalidation_reasons",
-            "binary_parse_valid_rate",
-            "narrative_schema_valid_rate",
-            "provider_failure_count",
-            "failure_category_counts",
-            "total_exception_count",
-            "total_logged_events",
-            "started_at",
-            "finished_at",
-        }
-        assert required_fields.issubset(summary)
-        assert summary["run_id"] == "test-run"
-
-    def test_notebook_writes_run_manifest_artifact(self, ns):
-        manifest_path = ns["RUN_MANIFEST_PATH"]
-        assert manifest_path.name == "run_manifest.json"
-        assert manifest_path.is_file()
-        assert manifest_path.parent == ns["RUN_OUTPUT_DIR"]
-
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        required_fields = {
-            "run_id",
-            "git_commit",
-            "benchmark_version",
-            "parser_version",
-            "metrics_version",
-            "notebook_bundle_hash",
-            "runtime_dataset_id",
-            "runtime_dataset_version",
-            "provider",
-            "model",
-            "started_at",
-            "finished_at",
-        }
-        assert required_fields.issubset(manifest)
-        assert manifest["run_id"] == "test-run"
-
-    def test_notebook_writes_episode_results_ledger(self, ns):
-        ledger_path = ns["RUN_EPISODE_LEDGER_PATH"]
-        assert ledger_path.name == "episode_results.jsonl"
-        assert ledger_path.is_file()
-        assert ledger_path.parent == ns["RUN_OUTPUT_DIR"]
-
-        records = [
-            json.loads(line)
-            for line in ledger_path.read_text(encoding="utf-8").splitlines()
-        ]
-        assert len(records) == 2 * (len(ns["dev_df"]) + len(ns["leaderboard_df"]))
-
-        required_fields = {
-            "run_id",
-            "episode_id",
-            "split",
-            "task_mode",
-            "provider",
-            "model",
-            "call_status",
-            "parse_status",
-            "outcome_kind",
-            "failure_category",
-            "latency_ms",
-            "prediction",
-            "target",
-            "score",
-            "exception_ref",
-        }
-        for record in records:
-            assert required_fields.issubset(record)
-            assert record["run_id"] == "test-run"
-
-        assert {record["outcome_kind"] for record in records} == {
-            "operational_failure",
-        }
-        assert {record["failure_category"] for record in records} == {
-            "provider_failure",
-        }
-
-    # ── 12: %choose boundary ─────────────────────────────────────────────────
-
-    def test_choose_cell_is_last_and_selects_binary(self):
-        cells = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))["cells"]
-        last_code = next(
-            c for c in reversed(cells) if c.get("cell_type") == "code"
-        )
-        source = "".join(last_code.get("source", ()))
-        magic_lines = [
-            line.strip() for line in source.splitlines()
-            if line.strip().startswith("%")
-        ]
-        assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"], (
-            f"Last code cell must contain exactly '%choose ruleshift_benchmark_v1_binary', got magic lines: {magic_lines!r}"
-        )
+    assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"]

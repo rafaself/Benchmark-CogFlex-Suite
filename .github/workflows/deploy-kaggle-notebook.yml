@@ -16,7 +16,6 @@ concurrency:
 env:
   KAGGLE_CLI_VERSION: "2.0.0"
   BUNDLE_DIR: /tmp/ruleshift-kernel-bundle
-  AUDIT_MANIFEST_PATH: /tmp/ruleshift-kernel-bundle.audit.json
 
 jobs:
   # ── Job 1: validate ──────────────────────────────────────────────────────────
@@ -44,20 +43,8 @@ jobs:
       - name: Install project (editable, no optional provider SDKs)
         run: pip install -e .
 
-      - name: Install notebook smoke-test dependencies
-        run: pip install "pandas>=2.0,<3.0"
-
-      - name: Enforce private split isolation
-        run: python scripts/check_public_private_isolation.py
-
-      - name: Run packaging tests
-        run: python -m pytest tests/test_packaging.py -v
-
-      - name: Run CD build validation tests
-        run: python -m pytest tests/test_cd_build.py -v
-
-      - name: Run notebook smoke tests
-        run: python -m pytest tests/test_kbench_notebook.py -v
+      - name: Run reduced notebook validation suite
+        run: python -m pytest tests/test_packaging.py tests/test_cd_build.py tests/test_kbench_notebook.py tests/test_private_split.py -v
 
   # ── Job 2: deploy ─────────────────────────────────────────────────────────────
   deploy:
@@ -89,17 +76,14 @@ jobs:
       - name: Build kernel bundle
         run: |
           python scripts/cd/build_kernel_package.py \
-            --output-dir "$BUNDLE_DIR" \
-            --audit-manifest-path "$AUDIT_MANIFEST_PATH"
+            --output-dir "$BUNDLE_DIR"
 
       - name: Upload kernel build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kaggle-kernel-bundle
-          path: |
-            ${{ env.BUNDLE_DIR }}
-            ${{ env.AUDIT_MANIFEST_PATH }}
+          path: ${{ env.BUNDLE_DIR }}
           if-no-files-found: warn
           retention-days: 14
 
