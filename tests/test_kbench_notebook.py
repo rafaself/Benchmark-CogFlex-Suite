@@ -83,6 +83,8 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert 'name="ruleshift_benchmark_v1_binary_row"' in source
     assert "store_task=False" in source
     assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in source
+    assert "def ruleshift_benchmark_v1_binary(llm) -> dict:" in source
+    assert "def ruleshift_benchmark_v1_binary(llm) -> dict[str, object]:" not in source
     assert '@kbench.task(\n    name="ruleshift_benchmark_v1_narrative"' not in source
     assert "load_leaderboard_dataframe" in source
     assert "run_binary_task" in source
