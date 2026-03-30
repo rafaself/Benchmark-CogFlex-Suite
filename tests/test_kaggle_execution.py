@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import pytest
 
 from core.kaggle import KaggleExecutionError, load_leaderboard_dataframe, run_binary_task
+from core.kaggle.runner import BinaryResponse, Label
 
 
 class _RaisingLLM:
@@ -62,6 +63,10 @@ def test_run_binary_task_raises_for_non_scoreable_response():
             prompt_binary="prompt",
             probe_targets=targets,
         )
+
+
+def test_binary_response_uses_concrete_label_field_types():
+    assert [field.type for field in fields(BinaryResponse)] == [Label, Label, Label, Label]
 
 
 def test_run_binary_task_surfaces_provider_exception():
