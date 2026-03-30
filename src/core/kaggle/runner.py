@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 __all__ = [
+    "KaggleExecutionError",
     "find_repo_root",
     "load_leaderboard_dataframe",
     "run_binary_task",
@@ -39,6 +40,10 @@ class BinaryResponse:
             self.probe_8.value,
             self.probe_9.value,
         )
+
+
+class KaggleExecutionError(RuntimeError):
+    """Raised when the model provider/runtime fails before a response can be scored."""
 
 
 def find_repo_root() -> Path:
@@ -114,8 +119,8 @@ def run_binary_task(
 ) -> tuple[int, int]:
     try:
         response = llm.prompt(prompt_binary, schema=BinaryResponse)
-    except Exception:
-        response = None
+    except Exception as exc:
+        raise KaggleExecutionError("llm.prompt failed before producing a scoreable response") from exc
     return score_episode(normalize_binary_response(response), probe_targets)
 
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.kaggle import load_leaderboard_dataframe, run_binary_task
+import pytest
+
+from core.kaggle import KaggleExecutionError, load_leaderboard_dataframe, run_binary_task
 
 
 class _RaisingLLM:
@@ -43,7 +45,7 @@ def test_run_binary_task_scores_string_and_mapping_responses():
     ) == (4, 4)
 
 
-def test_run_binary_task_treats_invalid_and_provider_failures_as_zero_score():
+def test_run_binary_task_treats_invalid_outputs_as_zero_score():
     @dataclass(frozen=True)
     class _BadShapeLLM:
         def prompt(self, *_args, **_kwargs):
@@ -56,11 +58,28 @@ def test_run_binary_task_treats_invalid_and_provider_failures_as_zero_score():
         prompt_binary="prompt",
         probe_targets=targets,
     ) == (0, 4)
-    assert run_binary_task(
-        llm=_RaisingLLM(RuntimeError("provider timeout")),
-        prompt_binary="prompt",
-        probe_targets=targets,
-    ) == (0, 4)
+
+
+def test_run_binary_task_surfaces_provider_exception():
+    targets = ("attract", "repel", "attract", "repel")
+
+    with pytest.raises(KaggleExecutionError, match="llm.prompt failed"):
+        run_binary_task(
+            llm=_RaisingLLM(RuntimeError("provider unavailable")),
+            prompt_binary="prompt",
+            probe_targets=targets,
+        )
+
+
+def test_run_binary_task_surfaces_timeout_like_failure():
+    targets = ("attract", "repel", "attract", "repel")
+
+    with pytest.raises(KaggleExecutionError, match="llm.prompt failed"):
+        run_binary_task(
+            llm=_RaisingLLM(TimeoutError("provider timeout")),
+            prompt_binary="prompt",
+            probe_targets=targets,
+        )
 
 
 def test_load_leaderboard_dataframe_preserves_public_private_behavior(monkeypatch):
