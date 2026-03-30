@@ -139,6 +139,27 @@ def test_binary_response_as_tuple_rejects_invalid_string_fields():
         response.as_tuple()
 
 
+def test_normalize_binary_response_tolerates_stale_as_tuple(monkeypatch: pytest.MonkeyPatch):
+    def _stale_as_tuple(self) -> tuple[str, str, str, str]:
+        return (
+            self.probe_6.value,
+            self.probe_7.value,
+            self.probe_8.value,
+            self.probe_9.value,
+        )
+
+    monkeypatch.setattr(BinaryResponse, "as_tuple", _stale_as_tuple)
+
+    response = BinaryResponse(
+        probe_6="attract",
+        probe_7="repel",
+        probe_8="attract",
+        probe_9="repel",
+    )
+
+    assert normalize_binary_response(response) == ("attract", "repel", "attract", "repel")
+
+
 def test_run_binary_task_scores_valid_string_and_mapping_responses():
     targets = ("attract", "repel", "attract", "repel")
 

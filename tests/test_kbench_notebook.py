@@ -89,6 +89,15 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert "load_leaderboard_dataframe" in source
     assert "run_binary_task" in source
     assert "_ruleshift_benchmark_v1_binary_row.evaluate(" in source
+    assert "eval_df = leaderboard_df" in source
+    assert ".head(DEBUG_LIMIT)" not in source
+    assert "DEBUG_MODE" not in source
+    assert "DEBUG_LIMIT" not in source
+    assert "DebugLLM" not in source
+    assert "run_binary_task_debug" not in source
+    assert "[DEBUG]" not in source
+    assert "_ensure_binary_response_runtime_compatibility" not in source
+    assert "BinaryResponse.as_tuple =" not in source
     assert "packaging/kaggle/private/private_episodes.json" not in source
     assert "NotebookStatus" not in source
     assert "discover_private_dataset_root" not in source
@@ -106,6 +115,7 @@ def test_notebook_executes_end_to_end_with_private_mount():
 
     assert set(ns["frozen_splits"]) == {"public_leaderboard", "private_leaderboard"}
     assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard", "private_leaderboard"}
+    assert str(ns["REPO_ROOT"] / "src") in sys.path
 
     registry = kbench.get_registry()
     assert set(registry) == {"ruleshift_benchmark_v1_binary"}
@@ -113,6 +123,7 @@ def test_notebook_executes_end_to_end_with_private_mount():
     assert ns["_ruleshift_benchmark_v1_binary_row"].store_task is False
     assert ns["_ruleshift_benchmark_v1_binary_row"].evaluate_call_count == 1
     assert ns["_ruleshift_benchmark_v1_binary_row"].last_evaluation_data is not None
+    assert len(ns["_ruleshift_benchmark_v1_binary_row"].last_evaluation_data) == len(ns["leaderboard_df"])
     assert set(ns["_ruleshift_benchmark_v1_binary_row"].last_evaluation_data["split"]) == {
         "public_leaderboard",
         "private_leaderboard",
@@ -198,30 +209,3 @@ def test_last_code_cell_selects_binary_task():
     magic_lines = [line.strip() for line in "".join(last_code.get("source", ())).splitlines() if line.strip().startswith("%")]
 
     assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"]
-
-
-def test_notebook_repairs_stale_binary_response_runtime(monkeypatch: pytest.MonkeyPatch):
-    from core.kaggle import runner as runner_module
-
-    def _stale_as_tuple(self) -> tuple[str, str, str, str]:
-        return (
-            self.probe_6.value,
-            self.probe_7.value,
-            self.probe_8.value,
-            self.probe_9.value,
-        )
-
-    monkeypatch.setattr(runner_module.BinaryResponse, "as_tuple", _stale_as_tuple)
-
-    ns = _execute_notebook_cells()
-    repaired = runner_module.normalize_binary_response(
-        runner_module.BinaryResponse(
-            probe_6="attract",
-            probe_7="repel",
-            probe_8="attract",
-            probe_9="repel",
-        )
-    )
-
-    assert repaired == ("attract", "repel", "attract", "repel")
-    assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])

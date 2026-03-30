@@ -135,7 +135,10 @@ def normalize_binary_response(response: object) -> tuple[str, ...] | None:
     if response is None:
         return None
     if isinstance(response, BinaryResponse):
-        return response.as_tuple()
+        return tuple(
+            _coerce_binary_label(getattr(response, field_name), field_name=field_name)
+            for field_name in ("probe_6", "probe_7", "probe_8", "probe_9")
+        )
     if isinstance(response, str):
         return _parse_binary_output(response)
 
