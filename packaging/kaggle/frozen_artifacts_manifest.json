@@ -9,11 +9,11 @@
   "entry_points": {
     "kbench_notebook": {
       "path": "packaging/kaggle/ruleshift_notebook_task.ipynb",
-      "sha256": "50a57cd7d5c9942168e31b5e8771373ff44dc1f139fe5bbdde1d174d5d7651c6"
+      "sha256": "8db9bba9e84494954431a82dcced9b35805330fe29e165452a8d387c229203d7"
     },
     "kernel_metadata": {
       "path": "packaging/kaggle/kernel-metadata.json",
-      "sha256": "fdbce9c919644f8be33cf82875d124f8865dbbe04d4d02688ea8acf30c3a6a4e"
+      "sha256": "a2e0984a260240341830cb8f823e83c1f5a7ddd9849fc6732ce8a287b9431edd"
     }
   },
   "frozen_split_manifests": {
