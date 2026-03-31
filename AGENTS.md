@@ -23,7 +23,7 @@ These rules apply to the whole repository.
 ## Validation
 - Run targeted tests for changed areas before finishing.
 - If runtime execution, logging, or artifact generation changes, run:
-  - `pytest tests/test_kaggle_execution.py tests/test_run_logging.py tests/test_diagnostics_summary.py tests/test_run_manifest.py tests/test_episode_ledger.py`
+  - `pytest tests/test_kaggle_execution.py tests/test_kaggle_payload.py tests/test_preflight_kaggle.py tests/test_run_manifest.py tests/test_private_split.py`
 - If packaging or deploy code changes, run:
   - `pytest tests/test_cd_build.py tests/test_kbench_notebook.py tests/test_packaging.py`
 - If split or packaging logic changes, verify public/private isolation before finishing.

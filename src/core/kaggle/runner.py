@@ -43,11 +43,7 @@ class KaggleExecutionError(RuntimeError):
     """Raised when the model provider/runtime fails before a response can be scored."""
 
 
-def load_leaderboard_dataframe(
-    *,
-    repo_root: Path | str | None = None,
-) -> tuple[Path | None, dict[str, object], "pd.DataFrame"]:
-    del repo_root
+def load_leaderboard_dataframe() -> tuple[Path | None, dict[str, object], "pd.DataFrame"]:
     try:
         import pandas as pd
     except ImportError:

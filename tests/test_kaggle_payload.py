@@ -27,20 +27,15 @@ def test_compute_bootstrap_confidence_interval_is_deterministic_and_valid():
 
 def test_normalize_count_result_df_supports_runtime_input_shapes():
     tuple_df = pd.DataFrame([{"result": (3, 4), "difficulty": "easy"}])
-    legacy_df = pd.DataFrame([{"score_0": 3, "score_1": 4}])
-    indexed_df = pd.DataFrame([{0: 3, 1: 4}])
+    canonical_df = pd.DataFrame([{"num_correct": 3, "total": 4, "difficulty": "easy"}])
 
     normalized_tuple = normalize_count_result_df(tuple_df)
-    normalized_legacy = normalize_count_result_df(legacy_df)
-    normalized_indexed = normalize_count_result_df(indexed_df)
+    normalized_canonical = normalize_count_result_df(canonical_df)
 
     assert normalized_tuple.loc[0, "num_correct"] == 3
     assert normalized_tuple.loc[0, "total"] == 4
     assert normalized_tuple.loc[0, "difficulty"] == "easy"
-    assert normalized_legacy.loc[0, "num_correct"] == 3
-    assert normalized_legacy.loc[0, "total"] == 4
-    assert normalized_indexed.loc[0, "num_correct"] == 3
-    assert normalized_indexed.loc[0, "total"] == 4
+    assert normalized_canonical.equals(canonical_df)
 
 
 def test_build_kaggle_payload_emits_canonical_contract():

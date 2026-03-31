@@ -132,8 +132,6 @@ def build_run_manifest(
         "run_id": run_id,
         "git_commit": _resolve_git_commit(root),
         "benchmark_version": _string_or_none(benchmark_versions.get("manifest_version")),
-        "parser_version": "v2",
-        "metrics_version": "v1",
         "notebook_bundle_hash": _sha256_file(notebook_path) if notebook_path is not None else None,
         "runtime_dataset_id": _resolve_runtime_dataset_id(
             dataset_metadata=runtime_dataset_metadata,

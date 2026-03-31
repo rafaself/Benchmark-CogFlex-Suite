@@ -143,12 +143,6 @@ def normalize_count_result_df(
         out[["num_correct", "total"]] = expanded
         return out.drop(columns=["result"])
 
-    if "score_0" in out.columns and "score_1" in out.columns:
-        return out.rename(columns={"score_0": "num_correct", "score_1": "total"})
-
-    if 0 in out.columns and 1 in out.columns:
-        return out.rename(columns={0: "num_correct", 1: "total"})
-
     return out
 
 

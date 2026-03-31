@@ -1,5 +1,0 @@
-{
-  "versionNumber": 1,
-  "name": "ruleshift_benchmark_v1_binary",
-  "description": "Cognitive flexibility benchmark: infer a hidden rule shift from sparse contradictory evidence in a sequence of charge interactions, then predict four post-shift probe outcomes."
-}
