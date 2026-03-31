@@ -108,6 +108,9 @@ def test_notebook_imports_runtime_helpers_only():
     assert "normalize_binary_response" not in sources
     assert "score_episode" not in sources
     assert "packaging/kaggle/private/private_episodes.json" not in sources
+    assert "<table" not in sources
+    assert "pd.DataFrame(" in sources
+    assert ".to_string(index=False)" in sources
 
 
 def test_public_kernel_metadata_references_runtime_dataset_only():

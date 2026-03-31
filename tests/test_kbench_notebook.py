@@ -125,6 +125,9 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert "benchmark_result.json" not in source
     assert "dev_df" not in source
     assert "%choose ruleshift_benchmark_v1_binary" in source
+    assert "<table" not in source
+    assert "pd.DataFrame(" in source
+    assert ".to_string(index=False)" in source
 
 
 def test_notebook_executes_end_to_end_with_private_mount():
