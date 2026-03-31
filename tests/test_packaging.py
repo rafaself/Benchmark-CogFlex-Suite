@@ -101,8 +101,11 @@ def test_notebook_imports_runtime_helpers_only():
     assert "run_binary_task" in sources
     assert "build_kaggle_payload" in sources
     assert "pd.DataFrame(" in sources
-    assert ".style.hide(axis=\"index\")" in sources
-    assert ".set_caption(" in sources
+    assert ".set_index(\"Field\")" in sources
+    assert "\n_status_df" in sources
+    assert "\n_result_df" in sources
+    assert "\n_summary_df" in sources
+    assert ".style" not in sources
     assert ".to_string(index=False)" not in sources
 
 

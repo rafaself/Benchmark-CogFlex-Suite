@@ -104,8 +104,11 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert "_RULESHIFT_BINARY_DF = binary_df" in source
     assert "%choose ruleshift_benchmark_v1_binary" in source
     assert "pd.DataFrame(" in source
-    assert ".style.hide(axis=\"index\")" in source
-    assert ".set_caption(" in source
+    assert ".set_index(\"Field\")" in source
+    assert "\n_status_df" in source
+    assert "\n_result_df" in source
+    assert "\n_summary_df" in source
+    assert ".style" not in source
     assert ".to_string(index=False)" not in source
 
 
