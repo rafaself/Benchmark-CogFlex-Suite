@@ -13,7 +13,7 @@
     },
     "kernel_metadata": {
       "path": "packaging/kaggle/kernel-metadata.json",
-      "sha256": "67fdcecf8e4bba56a647bb7a1dabd5759d1636950f4c5fdc624d813578a7686e"
+      "sha256": "6432ccb5e3485bc3ab51a12f2348a86b9a40f191ce536fe44319525c9ee721da"
     }
   },
   "frozen_split_manifests": {

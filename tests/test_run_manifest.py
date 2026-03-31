@@ -43,7 +43,7 @@ def test_write_run_manifest_uses_ci_commit_when_available(tmp_path, monkeypatch:
     assert manifest["parser_version"] == "v2"
     assert manifest["metrics_version"] == "v1"
     assert manifest["notebook_bundle_hash"] == expected_hash
-    assert manifest["runtime_dataset_id"] == "raptorengineer/ruleshift-notebook-runtime"
+    assert manifest["runtime_dataset_id"] == "raptorengineer/ruleshift-runtime"
     assert manifest["runtime_dataset_version"] is None
     assert manifest["provider"] == "unknown"
     assert manifest["model"] == "unknown"

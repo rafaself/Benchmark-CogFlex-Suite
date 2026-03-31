@@ -113,5 +113,5 @@ def test_notebook_imports_runtime_helpers_only():
 def test_public_kernel_metadata_references_runtime_dataset_only():
     kernel_metadata = json.loads(_KERNEL_METADATA_PATH.read_text(encoding="utf-8"))
 
-    assert kernel_metadata["dataset_sources"] == ["raptorengineer/ruleshift-notebook-runtime"]
+    assert kernel_metadata["dataset_sources"] == ["raptorengineer/ruleshift-runtime"]
     assert kernel_metadata["code_file"] == "ruleshift_notebook_task.ipynb"
