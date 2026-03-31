@@ -66,7 +66,7 @@ def _patch_kaggle_runtime_path(monkeypatch: pytest.MonkeyPatch) -> None:
     _original_is_dir = Path.is_dir
 
     def _kaggle_aware_is_dir(self: Path) -> bool:
-        if str(self) == "/kaggle/input/ruleshift-runtime/src":
+        if str(self) == "/kaggle/input/datasets/raptorengineer/ruleshift-runtime/src":
             return True
         return _original_is_dir(self)
 
@@ -102,6 +102,11 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert "run_binary_task" in source
     assert "_ruleshift_benchmark_v1_binary_row.evaluate(" in source
     assert "eval_df = leaderboard_df" in source
+    assert "_RULESHIFT_BINARY_DF = None" in source
+    assert "global _RULESHIFT_BINARY_DF" in source
+    assert "_RULESHIFT_BINARY_DF = binary_df" in source
+    assert "getattr(ruleshift_benchmark_v1_binary, '_binary_df', None)" not in source
+    assert "ruleshift_benchmark_v1_binary._binary_df = binary_df" not in source
     assert ".head(DEBUG_LIMIT)" not in source
     assert "DEBUG_MODE" not in source
     assert "DEBUG_LIMIT" not in source
@@ -153,6 +158,8 @@ def test_notebook_executes_end_to_end_with_private_mount():
     }
     assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
     assert ns["payload"]["split"] == "frozen_leaderboard"
+    assert ns["_RULESHIFT_BINARY_DF"] is not None
+    assert len(ns["_RULESHIFT_BINARY_DF"]) == len(ns["leaderboard_df"])
     assert "RUN_LOG_PATH" not in ns
     assert "DIAGNOSTICS_SUMMARY_PATH" not in ns
     assert "RUN_MANIFEST_PATH" not in ns
