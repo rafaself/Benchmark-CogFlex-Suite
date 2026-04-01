@@ -56,6 +56,9 @@ jobs:
           RELEASE_MESSAGE: ${{ inputs.release_message }}
         run: |
           set -euo pipefail
+          mkdir -p ~/.kaggle
+          printf '%s' "$KAGGLE_API_TOKEN" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
 
           DATASET_ID=$(python -c "import json; print(json.load(open('packaging/kaggle/dataset-metadata.json'))['id'])")
 

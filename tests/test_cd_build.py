@@ -101,6 +101,9 @@ def test_only_lean_deploy_workflows_remain_and_are_hardened():
         assert "pip install -e ." in workflow_text
         assert "pip install \"kaggle==${KAGGLE_CLI_VERSION}\"" in workflow_text
         assert "actions/upload-artifact" not in workflow_text
+        assert "mkdir -p ~/.kaggle" in workflow_text
+        assert "printf '%s' \"$KAGGLE_API_TOKEN\" > ~/.kaggle/kaggle.json" in workflow_text
+        assert "chmod 600 ~/.kaggle/kaggle.json" in workflow_text
 
         for action_name, sha in _PINNED_ACTIONS.items():
             assert f"uses: {action_name}@{sha}" in workflow_text
