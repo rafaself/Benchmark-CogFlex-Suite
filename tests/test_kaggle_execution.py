@@ -8,6 +8,10 @@ import pytest
 from core.kaggle import KaggleExecutionError, load_leaderboard_dataframe, run_binary_task
 from core.kaggle.runner import BinaryResponse, Label, normalize_binary_response
 
+_EXPECTED_PUBLIC_EPISODES = 54
+_EXPECTED_PRIVATE_EPISODES = 270
+_EXPECTED_ATTACHED_EPISODES = _EXPECTED_PUBLIC_EPISODES + _EXPECTED_PRIVATE_EPISODES
+
 
 class _RaisingLLM:
     def __init__(self, exc: BaseException) -> None:
@@ -239,6 +243,9 @@ def test_load_leaderboard_dataframe_preserves_public_private_behavior(monkeypatc
     assert private_root is not None
     assert set(frozen_splits) == {"public_leaderboard", "private_leaderboard"}
     assert set(leaderboard_df["split"]) == {"public_leaderboard", "private_leaderboard"}
+    assert len(frozen_splits["public_leaderboard"]) == _EXPECTED_PUBLIC_EPISODES
+    assert len(frozen_splits["private_leaderboard"]) == _EXPECTED_PRIVATE_EPISODES
+    assert len(leaderboard_df) == _EXPECTED_ATTACHED_EPISODES
 
     monkeypatch.delenv("RULESHIFT_PRIVATE_DATASET_ROOT", raising=False)
     private_root, frozen_splits, leaderboard_df = load_leaderboard_dataframe()
@@ -246,3 +253,5 @@ def test_load_leaderboard_dataframe_preserves_public_private_behavior(monkeypatc
     assert private_root is None
     assert set(frozen_splits) == {"public_leaderboard"}
     assert set(leaderboard_df["split"]) == {"public_leaderboard"}
+    assert len(frozen_splits["public_leaderboard"]) == _EXPECTED_PUBLIC_EPISODES
+    assert len(leaderboard_df) == _EXPECTED_PUBLIC_EPISODES

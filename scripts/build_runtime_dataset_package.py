@@ -6,8 +6,9 @@ Produces a clean directory ready for Kaggle dataset upload containing:
   - packaging/kaggle/frozen_artifacts_manifest.json
   - dataset-metadata.json  (from packaging/kaggle, augmented with resources)
 
-Private artifacts are explicitly forbidden. The script aborts if any
-forbidden file is detected in the source tree before copying.
+Private artifacts are explicitly forbidden in public package outputs. The
+script tolerates the canonical ignored local private seed manifest, but aborts
+if any other private artifact is detected in the source tree before copying.
 """
 
 from __future__ import annotations
@@ -29,16 +30,21 @@ FORBIDDEN_FILENAMES = frozenset(
         "private_episodes.json",
     )
 )
+ALLOWED_LOCAL_PRIVATE_MANIFESTS = frozenset(
+    (
+        REPO_ROOT / "src" / "frozen_splits" / "private_leaderboard.json",
+    )
+)
 IGNORED_DIRS = frozenset((".git", ".venv", ".pytest_cache", "__pycache__"))
 RUNTIME_SOURCE_RELPATHS = (
     "src/core/__init__.py",
     "src/core/kaggle/__init__.py",
+    "src/core/kaggle/audit.py",
     "src/core/kaggle/manifest.py",
     "src/core/kaggle/payload.py",
     "src/core/kaggle/runner.py",
     "src/core/private_split.py",
     "src/core/splits.py",
-    "src/frozen_splits/dev.json",
     "src/frozen_splits/public_leaderboard.json",
     "src/tasks/__init__.py",
     "src/tasks/ruleshift_benchmark/__init__.py",
@@ -51,13 +57,15 @@ RUNTIME_SOURCE_RELPATHS = (
 
 
 def _check_no_private_artifacts(src_dir: Path, frozen_manifests_path: Path) -> None:
-    """Abort if any private artifact is present in the source tree."""
+    """Abort if unexpected private artifacts are present in the source tree."""
     errors: list[str] = []
 
     for search_root in (src_dir,):
         for name in FORBIDDEN_FILENAMES:
             for hit in search_root.rglob(name):
                 if any(part in IGNORED_DIRS for part in hit.parts):
+                    continue
+                if hit.resolve() in ALLOWED_LOCAL_PRIVATE_MANIFESTS:
                     continue
                 errors.append(f"forbidden private artifact in src: {hit.relative_to(REPO_ROOT)}")
 

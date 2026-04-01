@@ -31,12 +31,12 @@ _PINNED_ACTIONS = {
 _EXPECTED_RUNTIME_SOURCE_FILES = {
     "src/core/__init__.py",
     "src/core/kaggle/__init__.py",
+    "src/core/kaggle/audit.py",
     "src/core/kaggle/manifest.py",
     "src/core/kaggle/payload.py",
     "src/core/kaggle/runner.py",
     "src/core/private_split.py",
     "src/core/splits.py",
-    "src/frozen_splits/dev.json",
     "src/frozen_splits/public_leaderboard.json",
     "src/tasks/__init__.py",
     "src/tasks/ruleshift_benchmark/__init__.py",
@@ -127,7 +127,6 @@ def test_runtime_dataset_build_output_is_exact_and_public(runtime_package: Path)
     } == _EXPECTED_RUNTIME_SOURCE_FILES
     assert (runtime_package / "packaging" / "kaggle" / "frozen_artifacts_manifest.json").is_file()
     assert {p.name for p in (runtime_package / "src" / "frozen_splits").iterdir()} == {
-        "dev.json",
         "public_leaderboard.json",
     }
     assert "__pycache__" not in {part for path in runtime_package.rglob("*") for part in path.parts}

@@ -17,15 +17,17 @@ from core.private_split import (
 from core.splits import generate_frozen_split, load_frozen_split, load_split_manifest
 from tasks.ruleshift_benchmark.protocol import InteractionLabel, Split
 
+_EXPECTED_PRIVATE_EPISODE_COUNT = 270
+
 
 def test_load_private_split_returns_episodes(mounted_private_dataset_root: Path):
     records = load_private_split(mounted_private_dataset_root)
-    assert len(records) == 16
+    assert len(records) == _EXPECTED_PRIVATE_EPISODE_COUNT
 
 
 def test_load_private_split_uses_mounted_environment_dataset():
     records = load_private_split()
-    assert len(records) == 16
+    assert len(records) == _EXPECTED_PRIVATE_EPISODE_COUNT
 
 
 def test_load_private_split_partition_label(mounted_private_dataset_root: Path):
@@ -84,7 +86,7 @@ def test_private_fixture_payload_uses_current_schema_version(mounted_private_dat
     assert payload["schema_version"] == PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION
     assert payload["artifact_checksum"]
     assert payload["episode_split"] == "private"
-    assert len(payload["episodes"]) == 16
+    assert len(payload["episodes"]) == _EXPECTED_PRIVATE_EPISODE_COUNT
 
 
 def test_load_private_split_missing_explicit_root_raises():
@@ -125,7 +127,7 @@ def test_load_private_split_wrong_partition_raises(mounted_private_dataset_root:
     data = json.loads(
         (mounted_private_dataset_root / PRIVATE_EPISODES_FILENAME).read_text(encoding="utf-8")
     )
-    data["partition"] = "dev"
+    data["partition"] = "unexpected_partition"
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_path = Path(tmpdir) / PRIVATE_EPISODES_FILENAME
         bad_path.write_text(json.dumps(data), encoding="utf-8")
