@@ -29,7 +29,20 @@ def _read_notebook_sources() -> str:
     return "\n".join("".join(cell.get("source", ())) for cell in notebook["cells"])
 
 
-def _execute_notebook_cells() -> dict:
+def _read_code_cell(cell_id: str) -> dict:
+    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
+    return next(cell for cell in notebook["cells"] if cell.get("cell_type") == "code" and cell.get("id") == cell_id)
+
+
+def _execute_code_cell(ns: dict, cell_id: str) -> None:
+    cell = _read_code_cell(cell_id)
+    source = "".join(cell.get("source", ()))
+    filtered = "\n".join(line for line in source.splitlines() if not line.strip().startswith("%"))
+    if filtered.strip():
+        exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
+
+
+def _execute_notebook_cells(*, stop_before_cell_id: str | None = None) -> dict:
     cells = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))["cells"]
     ns: dict = {
         "__builtins__": __import__("builtins"),
@@ -37,10 +50,9 @@ def _execute_notebook_cells() -> dict:
     for cell in cells:
         if cell.get("cell_type") != "code":
             continue
-        source = "".join(cell.get("source", ()))
-        filtered = "\n".join(line for line in source.splitlines() if not line.strip().startswith("%"))
-        if filtered.strip():
-            exec(compile(filtered, f"<{cell['id']}>", "exec"), ns)  # noqa: S102
+        if stop_before_cell_id is not None and cell.get("id") == stop_before_cell_id:
+            break
+        _execute_code_cell(ns, cell["id"])
     return ns
 
 
@@ -94,14 +106,20 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert 'name="ruleshift_benchmark_v1_binary_row"' in source
     assert "store_task=False" in source
     assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in source
-    assert "def ruleshift_benchmark_v1_binary(llm) -> dict:" in source
+    assert "def ruleshift_benchmark_v1_binary(llm) -> tuple[int, int]:" in source
     assert "load_leaderboard_dataframe" in source
     assert "run_binary_task" in source
     assert "_ruleshift_benchmark_v1_binary_row.evaluate(" in source
     assert "eval_df = leaderboard_df" in source
     assert "_RULESHIFT_BINARY_DF = None" in source
-    assert "global _RULESHIFT_BINARY_DF" in source
+    assert "_RULESHIFT_PAYLOAD = None" in source
+    assert "global _RULESHIFT_BINARY_DF, _RULESHIFT_PAYLOAD" in source
     assert "_RULESHIFT_BINARY_DF = binary_df" in source
+    assert "_RULESHIFT_PAYLOAD = payload" in source
+    assert 'return (payload["numerator"], payload["denominator"])' in source
+    assert "score = ruleshift_benchmark_v1_binary(kbench.llm)" in source
+    assert "payload = _RULESHIFT_PAYLOAD" in source
+    assert 'raise RuntimeError("ruleshift_benchmark_v1_binary did not populate _RULESHIFT_PAYLOAD")' in source
     assert "%choose ruleshift_benchmark_v1_binary" in source
     assert "pd.DataFrame(" in source
     assert ".set_index(\"Field\")" in source
@@ -131,6 +149,9 @@ def test_notebook_executes_end_to_end_with_private_mount():
         "private_leaderboard",
     }
 
+    assert ns["score"] == (ns["payload"]["numerator"], ns["payload"]["denominator"])
+    assert ns["ruleshift_benchmark_v1_binary"].last_result == ns["score"]
+    assert ns["_RULESHIFT_PAYLOAD"] == ns["payload"]
     validate_kaggle_payload(ns["payload"])
     assert set(ns["payload"]) == {
         "score",
@@ -162,9 +183,9 @@ def test_notebook_executes_end_to_end_with_private_mount():
     assert task_artifact["task_name"] == "ruleshift_benchmark_v1_binary"
     assert task_artifact["artifact_scope"] == "intermediate"
     assert run_artifact["task_name"] == "ruleshift_benchmark_v1_binary"
-    assert run_artifact["run_type"] == "dataset_evaluation"
-    assert run_artifact["result"] == ns["payload"]
-    assert run_artifact["total_episodes"] == len(ns["leaderboard_df"])
+    assert run_artifact["run_type"] == "single_invocation"
+    assert run_artifact["result"] == list(ns["score"])
+    assert "total_episodes" not in run_artifact
 
 
 def test_choose_publishes_only_aggregate_artifacts():
@@ -172,7 +193,7 @@ def test_choose_publishes_only_aggregate_artifacts():
 
     published_payload = _execute_choose_magic()
 
-    assert published_payload == ns["payload"]
+    assert published_payload == ns["score"]
     artifact_paths = [path.name for path in kbench.list_artifacts()]
     assert artifact_paths == [
         "published.run.json",
@@ -187,13 +208,10 @@ def test_choose_publishes_only_aggregate_artifacts():
     assert published_task["artifact_scope"] == "published"
     assert published_run["task_name"] == "ruleshift_benchmark_v1_binary"
     assert published_run["artifact_scope"] == "published"
-    assert published_run["run_type"] == "dataset_evaluation"
-    assert published_run["result"] == ns["payload"]
-    assert published_run["result"]["total_episodes"] == len(ns["leaderboard_df"])
-    assert published_run["result"]["split"] == "frozen_leaderboard"
+    assert published_run["run_type"] == "single_invocation"
+    assert published_run["result"] == list(ns["score"])
     assert "row" not in published_task["task_name"]
-    assert "conversations" not in published_run["result"]
-    assert "results" not in published_run["result"]
+    assert ns["_RULESHIFT_PAYLOAD"] == ns["payload"]
 
 
 def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest.MonkeyPatch):
@@ -203,8 +221,17 @@ def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest
     assert ns["PRIVATE_DATASET_ROOT"] is None
     assert set(ns["frozen_splits"]) == {"public_leaderboard"}
     assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
+    assert ns["score"] == (ns["payload"]["numerator"], ns["payload"]["denominator"])
     assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
     assert ns["payload"]["split"] == "public_leaderboard"
+
+
+def test_payload_cell_fails_clearly_when_internal_payload_is_missing():
+    ns = _execute_notebook_cells(stop_before_cell_id="cell-payload")
+    ns["ruleshift_benchmark_v1_binary"].fn = lambda llm: (1, 2)
+
+    with pytest.raises(RuntimeError, match="did not populate _RULESHIFT_PAYLOAD"):
+        _execute_code_cell(ns, "cell-payload")
 
 
 def test_last_code_cell_selects_binary_task():
