@@ -32,7 +32,7 @@ Notebook entry point:
 
 - File: `packaging/kaggle/ruleshift_notebook_task.ipynb`
 - Current file hash: `aa84a4f7b0d5238f6c280514461868e8066d243c3f0fea875ea219ad07b476fb`
-- Kaggle kernel metadata points at `raptorengineer/ruleshift-notebook`
+- Kaggle kernel metadata points at `raptorengineer/ruleshift-notebook-test`
 - Runtime dataset source is `raptorengineer/ruleshift-runtime`
 - Notebook bootstrap expects runtime code at `/kaggle/input/datasets/raptorengineer/ruleshift-runtime/src`
 
@@ -70,9 +70,9 @@ Current Kaggle packaging files:
 
 Current checked hashes:
 
-- `packaging/kaggle/ruleshift_notebook_task.ipynb`: `bbcb0511399e68969216033fef570dba4683821afde675ec52a7bb8a0b3f3fec`
+- `packaging/kaggle/ruleshift_notebook_task.ipynb`: `28306e47e6e713c6e00178208bedd93f131d523298ce8bdbfbe61570ad341d07`
 - `packaging/kaggle/dataset-metadata.json`: dataset id `raptorengineer/ruleshift-runtime`
-- `packaging/kaggle/kernel-metadata.json`: `6432ccb5e3485bc3ab51a12f2348a86b9a40f191ce536fe44319525c9ee721da`
+- `packaging/kaggle/kernel-metadata.json`: `9c0fcb6443d746972ef0d6f3cb8d0c9259a0fd0f8077092bae343e115dd52290`
 - `packaging/kaggle/frozen_artifacts_manifest.json`: public-only staging manifest for `public_leaderboard`
 - `src/frozen_splits/public_leaderboard.json`: `685ae14767d9a0e6dafb24ca4bcfcd332469a8286402d7e8bd2ac9c68508df4a`
 

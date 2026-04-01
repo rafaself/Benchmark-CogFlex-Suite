@@ -52,7 +52,7 @@ Verify these stay aligned:
 Current public release identifiers:
 
 - dataset id: `raptorengineer/ruleshift-runtime`
-- notebook id: `raptorengineer/ruleshift-notebook`
+- notebook id: `raptorengineer/ruleshift-notebook-test`
 - public seed bank version: `R14-public-5`
 - benchmark manifest version: `R14`
 
