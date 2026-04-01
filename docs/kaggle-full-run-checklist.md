@@ -1,6 +1,6 @@
 # Kaggle Full Run Checklist
 
-Use this checklist for the hosted Kaggle run after local validation passes.
+Use this checklist for the hosted Kaggle run after local validation passes. For the local release gate and version-alignment checklist, see [docs/kaggle-release-preflight.md](docs/kaggle-release-preflight.md).
 
 ## Before the run
 
@@ -25,12 +25,19 @@ python3 scripts/build_runtime_dataset_package.py --output-dir /tmp/ruleshift-run
 python3 scripts/build_kernel_package.py --output-dir /tmp/ruleshift-kernel-bundle
 ```
 
+Confirm the intended datasource mode:
+
+- public Kaggle release path uses only `raptorengineer/ruleshift-runtime`
+- public audit surface is `54` episodes
+- private holdout remains hidden and attached separately only for authorized private runs
+
 ## In Kaggle
 
 1. Publish the runtime dataset artifact you intend to use.
 2. Publish or update the notebook bundle built from the same repo state.
-3. Open the notebook and verify the attached dataset matches the intended runtime dataset version.
-4. Run the notebook normally. Do not enable any extra debug or smoke settings.
+3. Open the notebook and verify the attached public dataset matches the intended runtime dataset version.
+4. Confirm the notebook shows the audit tables for catalog, balance, and failures.
+5. Run the notebook normally. Do not enable any extra debug or smoke settings.
 
 ## Evidence to capture
 
@@ -48,10 +55,15 @@ Capture these items from the hosted run:
   - `benchmark_version`
   - `split`
   - `manifest_version`
+- visible audit tables for:
+  - episode catalog
+  - balance
+  - failures
 
 ## Success signals
 
 - the notebook completes end-to-end without setup/runtime exceptions
+- the notebook still has exactly one published leaderboard task
 - the final payload matches the canonical contract exactly
 - `total_episodes` matches the intended evaluation scope
 - runtime/latency looks materially larger than the local stub path and plausible for real model inference

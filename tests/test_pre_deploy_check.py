@@ -30,8 +30,10 @@ def test_pre_deploy_check_runs_successfully(tmp_path: Path):
 
     assert result.returncode == 0, result.stderr or result.stdout
     assert "[gate] phase-1 environment sanity: ok" in result.stdout
-    assert "[gate] phase-2 preflight: ok" in result.stdout
-    assert "[gate] phase-3 targeted schema/runtime tests: ok" in result.stdout
-    assert "[gate] runtime dataset artifact consistency: ok" in result.stdout
-    assert "[gate] kernel bundle consistency: ok" in result.stdout
+    assert "[gate] phase-2 staging manifest validation: ok" in result.stdout
+    assert "[gate] phase-3 preflight: ok" in result.stdout
+    assert "[gate] phase-4 runtime contract tests: ok" in result.stdout
+    assert "[gate] phase-5 notebook and packaging tests: ok" in result.stdout
+    assert "[gate] phase-6 runtime dataset artifact consistency: ok" in result.stdout
+    assert "[gate] phase-7 kernel bundle consistency: ok" in result.stdout
     assert "=== Pre-deploy gate passed ===" in result.stdout

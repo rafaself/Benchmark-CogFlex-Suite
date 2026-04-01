@@ -6,7 +6,7 @@ RuleShift Benchmark is a narrow Executive Functions benchmark for cognitive flex
 
 - `src/tasks/ruleshift_benchmark/`: benchmark rules, schema, generation, rendering, and protocol definitions.
 - `src/core/`: Kaggle runtime helpers plus public/private frozen split loading.
-- `src/frozen_splits/`: public frozen manifests for `dev` and `public_leaderboard`.
+- `src/frozen_splits/`: public frozen manifest for `public_leaderboard`.
 - `packaging/kaggle/`: official notebook, runtime metadata, and the public packaging manifest.
 - `.github/workflows/`: the two official Kaggle deploy workflows.
 - `scripts/`: the public build scripts and shared packaging helpers for the runtime dataset and notebook bundle.
@@ -31,7 +31,7 @@ The public runtime dataset package includes only:
 - `src/core/splits.py`
 - `src/core/private_split.py`
 - `src/tasks/ruleshift_benchmark/{generator.py,protocol.py,render.py,rules.py,schema.py}`
-- `src/frozen_splits/{dev.json,public_leaderboard.json}`
+- `src/frozen_splits/public_leaderboard.json`
 
 Within `src/core/kaggle/`, the official release path is limited to:
 
@@ -46,7 +46,6 @@ The repo keeps exactly two deploy workflows:
 
 The checked-in public split manifests are:
 
-- `src/frozen_splits/dev.json`
 - `src/frozen_splits/public_leaderboard.json`
 
 ## Quick Start
@@ -80,7 +79,9 @@ Run the pre-deploy gate before any Kaggle packaging or publish action:
 ./scripts/pre_deploy_check.sh
 ```
 
-The gate checks the local environment, runs the preflight path and targeted schema/runtime regression tests, and rebuilds the public Kaggle artifacts to catch manifest/metadata drift before release.
+The gate checks the local environment, validates the staging manifest, runs the preflight path, exercises runtime and notebook/packaging regression tests, and rebuilds the public Kaggle artifacts to catch manifest or metadata drift before release.
+
+For the full local release checklist, datasource assumptions, and version-alignment rules, see [docs/kaggle-release-preflight.md](docs/kaggle-release-preflight.md).
 
 ## Build Outputs
 
@@ -109,13 +110,23 @@ For the hosted Kaggle full-run checklist and post-run evidence capture, see [doc
 
 ## Private Evaluation Mount
 
-The notebook can optionally load a mounted private dataset for `private_leaderboard`. The public repository does not generate or package that artifact; it only discovers and reads an attached `private_episodes.json`.
+The notebook can optionally load a mounted private dataset for `private_leaderboard`. The public runtime package never includes that artifact; it only discovers and reads an attached `private_episodes.json`.
+
+The current operational private freeze is `270` episodes, keeping the intended `5:1` ratio relative to `public_leaderboard = 54`.
+
+Build a local private attachment from the ignored private manifest:
+
+```bash
+python3 scripts/build_private_dataset_artifact.py --output-dir /tmp/ruleshift-private-dataset
+```
 
 To attach a local private dataset mount:
 
 ```bash
-export RULESHIFT_PRIVATE_DATASET_ROOT=/path/to/private-dataset
+export RULESHIFT_PRIVATE_DATASET_ROOT=/tmp/ruleshift-private-dataset
 ```
+
+For the operational attachment note, see [docs/private-dataset-attachment.md](docs/private-dataset-attachment.md).
 
 ## Packaging Files
 

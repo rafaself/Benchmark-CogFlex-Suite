@@ -81,7 +81,7 @@ def test_readme_describes_runtime_surface_without_maintainer_or_benchmark_card_w
 
     assert "scripts/build_runtime_dataset_package.py" in readme_text
     assert "scripts/build_kernel_package.py" in readme_text
-    assert "src/frozen_splits/dev.json" in readme_text
+    assert "scripts/build_private_dataset_artifact.py" in readme_text
     assert "src/frozen_splits/public_leaderboard.json" in readme_text
     assert "packaging/kaggle/BENCHMARK_CARD.md" not in readme_text
     assert "tools/maintainer" not in readme_text
@@ -98,6 +98,9 @@ def test_notebook_imports_runtime_helpers_only():
 
     assert "from core.kaggle import (" in sources
     assert "load_leaderboard_dataframe" in sources
+    assert "build_audit_catalog" in sources
+    assert "build_audit_balance" in sources
+    assert "build_audit_failures" in sources
     assert "run_binary_task" in sources
     assert "build_kaggle_payload" in sources
     assert "pd.DataFrame(" in sources
