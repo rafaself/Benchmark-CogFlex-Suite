@@ -96,7 +96,9 @@ def test_readme_describes_runtime_surface_without_maintainer_or_benchmark_card_w
 def test_notebook_imports_runtime_helpers_only():
     sources = _read_notebook_sources()
 
-    assert "from core.kaggle import (" in sources
+    assert "from core.kaggle.audit import build_audit_balance, build_audit_catalog, build_audit_failures" in sources
+    assert "from core.kaggle.payload import build_kaggle_payload, normalize_count_result_df, validate_kaggle_payload" in sources
+    assert "from core.kaggle.runner import load_leaderboard_dataframe, run_binary_task" in sources
     assert "load_leaderboard_dataframe" in sources
     assert "build_audit_catalog" in sources
     assert "build_audit_balance" in sources

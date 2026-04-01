@@ -70,7 +70,7 @@ Current Kaggle packaging files:
 
 Current checked hashes:
 
-- `packaging/kaggle/ruleshift_notebook_task.ipynb`: `28306e47e6e713c6e00178208bedd93f131d523298ce8bdbfbe61570ad341d07`
+- `packaging/kaggle/ruleshift_notebook_task.ipynb`: `91d67c241bc4f5b702bdc5184df38c6e4045f44d6f955bbf8c03fa3bd2286c65`
 - `packaging/kaggle/dataset-metadata.json`: dataset id `raptorengineer/ruleshift-runtime`
 - `packaging/kaggle/kernel-metadata.json`: `9c0fcb6443d746972ef0d6f3cb8d0c9259a0fd0f8077092bae343e115dd52290`
 - `packaging/kaggle/frozen_artifacts_manifest.json`: public-only staging manifest for `public_leaderboard`
