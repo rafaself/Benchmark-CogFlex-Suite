@@ -1,6 +1,6 @@
 # RuleShift Benchmark
 
-RuleShift Benchmark is a narrow Executive Functions benchmark for cognitive flexibility. The public repository is trimmed to the maintained Kaggle release path only: the official notebook, the official binary task, the official payload, frozen split loading, packaging, and deploy workflows.
+RuleShift Benchmark is a narrow Executive Functions benchmark for cognitive flexibility. The public repository is trimmed to the maintained Kaggle release path only: the official notebook, the official binary task, the official payload, frozen split loading, packaging, and local deploy entrypoint.
 
 ## Runtime Surface
 
@@ -8,8 +8,7 @@ RuleShift Benchmark is a narrow Executive Functions benchmark for cognitive flex
 - `src/core/`: Kaggle runtime helpers plus public/private frozen split loading.
 - `src/frozen_splits/`: public frozen manifest for `public_leaderboard`.
 - `packaging/kaggle/`: official notebook, runtime metadata, and the public packaging manifest.
-- `.github/workflows/`: the two official Kaggle deploy workflows.
-- `scripts/`: the public build scripts and shared packaging helpers for the runtime dataset and notebook bundle.
+- `scripts/`: the public build scripts, local deploy entrypoint, and shared packaging helpers for the runtime dataset and notebook bundle.
 
 ## Official Kaggle Contract
 
@@ -39,10 +38,9 @@ Within `src/core/kaggle/`, the official release path is limited to:
 - `payload.py`
 - `manifest.py`
 
-The repo keeps exactly two deploy workflows:
+The repo keeps exactly one official local deploy entrypoint:
 
-- `.github/workflows/deploy-kaggle-dataset.yml`
-- `.github/workflows/deploy-kaggle-notebook.yml`
+- `python -m scripts.deploy`
 
 The checked-in public split manifests are:
 
@@ -62,24 +60,23 @@ python3 -m pip install -e .
 Run the release-path validation tests:
 
 ```bash
-python3 -m pytest tests/test_packaging.py -v
-python3 -m pytest tests/test_cd_build.py -v
 python3 -m pytest tests/test_kbench_notebook.py -v
 python3 -m pytest tests/test_kaggle_execution.py -v
 python3 -m pytest tests/test_kaggle_payload.py -v
-python3 -m pytest tests/test_run_manifest.py -v
+python3 -m pytest tests/test_kaggle_audit.py -v
+python3 -m pytest tests/test_public_split.py -v
 python3 -m pytest tests/test_private_split.py -v
 ```
 
 ## Pre-publish Checks
 
-Run the pre-deploy gate before any Kaggle packaging or publish action:
+Run the full local deploy flow without publishing:
 
 ```bash
-./scripts/pre_deploy_check.sh
+python -m scripts.deploy --skip-publish
 ```
 
-The gate checks the local environment, validates the staging manifest, runs the preflight path, exercises runtime and notebook/packaging regression tests, and rebuilds the public Kaggle artifacts to catch manifest or metadata drift before release.
+This rebuilds the public Kaggle artifacts locally before publish.
 
 For the full local release checklist, datasource assumptions, and version-alignment rules, see [docs/kaggle-release-preflight.md](docs/kaggle-release-preflight.md).
 
@@ -101,12 +98,19 @@ python3 scripts/build_kernel_package.py --output-dir /tmp/ruleshift-kernel-bundl
 
 For the hosted Kaggle full-run checklist and post-run evidence capture, see [docs/kaggle-full-run-checklist.md](docs/kaggle-full-run-checklist.md).
 
-1. Run all local validation tests.
-2. Run `./scripts/pre_deploy_check.sh`.
-3. Build runtime dataset and notebook bundle.
-4. Publish the runtime dataset to Kaggle.
-5. Publish or update the notebook bundle.
-6. Run the notebook on Kaggle and capture evidence per the checklist.
+Deploy from the local machine with:
+
+```bash
+python -m scripts.deploy --release-message "your Kaggle dataset version note"
+```
+
+Optional wrapper:
+
+```bash
+make deploy ARGS='--release-message "your Kaggle dataset version note"'
+```
+
+The deploy entrypoint rebuilds the runtime dataset and notebook bundle from the same repo state, versions or creates the runtime dataset on Kaggle, and then pushes the notebook bundle.
 
 ## Private Evaluation Mount
 

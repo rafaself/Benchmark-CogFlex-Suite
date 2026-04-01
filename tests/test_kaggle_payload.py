@@ -6,23 +6,10 @@ from core.kaggle import (
     normalize_count_result_df,
     validate_kaggle_payload,
 )
-from core.kaggle.payload import compute_bootstrap_confidence_interval
 
 
 def _make_binary_df(rows: list[dict] | None = None) -> pd.DataFrame:
     return pd.DataFrame(rows or [{"num_correct": 3, "total": 4}] * 4)
-
-
-def test_compute_bootstrap_confidence_interval_is_deterministic_and_valid():
-    num_correct = [3, 4, 2, 4, 1] * 10
-    total = [4] * 50
-
-    left = compute_bootstrap_confidence_interval(num_correct, total, seed=2025)
-    right = compute_bootstrap_confidence_interval(num_correct, total, seed=2025)
-
-    assert left == right
-    assert left.lower <= left.mean <= left.upper
-    assert left.margin >= 0.0
 
 
 def test_normalize_count_result_df_supports_runtime_input_shapes():
@@ -53,6 +40,7 @@ def test_build_kaggle_payload_emits_canonical_contract():
         "split": "public_leaderboard",
         "manifest_version": "R14",
     }
+    assert payload["score"] == payload["numerator"] / payload["denominator"]
 
 
 def test_build_kaggle_payload_rejects_non_leaderboard_rows():

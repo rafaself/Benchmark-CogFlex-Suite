@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-import random
 from typing import TYPE_CHECKING, Any, Final, Sequence
 
 from core.splits import MANIFEST_VERSION
@@ -12,7 +10,6 @@ if TYPE_CHECKING:
 __all__ = [
     "REQUIRED_PAYLOAD_FIELDS",
     "build_kaggle_payload",
-    "compute_bootstrap_confidence_interval",
     "normalize_count_result_df",
     "validate_kaggle_payload",
 ]
@@ -28,15 +25,6 @@ REQUIRED_PAYLOAD_FIELDS: Final[frozenset[str]] = frozenset(
         "manifest_version",
     }
 )
-
-
-@dataclass(frozen=True, slots=True)
-class ConfidenceInterval:
-    mean: float
-    lower: float
-    upper: float
-    level: float
-    margin: float
 
 
 def validate_kaggle_payload(payload: dict[str, object]) -> None:
@@ -90,10 +78,10 @@ def build_kaggle_payload(binary_df: Any) -> dict[str, object]:
     numerator = int(binary_df["num_correct"].sum())
     denominator = int(binary_df["total"].sum())
     total_episodes = len(binary_df)
-    score = compute_bootstrap_confidence_interval(
+    score = _compute_score(
         binary_df["num_correct"].tolist(),
         binary_df["total"].tolist(),
-    ).mean
+    )
 
     return {
         "score": score,
@@ -146,52 +134,17 @@ def normalize_count_result_df(
     return out
 
 
-def compute_bootstrap_confidence_interval(
+def _compute_score(
     num_correct: Sequence[int],
     total: Sequence[int],
-    *,
-    level: float = 0.95,
-    n_bootstraps: int = 1000,
-    seed: int = 2025,
-) -> ConfidenceInterval:
+) -> float:
     if len(num_correct) != len(total):
         raise ValueError("num_correct and total must have the same length")
 
-    n = len(num_correct)
-    if n == 0:
-        return ConfidenceInterval(0.0, 0.0, 0.0, level, 0.0)
-
-    nc = list(num_correct)
-    tot = list(total)
-    grand_total_probes = sum(tot)
-    if grand_total_probes == 0:
-        return ConfidenceInterval(0.0, 0.0, 0.0, level, 0.0)
-
-    grand_mean = sum(nc) / grand_total_probes
-    rng = random.Random(seed)
-    indices = range(n)
-    means: list[float] = []
-
-    for _ in range(n_bootstraps):
-        sample_indices = rng.choices(indices, k=n)
-        sample_correct = sum(nc[i] for i in sample_indices)
-        sample_total = sum(tot[i] for i in sample_indices)
-        if sample_total > 0:
-            means.append(sample_correct / sample_total)
-
-    means.sort()
-    alpha = 1.0 - level
-    lower_idx = int((alpha / 2) * (len(means) - 1))
-    upper_idx = int((1 - alpha / 2) * (len(means) - 1))
-    lower = means[lower_idx]
-    upper = means[upper_idx]
-    return ConfidenceInterval(
-        mean=grand_mean,
-        lower=lower,
-        upper=upper,
-        level=level,
-        margin=max(grand_mean - lower, upper - grand_mean),
-    )
+    denominator = sum(total)
+    if denominator == 0:
+        return 0.0
+    return sum(num_correct) / denominator
 
 
 def _validate_leaderboard_rows(df: Any, label: str) -> None:

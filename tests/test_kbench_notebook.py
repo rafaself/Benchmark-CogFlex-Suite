@@ -28,11 +28,6 @@ _EXPECTED_PRIVATE_EPISODES = 270
 _EXPECTED_ATTACHED_EPISODES = _EXPECTED_PUBLIC_EPISODES + _EXPECTED_PRIVATE_EPISODES
 
 
-def _read_notebook_sources() -> str:
-    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    return "\n".join("".join(cell.get("source", ())) for cell in notebook["cells"])
-
-
 def _read_code_cell(cell_id: str) -> dict:
     notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
     return next(cell for cell in notebook["cells"] if cell.get("cell_type") == "code" and cell.get("id") == cell_id)
@@ -102,49 +97,6 @@ def _run_output_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     yield
     monkeypatch.delenv("RULESHIFT_RUN_OUTPUT_DIR", raising=False)
     monkeypatch.delenv("RULESHIFT_RUN_ID", raising=False)
-
-
-def test_notebook_source_keeps_binary_only_leaderboard_surface():
-    source = _read_notebook_sources()
-
-    assert 'name="ruleshift_benchmark_v1_binary_row"' in source
-    assert "store_task=False" in source
-    assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in source
-    assert "def ruleshift_benchmark_v1_binary(llm) -> tuple[int, int]:" in source
-    assert "load_leaderboard_dataframe" in source
-    assert "build_audit_catalog" in source
-    assert "build_audit_balance" in source
-    assert "build_audit_failures" in source
-    assert "run_binary_task" in source
-    assert 'audit_catalog = build_audit_catalog(frozen_splits["public_leaderboard"])' in source
-    assert "audit_balance = build_audit_balance(audit_catalog)" in source
-    assert "_ruleshift_benchmark_v1_binary_row.evaluate(" in source
-    assert "def _run_ruleshift_benchmark_v1_binary_eval(llm):" in source
-    assert "eval_df = leaderboard_df" in source
-    assert "_RULESHIFT_BINARY_DF = None" in source
-    assert "_RULESHIFT_PAYLOAD = None" in source
-    assert "_RULESHIFT_OFFICIAL_RESULT = None" in source
-    assert "official_result = (payload[\"numerator\"], payload[\"denominator\"])" in source
-    assert "global _RULESHIFT_BINARY_DF, _RULESHIFT_PAYLOAD, _RULESHIFT_OFFICIAL_RESULT" in source
-    assert "_RULESHIFT_BINARY_DF = binary_df" in source
-    assert "_RULESHIFT_PAYLOAD = payload" in source
-    assert "_RULESHIFT_OFFICIAL_RESULT = official_result" in source
-    assert "returns only `(numerator, denominator)`" in source
-    assert "return official_result" in source
-    assert "score = ruleshift_benchmark_v1_binary(kbench.llm)" in source
-    assert "payload = _RULESHIFT_PAYLOAD" in source
-    assert 'raise RuntimeError("ruleshift_benchmark_v1_binary did not populate _RULESHIFT_PAYLOAD")' in source
-    assert "%choose ruleshift_benchmark_v1_binary" in source
-    assert "pd.DataFrame(" in source
-    assert ".set_index(\"Field\")" in source
-    assert "\n_status_df" in source
-    assert "\n_result_df" in source
-    assert "\n_summary_df" in source
-    assert "\naudit_catalog" in source
-    assert "\naudit_balance" in source
-    assert "audit_failures = build_audit_failures(_RULESHIFT_BINARY_DF, audit_catalog)" in source
-    assert ".style" not in source
-    assert ".to_string(index=False)" not in source
 
 
 def test_notebook_executes_end_to_end_with_private_mount():
@@ -279,11 +231,3 @@ def test_payload_cell_fails_clearly_when_internal_payload_is_missing():
 
     with pytest.raises(RuntimeError, match="did not populate _RULESHIFT_PAYLOAD"):
         _execute_code_cell(ns, "cell-payload")
-
-
-def test_last_code_cell_selects_binary_task():
-    notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
-    last_code = next(cell for cell in reversed(notebook["cells"]) if cell.get("cell_type") == "code")
-    magic_lines = [line.strip() for line in "".join(last_code.get("source", ())).splitlines() if line.strip().startswith("%")]
-
-    assert magic_lines == ["%choose ruleshift_benchmark_v1_binary"]

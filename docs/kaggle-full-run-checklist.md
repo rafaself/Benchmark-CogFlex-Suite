@@ -1,13 +1,13 @@
 # Kaggle Full Run Checklist
 
-Use this checklist for the hosted Kaggle run after local validation passes. For the local release gate and version-alignment checklist, see [docs/kaggle-release-preflight.md](docs/kaggle-release-preflight.md).
+Use this checklist for the hosted Kaggle run after local validation passes. For the local release validation and version-alignment checklist, see [docs/kaggle-release-preflight.md](docs/kaggle-release-preflight.md).
 
 ## Before the run
 
-Run the pre-deploy gate:
+Rebuild the release artifacts you intend to publish:
 
 ```bash
-./scripts/pre_deploy_check.sh
+python -m scripts.deploy --skip-publish
 ```
 
 Confirm the notebook is on the normal path:
@@ -17,13 +17,6 @@ Confirm the notebook is on the normal path:
 - no temporary smoke toggles enabled
 - final task cell still runs `payload = ruleshift_benchmark_v1_binary(kbench.llm)`
 - final selection cell still uses `%choose ruleshift_benchmark_v1_binary`
-
-Rebuild the release artifacts you intend to publish:
-
-```bash
-python3 scripts/build_runtime_dataset_package.py --output-dir /tmp/ruleshift-runtime-package
-python3 scripts/build_kernel_package.py --output-dir /tmp/ruleshift-kernel-bundle
-```
 
 Confirm the intended datasource mode:
 

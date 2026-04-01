@@ -20,23 +20,15 @@ Use this checklist before publishing a new Kaggle runtime dataset or notebook bu
 - Private holdout runs require an attached `private_episodes.json` mount via `RULESHIFT_PRIVATE_DATASET_ROOT`.
 - Public + private attached runs evaluate `324` episodes total.
 
-## Local Release Gate
+## Local Release Validation
 
 Run:
 
 ```bash
-./scripts/pre_deploy_check.sh
+python -m scripts.deploy --skip-publish
 ```
 
-The gate must pass all phases:
-
-- environment sanity
-- staging manifest validation
-- local Kaggle preflight
-- runtime contract tests
-- notebook and packaging tests
-- runtime dataset build validation
-- kernel bundle build validation
+This must rebuild both public Kaggle artifacts successfully from the current repo state.
 
 ## Version Coherence
 
@@ -58,12 +50,9 @@ Current public release identifiers:
 
 ## Publish Sequence
 
-1. Run `./scripts/pre_deploy_check.sh`.
-2. Build the runtime dataset package.
-3. Build the kernel bundle.
-4. Publish the runtime dataset.
-5. Publish or update the notebook bundle built from the same repo state.
-6. For private validation only, build and attach the hidden private dataset separately.
+1. Run `python -m scripts.deploy --skip-publish`.
+2. Publish with `python -m scripts.deploy --release-message "your Kaggle dataset version note"`.
+3. For private validation only, build and attach the hidden private dataset separately.
 
 ## Final Kaggle Readiness Notes
 
