@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from core.kaggle.audit import (
+    build_audit_balance,
+    build_audit_catalog,
+    build_audit_failures,
+)
 from core.kaggle.payload import (
     build_kaggle_payload,
     normalize_count_result_df,
@@ -12,6 +17,9 @@ from core.kaggle.runner import (
 )
 
 __all__ = [
+    "build_audit_balance",
+    "build_audit_catalog",
+    "build_audit_failures",
     "build_kaggle_payload",
     "KaggleExecutionError",
     "load_leaderboard_dataframe",

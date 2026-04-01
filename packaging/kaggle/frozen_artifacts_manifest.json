@@ -9,7 +9,7 @@
   "entry_points": {
     "kbench_notebook": {
       "path": "packaging/kaggle/ruleshift_notebook_task.ipynb",
-      "sha256": "aa84a4f7b0d5238f6c280514461868e8066d243c3f0fea875ea219ad07b476fb"
+      "sha256": "bbcb0511399e68969216033fef570dba4683821afde675ec52a7bb8a0b3f3fec"
     },
     "kernel_metadata": {
       "path": "packaging/kaggle/kernel-metadata.json",
@@ -17,18 +17,11 @@
     }
   },
   "frozen_split_manifests": {
-    "dev": {
-      "path": "src/frozen_splits/dev.json",
-      "sha256": "0c151ef40c3802383ff68557127483678dacf26b5691c0eb1405e702cd267534",
-      "manifest_version": "R14",
-      "seed_bank_version": "R14-dev-4",
-      "episode_split": "dev"
-    },
     "public_leaderboard": {
       "path": "src/frozen_splits/public_leaderboard.json",
-      "sha256": "ca8252062533061f23db3ed07b0e2854586fd221a559c20a930a8734b39b4792",
+      "sha256": "685ae14767d9a0e6dafb24ca4bcfcd332469a8286402d7e8bd2ac9c68508df4a",
       "manifest_version": "R14",
-      "seed_bank_version": "R14-public-4",
+      "seed_bank_version": "R14-public-5",
       "episode_split": "public"
     }
   }

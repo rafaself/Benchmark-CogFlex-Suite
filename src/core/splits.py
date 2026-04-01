@@ -27,12 +27,10 @@ __all__ = [
 ]
 
 PARTITIONS: Final[tuple[str, ...]] = (
-    "dev",
     "public_leaderboard",
     "private_leaderboard",
 )
 PUBLIC_PARTITIONS: Final[tuple[str, ...]] = (
-    "dev",
     "public_leaderboard",
 )
 MANIFEST_VERSION: Final[str] = "R14"
@@ -49,7 +47,6 @@ _MANIFEST_FIELD_ORDER: Final[tuple[str, ...]] = (
 )
 _DEFAULT_MANIFEST_DIR: Final[Path] = Path(__file__).resolve().parents[1] / "frozen_splits"
 _PARTITION_TO_EPISODE_SPLIT: Final[dict[str, Split]] = {
-    "dev": Split.DEV,
     "public_leaderboard": Split.PUBLIC,
     "private_leaderboard": Split.PRIVATE,
 }

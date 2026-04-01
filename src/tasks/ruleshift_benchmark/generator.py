@@ -183,7 +183,7 @@ def _target_transition_for_seed(seed: int) -> Transition:
 
 def generate_episode(
     seed: int,
-    split: Split | str = Split.DEV,
+    split: Split | str = Split.PUBLIC,
     *,
     max_attempts: int = DEFAULT_GENERATION_MAX_ATTEMPTS,
 ) -> Episode:

@@ -122,7 +122,6 @@ class Transition(StrEnum):
 
 
 class Split(StrEnum):
-    DEV = "dev"
     PUBLIC = "public"
     PRIVATE = "private"
 

@@ -23,6 +23,10 @@ import tests.kbench_shim as _shim  # noqa: E402
 sys.modules["kaggle_benchmarks"] = _shim  # type: ignore[assignment]
 import kaggle_benchmarks as kbench  # noqa: E402
 
+_EXPECTED_PUBLIC_EPISODES = 54
+_EXPECTED_PRIVATE_EPISODES = 270
+_EXPECTED_ATTACHED_EPISODES = _EXPECTED_PUBLIC_EPISODES + _EXPECTED_PRIVATE_EPISODES
+
 
 def _read_notebook_sources() -> str:
     notebook = json.loads(_NOTEBOOK_PATH.read_text(encoding="utf-8"))
@@ -108,15 +112,25 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert '@kbench.task(\n    name="ruleshift_benchmark_v1_binary"' in source
     assert "def ruleshift_benchmark_v1_binary(llm) -> tuple[int, int]:" in source
     assert "load_leaderboard_dataframe" in source
+    assert "build_audit_catalog" in source
+    assert "build_audit_balance" in source
+    assert "build_audit_failures" in source
     assert "run_binary_task" in source
+    assert 'audit_catalog = build_audit_catalog(frozen_splits["public_leaderboard"])' in source
+    assert "audit_balance = build_audit_balance(audit_catalog)" in source
     assert "_ruleshift_benchmark_v1_binary_row.evaluate(" in source
+    assert "def _run_ruleshift_benchmark_v1_binary_eval(llm):" in source
     assert "eval_df = leaderboard_df" in source
     assert "_RULESHIFT_BINARY_DF = None" in source
     assert "_RULESHIFT_PAYLOAD = None" in source
-    assert "global _RULESHIFT_BINARY_DF, _RULESHIFT_PAYLOAD" in source
+    assert "_RULESHIFT_OFFICIAL_RESULT = None" in source
+    assert "official_result = (payload[\"numerator\"], payload[\"denominator\"])" in source
+    assert "global _RULESHIFT_BINARY_DF, _RULESHIFT_PAYLOAD, _RULESHIFT_OFFICIAL_RESULT" in source
     assert "_RULESHIFT_BINARY_DF = binary_df" in source
     assert "_RULESHIFT_PAYLOAD = payload" in source
-    assert 'return (payload["numerator"], payload["denominator"])' in source
+    assert "_RULESHIFT_OFFICIAL_RESULT = official_result" in source
+    assert "returns only `(numerator, denominator)`" in source
+    assert "return official_result" in source
     assert "score = ruleshift_benchmark_v1_binary(kbench.llm)" in source
     assert "payload = _RULESHIFT_PAYLOAD" in source
     assert 'raise RuntimeError("ruleshift_benchmark_v1_binary did not populate _RULESHIFT_PAYLOAD")' in source
@@ -126,6 +140,9 @@ def test_notebook_source_keeps_binary_only_leaderboard_surface():
     assert "\n_status_df" in source
     assert "\n_result_df" in source
     assert "\n_summary_df" in source
+    assert "\naudit_catalog" in source
+    assert "\naudit_balance" in source
+    assert "audit_failures = build_audit_failures(_RULESHIFT_BINARY_DF, audit_catalog)" in source
     assert ".style" not in source
     assert ".to_string(index=False)" not in source
 
@@ -135,6 +152,9 @@ def test_notebook_executes_end_to_end_with_private_mount():
 
     assert set(ns["frozen_splits"]) == {"public_leaderboard", "private_leaderboard"}
     assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard", "private_leaderboard"}
+    assert len(ns["frozen_splits"]["public_leaderboard"]) == _EXPECTED_PUBLIC_EPISODES
+    assert len(ns["frozen_splits"]["private_leaderboard"]) == _EXPECTED_PRIVATE_EPISODES
+    assert len(ns["leaderboard_df"]) == _EXPECTED_ATTACHED_EPISODES
     assert str(ns["RUNTIME_SRC"]) in sys.path
 
     registry = kbench.get_registry()
@@ -152,6 +172,26 @@ def test_notebook_executes_end_to_end_with_private_mount():
     assert ns["score"] == (ns["payload"]["numerator"], ns["payload"]["denominator"])
     assert ns["ruleshift_benchmark_v1_binary"].last_result == ns["score"]
     assert ns["_RULESHIFT_PAYLOAD"] == ns["payload"]
+    assert ns["_RULESHIFT_OFFICIAL_RESULT"] == ns["score"]
+    assert len(ns["audit_catalog"]) == len(ns["frozen_splits"]["public_leaderboard"])
+    assert set(ns["audit_catalog"]["split"]) == {"public_leaderboard"}
+    assert set(ns["audit_balance"]["dimension"]) == {
+        "difficulty",
+        "transition",
+        "template_family",
+        "template_id",
+    }
+    assert list(ns["audit_failures"].columns) == [
+        "episode_id",
+        "split",
+        "difficulty",
+        "transition",
+        "template_family",
+        "template_id",
+        "num_correct",
+        "total",
+        "missed",
+    ]
     validate_kaggle_payload(ns["payload"])
     assert set(ns["payload"]) == {
         "score",
@@ -163,6 +203,7 @@ def test_notebook_executes_end_to_end_with_private_mount():
         "manifest_version",
     }
     assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
+    assert ns["payload"]["total_episodes"] == _EXPECTED_ATTACHED_EPISODES
     assert ns["payload"]["split"] == "frozen_leaderboard"
     assert ns["_RULESHIFT_BINARY_DF"] is not None
     assert len(ns["_RULESHIFT_BINARY_DF"]) == len(ns["leaderboard_df"])
@@ -212,6 +253,7 @@ def test_choose_publishes_only_aggregate_artifacts():
     assert published_run["result"] == list(ns["score"])
     assert "row" not in published_task["task_name"]
     assert ns["_RULESHIFT_PAYLOAD"] == ns["payload"]
+    assert ns["_RULESHIFT_OFFICIAL_RESULT"] == ns["score"]
 
 
 def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest.MonkeyPatch):
@@ -221,7 +263,12 @@ def test_notebook_executes_public_only_without_private_mount(monkeypatch: pytest
     assert ns["PRIVATE_DATASET_ROOT"] is None
     assert set(ns["frozen_splits"]) == {"public_leaderboard"}
     assert set(ns["leaderboard_df"]["split"]) == {"public_leaderboard"}
+    assert len(ns["frozen_splits"]["public_leaderboard"]) == _EXPECTED_PUBLIC_EPISODES
+    assert len(ns["leaderboard_df"]) == _EXPECTED_PUBLIC_EPISODES
     assert ns["score"] == (ns["payload"]["numerator"], ns["payload"]["denominator"])
+    assert ns["_RULESHIFT_OFFICIAL_RESULT"] == ns["score"]
+    assert len(ns["audit_catalog"]) == _EXPECTED_PUBLIC_EPISODES
+    assert set(ns["audit_catalog"]["split"]) == {"public_leaderboard"}
     assert ns["payload"]["total_episodes"] == len(ns["leaderboard_df"])
     assert ns["payload"]["split"] == "public_leaderboard"
 

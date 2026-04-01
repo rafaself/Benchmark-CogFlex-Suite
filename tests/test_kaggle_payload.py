@@ -55,9 +55,11 @@ def test_build_kaggle_payload_emits_canonical_contract():
     }
 
 
-def test_build_kaggle_payload_rejects_dev_rows():
-    with pytest.raises(ValueError, match="dev row"):
-        build_kaggle_payload(_make_binary_df([{"num_correct": 3, "total": 4, "split": "dev"}]))
+def test_build_kaggle_payload_rejects_non_leaderboard_rows():
+    with pytest.raises(ValueError, match="non-leaderboard split values"):
+        build_kaggle_payload(
+            _make_binary_df([{"num_correct": 3, "total": 4, "split": "practice"}])
+        )
 
 
 def test_validate_kaggle_payload_rejects_old_or_incomplete_shapes():

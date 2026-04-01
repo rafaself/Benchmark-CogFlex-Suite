@@ -29,7 +29,7 @@ __all__ = [
 RUN_MANIFEST_FILENAME = "run_manifest.json"
 _ARTIFACT_GROUPS: Final[tuple[str, ...]] = ("entry_points", "frozen_split_manifests")
 _RUNTIME_ENTRY_POINTS: Final[tuple[str, ...]] = ("kbench_notebook", "kernel_metadata")
-_MANIFEST_PARTITIONS: Final[tuple[str, ...]] = ("dev", "public_leaderboard")
+_MANIFEST_PARTITIONS: Final[tuple[str, ...]] = ("public_leaderboard",)
 _EXPECTED_BENCHMARK_VERSIONS: Final[dict[str, str]] = {
     "manifest_version": MANIFEST_VERSION,
     "spec_version": SPEC_VERSION,

@@ -85,7 +85,7 @@ def build_kaggle_payload(binary_df: Any) -> dict[str, object]:
     if "num_correct" not in binary_df.columns or "total" not in binary_df.columns:
         raise ValueError("binary_df must contain 'num_correct' and 'total' columns")
 
-    _reject_dev_rows(binary_df, "binary_df")
+    _validate_leaderboard_rows(binary_df, "binary_df")
 
     numerator = int(binary_df["num_correct"].sum())
     denominator = int(binary_df["total"].sum())
@@ -194,15 +194,17 @@ def compute_bootstrap_confidence_interval(
     )
 
 
-def _reject_dev_rows(df: Any, label: str) -> None:
+def _validate_leaderboard_rows(df: Any, label: str) -> None:
     if "split" not in df.columns:
         return
-    dev_count = int((df["split"] == "dev").sum())
-    if dev_count > 0:
+    allowed_splits = {"public_leaderboard", "private_leaderboard"}
+    observed_splits = {str(value) for value in df["split"].dropna().unique()}
+    invalid_splits = sorted(observed_splits - allowed_splits)
+    if invalid_splits:
         raise ValueError(
-            f"{label} contains {dev_count} dev row(s); "
-            "only leaderboard results may be aggregated into the official payload. "
-            "Drop the dev split before calling build_kaggle_payload."
+            f"{label} contains non-leaderboard split values: {invalid_splits}. "
+            "Only public_leaderboard/private_leaderboard rows may be aggregated "
+            "into the official payload."
         )
 
 

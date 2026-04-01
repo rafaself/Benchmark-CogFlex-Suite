@@ -43,7 +43,7 @@ def test_generated_episode_preserves_runtime_semantics(seed):
     labeled_items = episode.items[:LABELED_ITEM_COUNT]
     probe_items = episode.items[LABELED_ITEM_COUNT:]
 
-    assert episode.split is Split.DEV
+    assert episode.split is Split.PUBLIC
     assert episode.transition == Transition.from_rules(episode.rule_A, episode.rule_B)
     assert episode.rule_B is episode.rule_A.opposite
     assert episode.shift_after_position == episode.pre_count
@@ -73,6 +73,12 @@ def test_generator_populates_canonical_metadata_fields():
         (InteractionLabel.ATTRACT, episode.probe_targets.count(InteractionLabel.ATTRACT)),
         (InteractionLabel.REPEL, episode.probe_targets.count(InteractionLabel.REPEL)),
     )
+
+
+def test_generator_accepts_private_split_explicitly():
+    episode = generate_episode(3, split=Split.PRIVATE)
+
+    assert episode.split is Split.PRIVATE
 
 
 def test_generator_raises_when_bounded_attempts_are_exhausted():
