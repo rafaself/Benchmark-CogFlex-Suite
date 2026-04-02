@@ -80,7 +80,7 @@ Not shipped — used locally for build, test, and deploy:
 - `tests/`: release-path validation test suite.
 - `docs/`: operational checklists and design notes.
 - `packaging/kaggle/`: notebook source, kernel/dataset metadata, and the frozen artifacts manifest.
-- `src/core/private_builder.py`: private episode generation from the ignored seed manifest (not included in the public package).
+- `scripts/_private_builder.py`: private episode generation from the ignored seed manifest (not included in the public package).
 
 ## Quick Start
 

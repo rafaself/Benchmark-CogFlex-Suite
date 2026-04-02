@@ -7,8 +7,9 @@ import pytest
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
 sys.path.insert(0, str(_REPO_ROOT / "src"))
+sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
-from core.private_builder import build_private_episodes_payload  # noqa: E402
+from _private_builder import build_private_episodes_payload  # noqa: E402
 from core.private_split import (  # noqa: E402
     PRIVATE_DATASET_ROOT_ENV_VAR,
     PRIVATE_EPISODES_FILENAME,

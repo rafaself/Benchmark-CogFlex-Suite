@@ -46,7 +46,7 @@ _PRIVATE_MANIFEST_FIELD_ORDER: Final[tuple[str, ...]] = (
 
 
 def default_private_manifest_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "frozen_splits" / PRIVATE_SPLIT_MANIFEST_FILENAME
+    return Path(__file__).resolve().parents[1] / "src" / "frozen_splits" / PRIVATE_SPLIT_MANIFEST_FILENAME
 
 
 def load_private_seed_manifest(

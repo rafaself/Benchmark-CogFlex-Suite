@@ -28,7 +28,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from core.private_builder import write_private_dataset_artifact
+    from _private_builder import write_private_dataset_artifact
 
     args = _parser().parse_args(argv)
     episodes_path = write_private_dataset_artifact(
