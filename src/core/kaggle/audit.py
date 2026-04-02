@@ -1,3 +1,11 @@
+"""Audit views for notebook-side episode inspection.
+
+Shipped in the public runtime package but not part of the official
+Kaggle contract payload. These views are derived from public_leaderboard
+episodes and displayed in the notebook for catalog, balance, and failure
+analysis.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Final

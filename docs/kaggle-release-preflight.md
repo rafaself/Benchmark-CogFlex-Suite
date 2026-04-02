@@ -7,7 +7,7 @@ Use this checklist before publishing a new Kaggle runtime dataset or notebook bu
 - The only leaderboard-primary task is `ruleshift_benchmark_v1_binary`.
 - The final notebook selection cell is `%choose ruleshift_benchmark_v1_binary`.
 - The row task remains internal-only with `store_task=False`.
-- Audit views remain notebook-only and derived from `public_leaderboard`.
+- Audit views remain notebook-only display (`audit.py` is shipped in the runtime package; views are derived from `public_leaderboard`).
 - Split inventory remains:
   - `public_leaderboard = 54`
   - `private_leaderboard = 270`
@@ -56,6 +56,6 @@ Current public release identifiers:
 
 ## Final Kaggle Readiness Notes
 
-- The official return contract is still the leaderboard-safe tuple `(numerator, denominator)`.
+- The official return contract is the 7-field payload from `build_kaggle_payload()`; the leaderboard-safe scoring tuple within it is `(numerator, denominator)`.
 - Audit tables are present for episode inspection, balance review, and failure analysis without changing the official Kaggle output.
 - Public is the audit surface. Private remains the hidden holdout dataset.

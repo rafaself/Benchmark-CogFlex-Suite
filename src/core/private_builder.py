@@ -1,3 +1,11 @@
+"""Private episode builder — development tooling only.
+
+Generates private_episodes.json from the ignored private seed manifest.
+This module is NOT included in the public runtime package; it is used
+only by scripts/build_private_dataset_artifact.py for local private
+dataset construction.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
