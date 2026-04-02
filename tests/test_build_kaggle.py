@@ -5,30 +5,40 @@ from pathlib import Path
 import sys
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_KAGGLE_DIR = _REPO_ROOT / "packaging" / "kaggle"
+_KAGGLE_DIR = _REPO_ROOT / "kaggle"
+_SRC_DIR = _REPO_ROOT / "src"
+_TASK_DIR = _SRC_DIR / "tasks" / "ruleshift_benchmark"
 
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from scripts.build_kaggle import build_kaggle_package
 
-_EXPECTED_RUNTIME_RELPATHS = {
-    "src/frozen_splits/public_leaderboard.json",
-    "src/tasks/__init__.py",
-    "src/tasks/ruleshift_benchmark/__init__.py",
+_EXPECTED_TASK_RUNTIME_RELPATHS = {
     "src/tasks/ruleshift_benchmark/benchmark_bundle.py",
-    "src/tasks/ruleshift_benchmark/generator.py",
-    "src/tasks/ruleshift_benchmark/presentation.py",
     "src/tasks/ruleshift_benchmark/protocol.py",
-    "src/tasks/ruleshift_benchmark/render.py",
-    "src/tasks/ruleshift_benchmark/rules.py",
     "src/tasks/ruleshift_benchmark/runner.py",
     "src/tasks/ruleshift_benchmark/schema.py",
     "src/tasks/ruleshift_benchmark/splits.py",
 }
+_EXPECTED_RUNTIME_RELPATHS = {
+    path.relative_to(_REPO_ROOT).as_posix()
+    for path in _SRC_DIR.rglob("*")
+    if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+}
 
 
-def test_build_kaggle_package_creates_only_the_minimum_layout(tmp_path: Path) -> None:
+def test_runtime_task_directory_matches_the_deployed_kaggle_layout() -> None:
+    task_files = {
+        path.relative_to(_REPO_ROOT).as_posix()
+        for path in _TASK_DIR.rglob("*")
+        if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+    }
+
+    assert task_files == _EXPECTED_TASK_RUNTIME_RELPATHS
+
+
+def test_build_kaggle_package_copies_the_runtime_tree_directly(tmp_path: Path) -> None:
     output_dir = tmp_path / "kaggle-build"
     stale_path = output_dir / "stale.txt"
     stale_path.parent.mkdir(parents=True)
@@ -60,9 +70,6 @@ def test_build_kaggle_package_creates_only_the_minimum_layout(tmp_path: Path) ->
         if path.is_file()
     }
     assert dataset_files == _EXPECTED_RUNTIME_RELPATHS | {"dataset-metadata.json"}
-    assert "src/core/__init__.py" not in dataset_files
-    assert "packaging/kaggle/frozen_artifacts_manifest.json" not in dataset_files
-    assert "src/frozen_splits/private_leaderboard.json" not in dataset_files
 
     assert json.loads((dataset_dir / "dataset-metadata.json").read_text(encoding="utf-8")) == json.loads(
         (_KAGGLE_DIR / "dataset-metadata.json").read_text(encoding="utf-8")

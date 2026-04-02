@@ -19,8 +19,8 @@ from tasks.ruleshift_benchmark.splits import (
     FrozenSplitManifest,
     PRIVATE_EPISODES_FILENAME,
     PRIVATE_SPLIT_ARTIFACT_SCHEMA_VERSION,
+    generate_episode,
 )
-from tasks.ruleshift_benchmark.generator import generate_episode
 from tasks.ruleshift_benchmark.protocol import Split
 
 __all__ = [

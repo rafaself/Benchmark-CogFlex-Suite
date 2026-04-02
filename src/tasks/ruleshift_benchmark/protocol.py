@@ -37,6 +37,9 @@ __all__ = [
     "TemplateSpec",
     "TEMPLATES",
     "PUBLIC_CONTRACT_VERSION",
+    "sign",
+    "same_sign",
+    "label",
     "format_public_label",
     "format_public_state",
     "parse_public_label",
@@ -337,6 +340,31 @@ def format_public_label(value: InteractionLabel | str) -> str:
 
 def format_public_state(value: InteractionLabel | str) -> str:
     return parse_label(value).value
+
+
+def sign(marker_value: int) -> int:
+    if marker_value not in MARKER_VALUES:
+        raise ValueError(f"unsupported marker value: {marker_value}")
+    return 1 if marker_value > 0 else -1
+
+
+def same_sign(r1: int, r2: int) -> bool:
+    return sign(r1) == sign(r2)
+
+
+def label(rule: RuleName | str, r1: int, r2: int) -> InteractionLabel:
+    resolved_rule = parse_rule(rule)
+    if same_sign(r1, r2):
+        return (
+            InteractionLabel.BLIM
+            if resolved_rule is RuleName.R_STD
+            else InteractionLabel.ZARK
+        )
+    return (
+        InteractionLabel.ZARK
+        if resolved_rule is RuleName.R_STD
+        else InteractionLabel.BLIM
+    )
 
 
 def parse_template_id(value: TemplateId | str) -> TemplateId:

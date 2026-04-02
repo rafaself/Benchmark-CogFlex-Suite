@@ -20,6 +20,7 @@ from tasks.ruleshift_benchmark.protocol import (
     TemplateId,
     TEMPLATES,
     Transition,
+    label,
     parse_difficulty,
     parse_difficulty_profile_id,
     parse_factor_level,
@@ -32,7 +33,6 @@ from tasks.ruleshift_benchmark.protocol import (
     parse_template_id,
     parse_transition,
 )
-from tasks.ruleshift_benchmark.rules import label
 
 __all__ = [
     "SPEC_VERSION",

@@ -15,4 +15,5 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["core*", "tasks*"]
+include = ["tasks*"]
+namespaces = true

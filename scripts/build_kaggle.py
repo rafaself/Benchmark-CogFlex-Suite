@@ -14,28 +14,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-KAGGLE_DIR = REPO_ROOT / "packaging" / "kaggle"
+KAGGLE_DIR = REPO_ROOT / "kaggle"
+RUNTIME_SRC_DIR = REPO_ROOT / "src"
 DEFAULT_OUTPUT_DIR = Path("/tmp/ruleshift-kaggle-build")
 
 NOTEBOOK_PATH = KAGGLE_DIR / "ruleshift_notebook_task.ipynb"
 KERNEL_METADATA_PATH = KAGGLE_DIR / "kernel-metadata.json"
 DATASET_METADATA_PATH = KAGGLE_DIR / "dataset-metadata.json"
-
-MINIMAL_RUNTIME_RELPATHS = (
-    "src/frozen_splits/public_leaderboard.json",
-    "src/tasks/__init__.py",
-    "src/tasks/ruleshift_benchmark/__init__.py",
-    "src/tasks/ruleshift_benchmark/benchmark_bundle.py",
-    "src/tasks/ruleshift_benchmark/generator.py",
-    "src/tasks/ruleshift_benchmark/presentation.py",
-    "src/tasks/ruleshift_benchmark/protocol.py",
-    "src/tasks/ruleshift_benchmark/render.py",
-    "src/tasks/ruleshift_benchmark/rules.py",
-    "src/tasks/ruleshift_benchmark/runner.py",
-    "src/tasks/ruleshift_benchmark/schema.py",
-    "src/tasks/ruleshift_benchmark/splits.py",
-)
-
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -63,6 +48,16 @@ def _copy_file(source: Path, destination: Path) -> None:
     shutil.copy2(source, destination)
 
 
+def _copy_runtime_tree(source: Path, destination: Path) -> None:
+    if not source.is_dir():
+        raise FileNotFoundError(f"Required runtime source directory not found: {source}")
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+
+
 def build_kaggle_package(output_dir: Path) -> tuple[Path, Path]:
     output_dir = output_dir.resolve()
     kernel_dir = output_dir / "kernel"
@@ -73,10 +68,7 @@ def build_kaggle_package(output_dir: Path) -> tuple[Path, Path]:
     _copy_file(NOTEBOOK_PATH, kernel_dir / NOTEBOOK_PATH.name)
     _copy_file(KERNEL_METADATA_PATH, kernel_dir / KERNEL_METADATA_PATH.name)
     _copy_file(DATASET_METADATA_PATH, dataset_dir / DATASET_METADATA_PATH.name)
-
-    for relpath in MINIMAL_RUNTIME_RELPATHS:
-        source = REPO_ROOT / relpath
-        _copy_file(source, dataset_dir / relpath)
+    _copy_runtime_tree(RUNTIME_SRC_DIR, dataset_dir / "src")
 
     return kernel_dir, dataset_dir
 
