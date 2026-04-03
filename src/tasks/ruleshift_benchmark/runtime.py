@@ -97,6 +97,7 @@ PRIVATE_DATASET_ROOT_ENV_VAR: Final[str] = "RULESHIFT_PRIVATE_DATASET_ROOT"
 _MAX_ATTEMPTS: Final[int] = 10_000
 _PRIVATE_EPISODES_FILENAME: Final[str] = "private_episodes.json"
 _PRIVATE_ARTIFACT_SCHEMA: Final[str] = "private_split_artifact.v1"
+_PUBLIC_ROWS_FILENAME: Final[str] = "public_leaderboard_rows.json"
 _MANIFEST_DIR: Final[Path] = Path(__file__).resolve().parents[2] / "frozen_splits"
 _KAGGLE_SEARCH_ROOTS: Final[tuple[Path, ...]] = (Path("/kaggle/input"),)
 
@@ -554,38 +555,39 @@ def _generate_episode(seed: int, split: Split = Split.PUBLIC) -> Episode:
         probe_metadata=_probe_metadata(items[LABELED_ITEM_COUNT:], rule_a, rule_b),
     )
 
+def load_public_rows() -> list[dict[str, object]]:
+    rows = json.loads((_MANIFEST_DIR / _PUBLIC_ROWS_FILENAME).read_text("utf-8"))
+    return [
+        {
+            "episode_id": r["episode_id"],
+            "split": r["split"],
+            "prompt_binary": r["prompt_binary"],
+            "probe_targets": tuple(r["probe_targets"]),
+        }
+        for r in rows
+    ]
+
+
 def load_split_manifest(
     partition: str,
     *,
     private_dataset_root: Path | str | None = None,
 ) -> FrozenSplitManifest:
-    if partition == "private_leaderboard":
-        root = resolve_private_dataset_root(private_dataset_root)
-        payload = json.loads((root / _PRIVATE_EPISODES_FILENAME).read_text("utf-8"))
-        records = _parse_private_episodes(payload)
-        return FrozenSplitManifest(
-            partition="private_leaderboard",
-            episode_split=Split(payload["episode_split"]),
-            manifest_version=payload["benchmark_version"],
-            seed_bank_version=payload["artifact_checksum"],
-            spec_version=SPEC_VERSION,
-            generator_version=GENERATOR_VERSION,
-            template_set_version=TEMPLATE_SET_VERSION,
-            difficulty_version=DIFFICULTY_VERSION,
-            seeds=tuple(r.seed for r in records),
-        )
-
-    payload = json.loads((_MANIFEST_DIR / f"{partition}.json").read_text("utf-8"))
+    if partition != "private_leaderboard":
+        raise ValueError(f"load_split_manifest only supports 'private_leaderboard'; got {partition!r}")
+    root = resolve_private_dataset_root(private_dataset_root)
+    payload = json.loads((root / _PRIVATE_EPISODES_FILENAME).read_text("utf-8"))
+    records = _parse_private_episodes(payload)
     return FrozenSplitManifest(
-        partition=payload["partition"],
+        partition="private_leaderboard",
         episode_split=Split(payload["episode_split"]),
-        manifest_version=payload["manifest_version"],
-        seed_bank_version=payload["seed_bank_version"],
-        spec_version=payload["spec_version"],
-        generator_version=payload["generator_version"],
-        template_set_version=payload["template_set_version"],
-        difficulty_version=payload["difficulty_version"],
-        seeds=tuple(payload["seeds"]),
+        manifest_version=payload["benchmark_version"],
+        seed_bank_version=payload["artifact_checksum"],
+        spec_version=SPEC_VERSION,
+        generator_version=GENERATOR_VERSION,
+        template_set_version=TEMPLATE_SET_VERSION,
+        difficulty_version=DIFFICULTY_VERSION,
+        seeds=tuple(r.seed for r in records),
     )
 
 
@@ -594,19 +596,9 @@ def load_frozen_split(
     *,
     private_dataset_root: Path | str | None = None,
 ) -> tuple[FrozenSplitEpisode, ...]:
-    if partition == "private_leaderboard":
-        return _load_private_split(private_dataset_root)
-    manifest = load_split_manifest(partition)
-    return tuple(
-        FrozenSplitEpisode(
-            partition=manifest.partition,
-            seed=seed,
-            manifest_version=manifest.manifest_version,
-            seed_bank_version=manifest.seed_bank_version,
-            episode=_generate_episode(seed, split=manifest.episode_split),
-        )
-        for seed in manifest.seeds
-    )
+    if partition != "private_leaderboard":
+        raise ValueError(f"load_frozen_split only supports 'private_leaderboard'; got {partition!r}")
+    return _load_private_split(private_dataset_root)
 
 
 def discover_private_dataset_root(
@@ -799,20 +791,12 @@ def render_binary_prompt(episode: Episode) -> str:
 
 def build_benchmark_bundle(
     *,
-    include_private: bool = True,
     private_dataset_root: Path | str | None = None,
 ) -> dict[str, object]:
-    partitions = [_build_partition("public_leaderboard")]
-    if include_private:
-        root = (
-            resolve_private_dataset_root(private_dataset_root)
-            if private_dataset_root is not None
-            else discover_private_dataset_root()
-        )
-        if root is not None:
-            partitions.append(
-                _build_partition("private_leaderboard", private_dataset_root=root)
-            )
+    partitions = []
+    root = discover_private_dataset_root(private_dataset_root)
+    if root is not None:
+        partitions.append(_build_partition("private_leaderboard", private_dataset_root=root))
     return {
         "task": TASK_NAME,
         "benchmark_version": MANIFEST_VERSION,

@@ -34,6 +34,7 @@ from tasks.ruleshift_benchmark.runtime import (  # noqa: E402
     FrozenSplitManifest,
     Split,
     _generate_episode,
+    load_public_rows,
 )
 
 
@@ -130,7 +131,7 @@ def test_kaggle_build_and_notebook_smoke(
     kernel_dir, dataset_dir = build_kaggle_package(tmp_path / "build")
     assert (kernel_dir / "ruleshift_notebook_task.ipynb").is_file()
     assert (dataset_dir / "src" / "tasks" / "ruleshift_benchmark" / "runtime.py").is_file()
-    assert (dataset_dir / "src" / "frozen_splits" / "public_leaderboard.json").is_file()
+    assert (dataset_dir / "src" / "frozen_splits" / "public_leaderboard_rows.json").is_file()
 
     private_dataset_root = tmp_path / "private-dataset"
     private_dataset_root.mkdir()
@@ -152,9 +153,9 @@ def test_kaggle_build_and_notebook_smoke(
 
     assert namespace["PRIVATE_DATASET_ROOT"] is not None
     assert [p["partition"] for p in namespace["bundle"]["partitions"]] == [
-        "public_leaderboard",
         "private_leaderboard",
     ]
+    assert len(load_public_rows()) == _EXPECTED_PUBLIC_EPISODES
     assert list(namespace["partition_df"]["episodes"]) == [
         _EXPECTED_PUBLIC_EPISODES,
         _EXPECTED_PRIVATE_EPISODES,

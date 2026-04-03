@@ -1,0 +1,596 @@
+[
+  {
+    "episode_id": "ife-r13-16524",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+1, r2=+1 -> blim\n2. r1=-3, r2=-2 -> blim\n3. r1=+3, r2=+3 -> zark\n4. r1=-1, r2=+1 -> blim\n5. r1=+1, r2=+2 -> zark\n\nProbes:\n6. r1=-3, r2=-3 -> ?\n7. r1=+1, r2=-1 -> ?\n8. r1=+2, r2=+1 -> ?\n9. r1=-3, r2=+2 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16525",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-1, r2=-2 -> blim\n2. r1=-1, r2=-1 -> blim\n3. r1=+1, r2=-2 -> blim\n4. r1=+1, r2=+1 -> zark\n5. r1=+3, r2=+3 -> zark\n\nProbes:\n6. r1=-1, r2=+2 -> ?\n7. r1=+2, r2=+2 -> ?\n8. r1=+3, r2=-3 -> ?\n9. r1=-3, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16526",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+3, r2=-1 -> zark\n2. r1=+3, r2=-2 -> zark\n3. r1=-1, r2=+2 -> blim\n4. r1=+2, r2=+3 -> zark\n5. r1=+2, r2=+1 -> zark\n\nProbes:\n6. r1=+2, r2=+2 -> ?\n7. r1=-1, r2=-3 -> ?\n8. r1=-1, r2=+3 -> ?\n9. r1=+1, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16527",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-2, r2=+1 -> zark\n2. r1=-2, r2=+3 -> zark\n3. r1=-3, r2=+3 -> zark\n4. r1=-1, r2=-2 -> zark\n5. r1=+3, r2=-2 -> blim\n\nProbes:\n6. r1=-3, r2=+2 -> ?\n7. r1=+2, r2=+2 -> ?\n8. r1=-1, r2=-1 -> ?\n9. r1=+3, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16528",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-3, r2=+1 -> zark\n2. r1=-2, r2=+2 -> zark\n3. r1=+3, r2=-3 -> zark\n4. r1=-2, r2=+3 -> blim\n5. r1=-1, r2=-3 -> zark\n\nProbes:\n6. r1=+2, r2=+3 -> ?\n7. r1=+2, r2=-2 -> ?\n8. r1=-1, r2=+2 -> ?\n9. r1=-3, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16529",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+1, r2=-2 -> zark\n2. r1=-2, r2=+3 -> zark\n3. r1=-3, r2=-1 -> blim\n4. r1=-3, r2=+3 -> blim\n5. r1=+1, r2=+3 -> zark\n\nProbes:\n6. r1=-2, r2=-3 -> ?\n7. r1=-1, r2=+2 -> ?\n8. r1=+3, r2=+3 -> ?\n9. r1=+2, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16530",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-2, r2=-2 -> blim\n2. r1=-3, r2=-2 -> zark\n3. r1=-1, r2=-1 -> zark\n4. r1=+2, r2=-3 -> blim\n5. r1=+2, r2=-2 -> blim\n\nProbes:\n6. r1=-1, r2=+2 -> ?\n7. r1=-3, r2=-1 -> ?\n8. r1=+2, r2=+2 -> ?\n9. r1=+1, r2=-2 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16531",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-3, r2=-3 -> blim\n2. r1=+1, r2=-3 -> blim\n3. r1=+3, r2=-3 -> blim\n4. r1=+1, r2=+2 -> zark\n5. r1=+3, r2=+3 -> zark\n\nProbes:\n6. r1=+1, r2=-2 -> ?\n7. r1=+2, r2=+1 -> ?\n8. r1=-3, r2=+1 -> ?\n9. r1=-2, r2=-1 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16532",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-2, r2=-1 -> blim\n2. r1=+3, r2=+2 -> zark\n3. r1=+1, r2=-1 -> blim\n4. r1=+1, r2=-3 -> blim\n5. r1=+2, r2=-2 -> blim\n\nProbes:\n6. r1=+3, r2=+3 -> ?\n7. r1=-3, r2=+3 -> ?\n8. r1=+1, r2=-2 -> ?\n9. r1=-1, r2=-1 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16533",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-1 | r2=-2 | observed=blim\n[02] r1=-3 | r2=-3 | observed=blim\n[03] r1=+3 | r2=-3 | observed=blim\n[04] r1=+2 | r2=-3 | observed=blim\n[05] r1=-3 | r2=-2 | observed=zark\n\nUnresolved probe entries:\n[06] r1=-2 | r2=+3 | observed=?\n[07] r1=+1 | r2=+2 | observed=?\n[08] r1=-1 | r2=-1 | observed=?\n[09] r1=+1 | r2=-2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16534",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=+2 | r2=+3 | observed=blim\n[02] r1=+3 | r2=+2 | observed=blim\n[03] r1=+3 | r2=-2 | observed=blim\n[04] r1=-1 | r2=-3 | observed=zark\n[05] r1=-3 | r2=-3 | observed=zark\n\nUnresolved probe entries:\n[06] r1=-1 | r2=-2 | observed=?\n[07] r1=+1 | r2=-3 | observed=?\n[08] r1=+1 | r2=+1 | observed=?\n[09] r1=-3 | r2=+3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16535",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=+2 | r2=-3 | observed=zark\n[02] r1=+3 | r2=+2 | observed=blim\n[03] r1=+1 | r2=-3 | observed=blim\n[04] r1=+1 | r2=+2 | observed=zark\n[05] r1=+3 | r2=-2 | observed=blim\n\nUnresolved probe entries:\n[06] r1=+2 | r2=-2 | observed=?\n[07] r1=-1 | r2=-3 | observed=?\n[08] r1=+2 | r2=+2 | observed=?\n[09] r1=-2 | r2=+3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16536",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=+2 | r2=-2 | observed=zark\n[02] r1=+2 | r2=-1 | observed=zark\n[03] r1=+3 | r2=-1 | observed=zark\n[04] r1=-2 | r2=-1 | observed=zark\n[05] r1=+2 | r2=-3 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-3 | r2=+1 | observed=?\n[07] r1=+3 | r2=+3 | observed=?\n[08] r1=-1 | r2=-2 | observed=?\n[09] r1=+1 | r2=-2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16537",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-3 | r2=+1 | observed=zark\n[02] r1=-3 | r2=-2 | observed=blim\n[03] r1=-3 | r2=-1 | observed=blim\n[04] r1=-2 | r2=-1 | observed=zark\n[05] r1=+3 | r2=-2 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-2 | r2=-3 | observed=?\n[07] r1=-1 | r2=+1 | observed=?\n[08] r1=+1 | r2=+3 | observed=?\n[09] r1=+3 | r2=-1 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16538",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=+3 | observed=zark\n[02] r1=-3 | r2=+1 | observed=zark\n[03] r1=+1 | r2=-3 | observed=zark\n[04] r1=-1 | r2=-2 | observed=zark\n[05] r1=-2 | r2=+2 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-1 | r2=+3 | observed=?\n[07] r1=+1 | r2=+1 | observed=?\n[08] r1=+3 | r2=-2 | observed=?\n[09] r1=-1 | r2=-1 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16539",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-3 | r2=-3 | observed=blim\n[02] r1=+3 | r2=+2 | observed=zark\n[03] r1=+3 | r2=+1 | observed=zark\n[04] r1=+1 | r2=-1 | observed=blim\n[05] r1=+1 | r2=+3 | observed=zark\n\nUnresolved probe entries:\n[06] r1=+2 | r2=+3 | observed=?\n[07] r1=-1 | r2=-3 | observed=?\n[08] r1=-1 | r2=+3 | observed=?\n[09] r1=+3 | r2=-2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16540",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=+3 | observed=zark\n[02] r1=+2 | r2=-2 | observed=blim\n[03] r1=+1 | r2=-2 | observed=blim\n[04] r1=-1 | r2=-1 | observed=zark\n[05] r1=+1 | r2=-1 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-1 | r2=+2 | observed=?\n[07] r1=+3 | r2=-2 | observed=?\n[08] r1=-1 | r2=-3 | observed=?\n[09] r1=+2 | r2=+2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16541",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=+2 | observed=zark\n[02] r1=+3 | r2=+2 | observed=zark\n[03] r1=+1 | r2=-3 | observed=blim\n[04] r1=+2 | r2=+3 | observed=zark\n[05] r1=+3 | r2=-1 | observed=blim\n\nUnresolved probe entries:\n[06] r1=+1 | r2=-1 | observed=?\n[07] r1=-1 | r2=+2 | observed=?\n[08] r1=+3 | r2=+3 | observed=?\n[09] r1=-2 | r2=-3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16542",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-3 | r2=-3 | state=blim\nrow 02 | r1=-1 | r2=-3 | state=blim\nrow 03 | r1=-1 | r2=-2 | state=zark\nrow 04 | r1=-1 | r2=+1 | state=blim\nrow 05 | r1=-2 | r2=+3 | state=blim\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=-2 | state=?\nrow 07 | r1=+3 | r2=+3 | state=?\nrow 08 | r1=-3 | r2=+3 | state=?\nrow 09 | r1=-2 | r2=-3 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16543",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+3 | r2=+1 | state=blim\nrow 02 | r1=+2 | r2=+2 | state=blim\nrow 03 | r1=+1 | r2=+3 | state=zark\nrow 04 | r1=-1 | r2=+1 | state=blim\nrow 05 | r1=-3 | r2=+1 | state=blim\n\nPending ledger rows:\nrow 06 | r1=-2 | r2=+3 | state=?\nrow 07 | r1=-1 | r2=-3 | state=?\nrow 08 | r1=+2 | r2=+1 | state=?\nrow 09 | r1=+2 | r2=-3 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16544",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-2 | r2=+2 | state=zark\nrow 02 | r1=+3 | r2=+2 | state=blim\nrow 03 | r1=-1 | r2=+2 | state=blim\nrow 04 | r1=-2 | r2=-2 | state=zark\nrow 05 | r1=-1 | r2=+1 | state=blim\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=+1 | state=?\nrow 07 | r1=-2 | r2=+1 | state=?\nrow 08 | r1=-2 | r2=-3 | state=?\nrow 09 | r1=+1 | r2=-2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16545",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-1 | r2=-1 | state=blim\nrow 02 | r1=-1 | r2=+1 | state=zark\nrow 03 | r1=-1 | r2=-2 | state=blim\nrow 04 | r1=-2 | r2=-2 | state=zark\nrow 05 | r1=-2 | r2=+3 | state=blim\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=-1 | state=?\nrow 07 | r1=+2 | r2=+1 | state=?\nrow 08 | r1=-1 | r2=-3 | state=?\nrow 09 | r1=-1 | r2=+2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16546",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-2 | r2=-3 | state=blim\nrow 02 | r1=-3 | r2=-3 | state=blim\nrow 03 | r1=+3 | r2=-3 | state=zark\nrow 04 | r1=-3 | r2=+2 | state=blim\nrow 05 | r1=+2 | r2=+2 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+1 | r2=-3 | state=?\nrow 07 | r1=-2 | r2=-2 | state=?\nrow 08 | r1=-3 | r2=+1 | state=?\nrow 09 | r1=+1 | r2=+2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16547",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+3 | r2=-3 | state=zark\nrow 02 | r1=-1 | r2=-3 | state=blim\nrow 03 | r1=+2 | r2=-3 | state=zark\nrow 04 | r1=-2 | r2=-1 | state=zark\nrow 05 | r1=-2 | r2=+3 | state=blim\n\nPending ledger rows:\nrow 06 | r1=-3 | r2=+2 | state=?\nrow 07 | r1=+3 | r2=-1 | state=?\nrow 08 | r1=+3 | r2=+3 | state=?\nrow 09 | r1=-3 | r2=-1 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16548",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-3 | r2=+1 | state=zark\nrow 02 | r1=-2 | r2=-1 | state=zark\nrow 03 | r1=+1 | r2=-2 | state=blim\nrow 04 | r1=+1 | r2=-3 | state=blim\nrow 05 | r1=-3 | r2=-3 | state=zark\n\nPending ledger rows:\nrow 06 | r1=-1 | r2=+1 | state=?\nrow 07 | r1=+2 | r2=+1 | state=?\nrow 08 | r1=+3 | r2=-1 | state=?\nrow 09 | r1=-2 | r2=-2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16549",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+3 | r2=+2 | state=blim\nrow 02 | r1=+2 | r2=-3 | state=blim\nrow 03 | r1=+2 | r2=-2 | state=blim\nrow 04 | r1=-1 | r2=-2 | state=zark\nrow 05 | r1=+3 | r2=-1 | state=blim\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=+1 | state=?\nrow 07 | r1=-3 | r2=-3 | state=?\nrow 08 | r1=+1 | r2=-1 | state=?\nrow 09 | r1=-2 | r2=+2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16550",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-1 | r2=+3 | state=zark\nrow 02 | r1=+1 | r2=-2 | state=blim\nrow 03 | r1=+3 | r2=+3 | state=zark\nrow 04 | r1=+3 | r2=+1 | state=zark\nrow 05 | r1=+3 | r2=+2 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+3 | r2=-2 | state=?\nrow 07 | r1=-3 | r2=+3 | state=?\nrow 08 | r1=+2 | r2=+2 | state=?\nrow 09 | r1=-3 | r2=-3 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16551",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+2, r2=-3 -> blim\n2. r1=+2, r2=-1 -> blim\n3. r1=-3, r2=+2 -> zark\n4. r1=+1, r2=+3 -> blim\n5. r1=-3, r2=+3 -> zark\n\nProbes:\n6. r1=-3, r2=-1 -> ?\n7. r1=+2, r2=+3 -> ?\n8. r1=+3, r2=-3 -> ?\n9. r1=-2, r2=+3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16552",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-2, r2=+2 -> blim\n2. r1=+2, r2=-1 -> blim\n3. r1=-2, r2=+3 -> zark\n4. r1=-1, r2=-3 -> blim\n5. r1=-1, r2=+2 -> zark\n\nProbes:\n6. r1=-2, r2=-2 -> ?\n7. r1=-1, r2=+3 -> ?\n8. r1=+1, r2=+3 -> ?\n9. r1=+1, r2=-2 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16553",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-2, r2=+3 -> blim\n2. r1=+2, r2=-1 -> blim\n3. r1=+3, r2=-3 -> zark\n4. r1=+1, r2=-2 -> zark\n5. r1=+2, r2=+3 -> blim\n\nProbes:\n6. r1=+2, r2=-3 -> ?\n7. r1=-1, r2=-1 -> ?\n8. r1=+2, r2=+1 -> ?\n9. r1=-3, r2=+3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16554",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+2, r2=+3 -> zark\n2. r1=+2, r2=+1 -> zark\n3. r1=-1, r2=+2 -> blim\n4. r1=+1, r2=+1 -> blim\n5. r1=-1, r2=+1 -> zark\n\nProbes:\n6. r1=-1, r2=-3 -> ?\n7. r1=+3, r2=-1 -> ?\n8. r1=+3, r2=+3 -> ?\n9. r1=-1, r2=+3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16555",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-3, r2=-2 -> zark\n2. r1=-3, r2=+2 -> blim\n3. r1=-1, r2=+3 -> blim\n4. r1=+3, r2=-3 -> zark\n5. r1=+3, r2=+3 -> blim\n\nProbes:\n6. r1=-3, r2=+3 -> ?\n7. r1=-2, r2=-1 -> ?\n8. r1=+3, r2=-1 -> ?\n9. r1=+2, r2=+2 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16556",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+3, r2=-2 -> blim\n2. r1=+1, r2=-1 -> blim\n3. r1=-3, r2=-1 -> zark\n4. r1=-3, r2=+3 -> zark\n5. r1=-1, r2=-2 -> blim\n\nProbes:\n6. r1=+3, r2=-1 -> ?\n7. r1=-3, r2=-2 -> ?\n8. r1=+1, r2=+3 -> ?\n9. r1=-3, r2=+1 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16557",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-1, r2=+1 -> blim\n2. r1=-3, r2=-2 -> blim\n3. r1=+1, r2=-1 -> zark\n4. r1=+1, r2=-2 -> zark\n5. r1=-2, r2=-1 -> blim\n\nProbes:\n6. r1=-3, r2=-3 -> ?\n7. r1=+2, r2=+2 -> ?\n8. r1=-1, r2=+3 -> ?\n9. r1=+2, r2=-1 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16558",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=-1, r2=+3 -> blim\n2. r1=+2, r2=+3 -> blim\n3. r1=+2, r2=-1 -> zark\n4. r1=+3, r2=+1 -> blim\n5. r1=+1, r2=-1 -> zark\n\nProbes:\n6. r1=-2, r2=-3 -> ?\n7. r1=+2, r2=+2 -> ?\n8. r1=+1, r2=-2 -> ?\n9. r1=-3, r2=+3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16559",
+    "split": "public",
+    "prompt_binary": "You are given labeled records for two markers.\nEach labeled line shows r1, r2, and the observed state.\nUse the full sequence to infer which sign combinations were revised by the later evidence, then answer the final unlabeled cases.\n\nLabeled examples:\n1. r1=+2, r2=-3 -> blim\n2. r1=+2, r2=+1 -> blim\n3. r1=-3, r2=+2 -> zark\n4. r1=+3, r2=+1 -> blim\n5. r1=+1, r2=+2 -> blim\n\nProbes:\n6. r1=-1, r2=+1 -> ?\n7. r1=+1, r2=-2 -> ?\n8. r1=+2, r2=+2 -> ?\n9. r1=-3, r2=-3 -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16560",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-1 | r2=+3 | observed=blim\n[02] r1=-1 | r2=-2 | observed=zark\n[03] r1=+1 | r2=-2 | observed=zark\n[04] r1=-3 | r2=-3 | observed=blim\n[05] r1=-2 | r2=-1 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-1 | r2=+1 | observed=?\n[07] r1=+1 | r2=+2 | observed=?\n[08] r1=+2 | r2=-2 | observed=?\n[09] r1=-1 | r2=-3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16561",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=-2 | observed=zark\n[02] r1=-1 | r2=-1 | observed=zark\n[03] r1=+3 | r2=+3 | observed=blim\n[04] r1=-3 | r2=+3 | observed=zark\n[05] r1=+2 | r2=+1 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-1 | r2=-3 | observed=?\n[07] r1=+1 | r2=+2 | observed=?\n[08] r1=-2 | r2=+2 | observed=?\n[09] r1=+1 | r2=-1 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16562",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=+3 | observed=blim\n[02] r1=+1 | r2=+1 | observed=zark\n[03] r1=+2 | r2=-1 | observed=zark\n[04] r1=+3 | r2=+3 | observed=blim\n[05] r1=+3 | r2=-1 | observed=zark\n\nUnresolved probe entries:\n[06] r1=-1 | r2=+1 | observed=?\n[07] r1=+3 | r2=+1 | observed=?\n[08] r1=+1 | r2=-3 | observed=?\n[09] r1=-1 | r2=-1 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16563",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-3 | r2=+1 | observed=blim\n[02] r1=-1 | r2=+3 | observed=blim\n[03] r1=+1 | r2=+3 | observed=zark\n[04] r1=-3 | r2=+2 | observed=zark\n[05] r1=+3 | r2=+1 | observed=blim\n\nUnresolved probe entries:\n[06] r1=-1 | r2=-1 | observed=?\n[07] r1=+1 | r2=-1 | observed=?\n[08] r1=-2 | r2=+1 | observed=?\n[09] r1=+1 | r2=+2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16564",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-3 | r2=-2 | observed=zark\n[02] r1=-2 | r2=-1 | observed=zark\n[03] r1=-1 | r2=-2 | observed=zark\n[04] r1=-2 | r2=-2 | observed=blim\n[05] r1=+2 | r2=-3 | observed=zark\n\nUnresolved probe entries:\n[06] r1=+2 | r2=-2 | observed=?\n[07] r1=-3 | r2=-1 | observed=?\n[08] r1=+2 | r2=+1 | observed=?\n[09] r1=-2 | r2=+2 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16565",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-3 | r2=-1 | observed=zark\n[02] r1=-3 | r2=+3 | observed=blim\n[03] r1=-2 | r2=+1 | observed=blim\n[04] r1=+1 | r2=+3 | observed=blim\n[05] r1=+3 | r2=-1 | observed=zark\n\nUnresolved probe entries:\n[06] r1=-2 | r2=-3 | observed=?\n[07] r1=-3 | r2=+1 | observed=?\n[08] r1=+2 | r2=-2 | observed=?\n[09] r1=+3 | r2=+3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16566",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=+3 | r2=+2 | observed=zark\n[02] r1=+1 | r2=-2 | observed=zark\n[03] r1=-1 | r2=-2 | observed=blim\n[04] r1=+2 | r2=-3 | observed=zark\n[05] r1=-1 | r2=-3 | observed=blim\n\nUnresolved probe entries:\n[06] r1=+3 | r2=-2 | observed=?\n[07] r1=+2 | r2=+1 | observed=?\n[08] r1=-3 | r2=+1 | observed=?\n[09] r1=-2 | r2=-3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16567",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=+1 | r2=+2 | observed=zark\n[02] r1=-3 | r2=-3 | observed=blim\n[03] r1=-1 | r2=+2 | observed=zark\n[04] r1=-3 | r2=+1 | observed=zark\n[05] r1=-1 | r2=+3 | observed=zark\n\nUnresolved probe entries:\n[06] r1=+3 | r2=-3 | observed=?\n[07] r1=-2 | r2=+1 | observed=?\n[08] r1=-2 | r2=-2 | observed=?\n[09] r1=+3 | r2=+3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16568",
+    "split": "public",
+    "prompt_binary": "Review the observation log for two markers.\nEach entry records r1, r2, and the observed state.\nUse the full log to infer which sign combinations were revised later, then answer the unlabeled probe entries.\n\nResolved log entries:\n[01] r1=-2 | r2=-3 | observed=zark\n[02] r1=-3 | r2=+2 | observed=zark\n[03] r1=-1 | r2=+3 | observed=zark\n[04] r1=+2 | r2=+2 | observed=blim\n[05] r1=-3 | r2=+1 | observed=zark\n\nUnresolved probe entries:\n[06] r1=-3 | r2=+3 | observed=?\n[07] r1=+2 | r2=-2 | observed=?\n[08] r1=+1 | r2=+2 | observed=?\n[09] r1=-1 | r2=-3 | observed=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16569",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-2 | r2=+3 | state=blim\nrow 02 | r1=-3 | r2=+3 | state=blim\nrow 03 | r1=+3 | r2=+2 | state=blim\nrow 04 | r1=+3 | r2=-2 | state=zark\nrow 05 | r1=+2 | r2=-1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=+3 | state=?\nrow 07 | r1=-1 | r2=+2 | state=?\nrow 08 | r1=-1 | r2=-3 | state=?\nrow 09 | r1=+1 | r2=-1 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16570",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+1 | r2=-1 | state=blim\nrow 02 | r1=+1 | r2=+1 | state=zark\nrow 03 | r1=+3 | r2=-2 | state=zark\nrow 04 | r1=+3 | r2=-3 | state=zark\nrow 05 | r1=-3 | r2=-3 | state=blim\n\nPending ledger rows:\nrow 06 | r1=+3 | r2=+3 | state=?\nrow 07 | r1=+1 | r2=-3 | state=?\nrow 08 | r1=-1 | r2=+1 | state=?\nrow 09 | r1=-1 | r2=-2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16571",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+3 | r2=-3 | state=blim\nrow 02 | r1=-3 | r2=+3 | state=blim\nrow 03 | r1=+2 | r2=+1 | state=blim\nrow 04 | r1=+3 | r2=-2 | state=zark\nrow 05 | r1=+1 | r2=+3 | state=blim\n\nPending ledger rows:\nrow 06 | r1=-2 | r2=+3 | state=?\nrow 07 | r1=+1 | r2=+2 | state=?\nrow 08 | r1=+1 | r2=-3 | state=?\nrow 09 | r1=-1 | r2=-3 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16572",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-1 | r2=-1 | state=zark\nrow 02 | r1=-2 | r2=-2 | state=zark\nrow 03 | r1=-1 | r2=-2 | state=zark\nrow 04 | r1=-3 | r2=-3 | state=blim\nrow 05 | r1=+1 | r2=-3 | state=zark\n\nPending ledger rows:\nrow 06 | r1=-1 | r2=+3 | state=?\nrow 07 | r1=+3 | r2=+3 | state=?\nrow 08 | r1=+2 | r2=-2 | state=?\nrow 09 | r1=-3 | r2=-1 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16573",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+3 | r2=+3 | state=zark\nrow 02 | r1=+3 | r2=-3 | state=blim\nrow 03 | r1=-2 | r2=-1 | state=zark\nrow 04 | r1=+3 | r2=+2 | state=blim\nrow 05 | r1=+2 | r2=-1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=-3 | r2=-2 | state=?\nrow 07 | r1=-2 | r2=+1 | state=?\nrow 08 | r1=+1 | r2=+2 | state=?\nrow 09 | r1=+1 | r2=-2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16574",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+1 | r2=+3 | state=zark\nrow 02 | r1=-3 | r2=+3 | state=blim\nrow 03 | r1=+3 | r2=+1 | state=zark\nrow 04 | r1=-2 | r2=-2 | state=blim\nrow 05 | r1=-2 | r2=+1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+1 | r2=+1 | state=?\nrow 07 | r1=-3 | r2=+2 | state=?\nrow 08 | r1=-1 | r2=-3 | state=?\nrow 09 | r1=+1 | r2=-2 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_a",
+      "type_b",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16575",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-3 | r2=-2 | state=zark\nrow 02 | r1=-3 | r2=+3 | state=zark\nrow 03 | r1=-1 | r2=-2 | state=blim\nrow 04 | r1=-3 | r2=-1 | state=blim\nrow 05 | r1=-2 | r2=+1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=-1 | r2=-3 | state=?\nrow 07 | r1=+1 | r2=+2 | state=?\nrow 08 | r1=+1 | r2=-3 | state=?\nrow 09 | r1=-1 | r2=+3 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_a",
+      "type_b",
+      "type_a"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16576",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=+1 | r2=+2 | state=zark\nrow 02 | r1=-2 | r2=-2 | state=blim\nrow 03 | r1=-3 | r2=-3 | state=blim\nrow 04 | r1=+3 | r2=-3 | state=zark\nrow 05 | r1=+3 | r2=-1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+2 | r2=-3 | state=?\nrow 07 | r1=-3 | r2=-2 | state=?\nrow 08 | r1=+2 | r2=+3 | state=?\nrow 09 | r1=-2 | r2=+1 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_a",
+      "type_b",
+      "type_a",
+      "type_b"
+    ]
+  },
+  {
+    "episode_id": "ife-r13-16577",
+    "split": "public",
+    "prompt_binary": "Review the case ledger for two markers.\nEach row records r1, r2, and the observed state.\nUse the full ledger to infer which sign combinations were revised by the later evidence, then complete the pending rows.\n\nConfirmed ledger rows:\nrow 01 | r1=-1 | r2=-3 | state=zark\nrow 02 | r1=+2 | r2=+1 | state=blim\nrow 03 | r1=+3 | r2=+1 | state=blim\nrow 04 | r1=+1 | r2=-3 | state=zark\nrow 05 | r1=+1 | r2=-1 | state=zark\n\nPending ledger rows:\nrow 06 | r1=+1 | r2=+2 | state=?\nrow 07 | r1=-1 | r2=+3 | state=?\nrow 08 | r1=+1 | r2=-2 | state=?\nrow 09 | r1=-3 | r2=-1 | state=?\n\nReturn exactly 4 outputs in order, one per probe. Use only type_a or type_b. Map zark to type_a and blim to type_b.",
+    "probe_targets": [
+      "type_b",
+      "type_b",
+      "type_a",
+      "type_a"
+    ]
+  }
+]
