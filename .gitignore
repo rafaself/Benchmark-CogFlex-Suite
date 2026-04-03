@@ -1,7 +1,5 @@
 .venv/
 __pycache__/
-.pytest_cache/
 *.pyc
 .env
-src/frozen_splits/private_leaderboard.json
 .ipynb_checkpoints/
