@@ -1,7 +1,7 @@
 .PHONY: notelab deploy-dataset deploy-notebook
 
 notelab:
-	.venv/bin/jupyter lab --no-browser kaggle/ruleshift_notebook_task.ipynb
+	.venv/bin/jupyter lab --no-browser kaggle/notebook/ruleshift_notebook_task.ipynb
 
 deploy-dataset:
 	./scripts/deploy_dataset.sh
