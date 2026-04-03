@@ -1,4 +1,4 @@
-.PHONY: notelab deploy-dataset deploy-private-dataset deploy-notebook
+.PHONY: notelab deploy-dataset deploy-private-dataset deploy-notebook deploy-all
 
 notelab:
 	.venv/bin/jupyter lab --no-browser kaggle/notebook/ruleshift_notebook_task.ipynb
@@ -11,3 +11,5 @@ deploy-private-dataset:
 
 deploy-notebook:
 	./scripts/deploy_notebook.sh
+
+deploy-all: deploy-dataset deploy-private-dataset deploy-notebook
