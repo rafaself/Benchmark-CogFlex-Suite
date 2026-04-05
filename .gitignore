@@ -4,3 +4,4 @@ __pycache__/
 .env
 .ipynb_checkpoints/
 kaggle/dataset/private/
+kaggle/dataset/audit_key.json

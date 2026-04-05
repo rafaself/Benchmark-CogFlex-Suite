@@ -13,7 +13,6 @@ This repository contains only the assets required to publish and run the benchma
 ```text
 kaggle/
   dataset/
-    audit_key.json
     public/
       dataset-metadata.json
       public_leaderboard_rows.json
@@ -58,7 +57,7 @@ The scoped Release 1 benchmark evaluates only the `simple`, `exception`, `distra
 
 The cleaned prompt contract for the scoped benchmark is fixed: `RuleShift classification task. Episode XXXX.`, then `Examples:`, then `Probes:`, then one shared output instruction. Group differences now come from the row content rather than coaching in the prompt wrapper.
 
-The dataset and internal answer key are generated deterministically from a formal rule catalog in `scripts/build_ruleshift_dataset.py`. The audit record lives at `kaggle/dataset/audit_key.json`.
+The dataset and internal answer key are generated deterministically from a formal rule catalog in `scripts/build_ruleshift_dataset.py`. The audit record (`kaggle/dataset/audit_key.json`) is generated locally and is not committed to the public repo.
 
 Dataset rows are split into explicit layers:
 
