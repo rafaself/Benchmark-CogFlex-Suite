@@ -99,20 +99,20 @@ class RuleshiftDatasetGenerationTests(unittest.TestCase):
 
     def test_public_dataset_metadata_payload_matches_expected_id(self) -> None:
         self.assertEqual(
-            dataset_metadata(PUBLIC_DATASET_ID, "RuleShift CogFlex Runtime v2"),
+            dataset_metadata(PUBLIC_DATASET_ID, "RuleShift CogFlex Runtime"),
             {
-                "id": "raptorengineer/ruleshift-cogflex-runtime-v2",
-                "title": "RuleShift CogFlex Runtime v2",
+                "id": "raptorengineer/ruleshift-cogflex-runtime",
+                "title": "RuleShift CogFlex Runtime",
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
 
     def test_private_dataset_metadata_payload_matches_expected_id(self) -> None:
         self.assertEqual(
-            dataset_metadata(PRIVATE_DATASET_ID, "RuleShift CogFlex Runtime Private v2"),
+            dataset_metadata(PRIVATE_DATASET_ID, "RuleShift CogFlex Runtime Private"),
             {
-                "id": "raptorengineer/ruleshift-cogflex-runtime-private-v2",
-                "title": "RuleShift CogFlex Runtime Private v2",
+                "id": "raptorengineer/ruleshift-cogflex-runtime-private",
+                "title": "RuleShift CogFlex Runtime Private",
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
@@ -128,20 +128,20 @@ class RuleshiftDatasetGenerationTests(unittest.TestCase):
         self.assertIn(".venv/bin/python -m scripts.verify_ruleshift --split public", makefile)
         self.assertIn(".venv/bin/python -m scripts.verify_ruleshift --split private", makefile)
 
-    def test_kernel_metadata_matches_v2_assets(self) -> None:
+    def test_kernel_metadata_matches_canonical_assets(self) -> None:
         metadata = json.loads(KERNEL_METADATA_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(metadata["id"], "raptorengineer/ruleshift-cogflex-notebook-v2")
+        self.assertEqual(metadata["id"], "raptorengineer/ruleshift-cogflex-notebook")
         self.assertEqual(
             metadata["dataset_sources"],
             [
-                "raptorengineer/ruleshift-cogflex-runtime-v2",
-                "raptorengineer/ruleshift-cogflex-runtime-private-v2",
+                "raptorengineer/ruleshift-cogflex-runtime",
+                "raptorengineer/ruleshift-cogflex-runtime-private",
             ],
         )
 
     def test_readme_references_new_task_and_assets(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")
-        self.assertIn("ruleshift_cogflex_v2_binary", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-runtime-v2", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-runtime-private-v2", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-notebook-v2", readme)
+        self.assertIn("ruleshift_cogflex_binary", readme)
+        self.assertIn("raptorengineer/ruleshift-cogflex-runtime", readme)
+        self.assertIn("raptorengineer/ruleshift-cogflex-runtime-private", readme)
+        self.assertIn("raptorengineer/ruleshift-cogflex-notebook", readme)

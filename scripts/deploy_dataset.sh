@@ -40,7 +40,7 @@ mkdir -p "$KAGGLE_TMPDIR"
 printf '%s' "$KAGGLE_API_TOKEN" > "$KAGGLE_TMP_HOME/.kaggle/access_token"
 chmod 600 "$KAGGLE_TMP_HOME/.kaggle/access_token"
 
-MESSAGE="${1:-Update RuleShift CogFlex v2 public dataset}"
+MESSAGE="${1:-Update RuleShift CogFlex public dataset}"
 
 echo "Publishing dataset from $DATASET_DIR"
 if HOME="$KAGGLE_TMP_HOME" TMPDIR="$KAGGLE_TMPDIR" "$KAGGLE_BIN" datasets version -p "$DATASET_DIR" -m "$MESSAGE"; then

@@ -19,10 +19,10 @@ PRIVATE_ANSWER_KEY_PATH = ROOT / "kaggle/dataset/private/private_answer_key.json
 PRIVATE_MANIFEST_PATH = ROOT / "kaggle/dataset/private/private_split_manifest.json"
 PRIVATE_METADATA_PATH = ROOT / "kaggle/dataset/private/dataset-metadata.json"
 
-PUBLIC_DATASET_ID = "raptorengineer/ruleshift-cogflex-runtime-v2"
-PRIVATE_DATASET_ID = "raptorengineer/ruleshift-cogflex-runtime-private-v2"
-NOTEBOOK_ID = "raptorengineer/ruleshift-cogflex-notebook-v2"
-TASK_NAME = "ruleshift_cogflex_v2_binary"
+PUBLIC_DATASET_ID = "raptorengineer/ruleshift-cogflex-runtime"
+PRIVATE_DATASET_ID = "raptorengineer/ruleshift-cogflex-runtime-private"
+NOTEBOOK_ID = "raptorengineer/ruleshift-cogflex-notebook"
+TASK_NAME = "ruleshift_cogflex_binary"
 FACULTY_ID = "executive_functions/cognitive_flexibility"
 
 VALUES = (-3, -2, -1, 1, 2, 3)
@@ -779,7 +779,7 @@ def private_answer_key_payload(private_answers: list[dict[str, object]]) -> dict
         item.pop("split", None)
         sanitized_answers.append(item)
     return {
-        "version": "cogflex_v2_multi_turn",
+        "version": "cogflex_multi_turn",
         "split": "private",
         "episodes": sanitized_answers,
     }
@@ -847,9 +847,9 @@ def main() -> None:
     validate_split_isolation(public_answers, private_answers)
 
     write_json(PUBLIC_ROWS_PATH, public_rows)
-    write_json(PUBLIC_METADATA_PATH, dataset_metadata(PUBLIC_DATASET_ID, "RuleShift CogFlex Runtime v2"))
+    write_json(PUBLIC_METADATA_PATH, dataset_metadata(PUBLIC_DATASET_ID, "RuleShift CogFlex Runtime"))
     write_json(PRIVATE_ROWS_PATH, private_publish_rows)
-    write_json(PRIVATE_METADATA_PATH, dataset_metadata(PRIVATE_DATASET_ID, "RuleShift CogFlex Runtime Private v2"))
+    write_json(PRIVATE_METADATA_PATH, dataset_metadata(PRIVATE_DATASET_ID, "RuleShift CogFlex Runtime Private"))
     write_json(PRIVATE_ANSWER_KEY_PATH, private_answer_key_payload(private_answers))
 
     print(f"Wrote {len(public_rows)} public episodes to {PUBLIC_ROWS_PATH}")

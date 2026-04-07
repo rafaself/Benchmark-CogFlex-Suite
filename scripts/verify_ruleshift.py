@@ -266,7 +266,7 @@ def verify_private_answer_key(
     payload: dict[str, object],
     private_rows: list[dict[str, object]],
 ) -> tuple[dict[str, dict[str, int] | int], dict[str, tuple[str, ...]]]:
-    if payload.get("version") != "cogflex_v2_multi_turn":
+    if payload.get("version") != "cogflex_multi_turn":
         raise RuntimeError("private answer key has an unsupported version")
     if payload.get("split") != "private":
         raise RuntimeError("private answer key must declare split='private'")
@@ -538,7 +538,7 @@ def verify_split(split: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verify the deterministic RuleShift CogFlex v2 evaluation path.")
+    parser = argparse.ArgumentParser(description="Verify the deterministic RuleShift CogFlex evaluation path.")
     parser.add_argument("--split", choices=("public", "private"), default="public")
     args = parser.parse_args()
     verify_split(args.split)

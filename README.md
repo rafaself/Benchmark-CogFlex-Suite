@@ -1,10 +1,10 @@
-# RuleShift CogFlex v2 Benchmark
+# RuleShift CogFlex Benchmark
 
 Minimal Kaggle benchmark project for a targeted executive-functions task:
 
 - faculty: `executive_functions/cognitive_flexibility`
 - benchmark form: multi-turn dataset evaluation
-- official task name: `ruleshift_cogflex_v2_binary`
+- official task name: `ruleshift_cogflex_binary`
 
 This repository keeps the original Kaggle-oriented structure, but replaces the old single-turn RuleShift task with a three-turn cognitive-flexibility benchmark focused on switching between active classification rules.
 
@@ -150,19 +150,19 @@ make deploy-notebook
 Public dataset:
 
 ```text
-raptorengineer/ruleshift-cogflex-runtime-v2
+raptorengineer/ruleshift-cogflex-runtime
 ```
 
 Private dataset:
 
 ```text
-raptorengineer/ruleshift-cogflex-runtime-private-v2
+raptorengineer/ruleshift-cogflex-runtime-private
 ```
 
 Notebook:
 
 ```text
-raptorengineer/ruleshift-cogflex-notebook-v2
+raptorengineer/ruleshift-cogflex-notebook
 ```
 
 ## Notes

@@ -41,7 +41,7 @@ if [[ ! -f "$ROWS_FILE" ]]; then
   exit 1
 fi
 
-MESSAGE="${1:-Update RuleShift CogFlex v2 private dataset}"
+MESSAGE="${1:-Update RuleShift CogFlex private dataset}"
 STAGING_DIR="$(mktemp -d)"
 
 cleanup() {

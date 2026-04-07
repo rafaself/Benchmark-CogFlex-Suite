@@ -64,9 +64,12 @@ class RuleshiftVerificationTests(unittest.TestCase):
     def test_verify_private_requires_answer_key(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             private_rows_path = Path(tmpdir) / "private_rows.json"
+            missing_answer_key_path = Path(tmpdir) / "missing_private_answer_key.json"
             private_rows_path.write_text(json.dumps(self.valid_private_rows), encoding="utf-8")
 
-            with patch("scripts.verify_ruleshift.PRIVATE_ROWS_PATH", private_rows_path):
+            with patch("scripts.verify_ruleshift.PRIVATE_ROWS_PATH", private_rows_path), patch(
+                "scripts.verify_ruleshift.PRIVATE_ANSWER_KEY_PATH", missing_answer_key_path
+            ):
                 with self.assertRaisesRegex(RuntimeError, "private split requires an answer key"):
                     verify_split("private")
 
