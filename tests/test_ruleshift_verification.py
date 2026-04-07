@@ -100,6 +100,28 @@ class RuleshiftVerificationTests(unittest.TestCase):
             ), patch("scripts.verify_ruleshift.PRIVATE_MANIFEST_PATH", manifest_path):
                 verify_split("private")
 
+    def test_verify_private_surfaces_legacy_private_artifacts(self) -> None:
+        legacy_rows = [
+            {
+                "episode_id": "0001",
+                "inference": {"prompt": "legacy prompt"},
+                "scoring": {"probe_targets": ["type_a", "type_b", "type_a", "type_b"]},
+                "analysis": {
+                    "group_id": "simple",
+                    "rule_id": "r1_gt_r2",
+                    "shortcut_type": "rule_shortcut",
+                    "shortcut_rule_id": "r1_positive",
+                },
+            }
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            private_rows_path = Path(tmpdir) / "private_rows.json"
+            private_rows_path.write_text(json.dumps(legacy_rows), encoding="utf-8")
+
+            with patch("scripts.verify_ruleshift.PRIVATE_ROWS_PATH", private_rows_path):
+                with self.assertRaisesRegex(RuntimeError, "legacy RuleShift v1 private artifacts"):
+                    verify_split("private")
+
     def test_previous_rule_baseline_is_bounded_by_design(self) -> None:
         score = run_previous_rule_baseline(self.public_rows)
         self.assertEqual(score[1], 320)

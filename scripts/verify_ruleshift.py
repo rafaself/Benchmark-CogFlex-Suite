@@ -54,6 +54,24 @@ PROBE_LINE_RE = re.compile(
 )
 
 
+def detect_legacy_rows(rows: list[dict[str, object]]) -> str | None:
+    if not rows:
+        return None
+    row = rows[0]
+    inference = row.get("inference")
+    analysis = row.get("analysis")
+    if not isinstance(inference, dict) or not isinstance(analysis, dict):
+        return None
+    if "prompt" in inference and {"rule_id", "shortcut_type"} <= set(analysis):
+        return (
+            "detected legacy RuleShift v1 private artifacts at "
+            f"{PRIVATE_ROWS_PATH}. The file still uses inference.prompt and v1 analysis keys. "
+            "Regenerate the private split with scripts/build_ruleshift_dataset.py after creating "
+            "kaggle/dataset/private/private_split_manifest.json, or replace the stale private artifacts."
+        )
+    return None
+
+
 def dataset_path(split: str) -> Path:
     return PUBLIC_ROWS_PATH if split == "public" else PRIVATE_ROWS_PATH
 
@@ -442,6 +460,10 @@ def run_context_agnostic_baseline(rows: list[dict[str, object]]) -> tuple[int, i
 
 def verify_split(split: str) -> None:
     rows = load_rows(split)
+    if split == "private":
+        legacy_message = detect_legacy_rows(rows)
+        if legacy_message is not None:
+            raise RuntimeError(legacy_message)
     schema_summary = verify_schema(rows, split)
     answer_key_summary: dict[str, dict[str, int] | int] = {}
 
