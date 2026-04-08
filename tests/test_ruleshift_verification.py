@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -7,23 +9,21 @@ from unittest.mock import patch
 from scripts.build_ruleshift_dataset import build_split, private_answer_key_payload, sanitize_private_rows
 from scripts.verify_ruleshift import (
     attach_private_scoring,
-    run_context_agnostic_baseline,
-    run_previous_rule_baseline,
+    verify_private_answer_key,
     verify_split,
     verify_split_isolation,
 )
 
 
-class RuleshiftVerificationTests(unittest.TestCase):
+class CogflexVerificationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.public_rows, _ = build_split("public", variants_per_rule=1)
+        cls.public_rows, cls.public_answers = build_split("public", variants_per_family=2)
         for row in cls.public_rows:
             row.pop("split", None)
         private_rows, private_answers = build_split(
             "private",
-            variants_per_rule=5,
-            variant_start=1,
+            variants_per_family=10,
             private_seed="verification-test-private-seed",
         )
         cls.valid_private_rows = sanitize_private_rows(private_rows)
@@ -33,20 +33,7 @@ class RuleshiftVerificationTests(unittest.TestCase):
         public_rows = [json.loads(json.dumps(self.public_rows[0]))]
         private_rows = [json.loads(json.dumps(self.public_rows[0]))]
         private_rows[0]["episode_id"] = "9001"
-        private_rows[0]["scoring"]["final_probe_targets"] = tuple(private_rows[0]["scoring"]["final_probe_targets"])
-        public_rows[0]["scoring"]["final_probe_targets"] = tuple(public_rows[0]["scoring"]["final_probe_targets"])
-
         with self.assertRaisesRegex(RuntimeError, "split isolation violated"):
-            verify_split_isolation(public_rows, private_rows)
-
-    def test_verify_split_isolation_rejects_family_overlap(self) -> None:
-        public_rows = [json.loads(json.dumps(self.public_rows[0]))]
-        private_rows = [json.loads(json.dumps(self.public_rows[1]))]
-        public_rows[0]["scoring"]["final_probe_targets"] = tuple(public_rows[0]["scoring"]["final_probe_targets"])
-        private_rows[0]["scoring"]["final_probe_targets"] = tuple(private_rows[0]["scoring"]["final_probe_targets"])
-        private_rows[0]["analysis"]["transition_family_id"] = public_rows[0]["analysis"]["transition_family_id"]
-
-        with self.assertRaisesRegex(RuntimeError, "transition families overlap"):
             verify_split_isolation(public_rows, private_rows)
 
     def test_attach_private_scoring_accepts_inference_only_rows(self) -> None:
@@ -75,7 +62,7 @@ class RuleshiftVerificationTests(unittest.TestCase):
 
     def test_verify_private_rejects_answer_key_mismatch(self) -> None:
         answer_key = json.loads(json.dumps(self.valid_private_answer_key))
-        answer_key["episodes"][0]["transition_family_id"] = "private::transition::mismatch"
+        answer_key["episodes"][0]["difficulty_bin"] = "mismatch"
 
         with tempfile.TemporaryDirectory() as tmpdir:
             private_rows_path = Path(tmpdir) / "private_rows.json"
@@ -86,11 +73,11 @@ class RuleshiftVerificationTests(unittest.TestCase):
             with patch("scripts.verify_ruleshift.PRIVATE_ROWS_PATH", private_rows_path), patch(
                 "scripts.verify_ruleshift.PRIVATE_ANSWER_KEY_PATH", answer_key_path
             ):
-                with self.assertRaisesRegex(RuntimeError, "transition_family_id mismatch"):
-                    verify_split("private")
+                with self.assertRaisesRegex(RuntimeError, "difficulty_bin mismatch"):
+                    verify_private_answer_key(answer_key, self.valid_private_rows)
 
     def test_verify_private_accepts_inference_only_rows_with_external_answer_key(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir, contextlib.redirect_stdout(io.StringIO()):
             private_rows_path = Path(tmpdir) / "private_rows.json"
             answer_key_path = Path(tmpdir) / "private_answer_key.json"
             manifest_path = Path(tmpdir) / "private_split_manifest.json"
@@ -108,12 +95,9 @@ class RuleshiftVerificationTests(unittest.TestCase):
             {
                 "episode_id": "0001",
                 "inference": {"prompt": "legacy prompt"},
-                "scoring": {"probe_targets": ["type_a", "type_b", "type_a", "type_b"]},
                 "analysis": {
-                    "group_id": "simple",
-                    "rule_id": "r1_gt_r2",
-                    "shortcut_type": "rule_shortcut",
-                    "shortcut_rule_id": "r1_positive",
+                    "faculty_id": "executive_functions/cognitive_flexibility",
+                    "group_id": "old_shape",
                 },
             }
         ]
@@ -122,15 +106,12 @@ class RuleshiftVerificationTests(unittest.TestCase):
             private_rows_path.write_text(json.dumps(legacy_rows), encoding="utf-8")
 
             with patch("scripts.verify_ruleshift.PRIVATE_ROWS_PATH", private_rows_path):
-                with self.assertRaisesRegex(RuntimeError, "legacy RuleShift v1 private artifacts"):
+                with self.assertRaisesRegex(RuntimeError, "legacy RuleShift artifacts"):
                     verify_split("private")
 
-    def test_previous_rule_baseline_is_bounded_by_design(self) -> None:
-        score = run_previous_rule_baseline(self.public_rows)
-        self.assertEqual(score[1], 320)
-        self.assertLess(score[0], 320)
-
-    def test_context_agnostic_baseline_only_scores_context_switch_rows(self) -> None:
-        score = run_context_agnostic_baseline(self.public_rows)
-        self.assertEqual(score[1], 80)
-        self.assertLessEqual(score[0], 40)
+    def test_verify_public_reports_symbolic_baseline_summary(self) -> None:
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            verify_split("public")
+        payload = json.loads(stdout.getvalue())
+        self.assertIn("symbolic_baseline", payload)
+        self.assertIn("suite_task_counts", payload)

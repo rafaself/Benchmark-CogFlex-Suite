@@ -90,7 +90,7 @@ def load_notebook_namespace() -> dict[str, object]:
             "ROWS_PATH": PUBLIC_ROWS_PATH,
             "EXPECTED_PUBLIC_EPISODE_COUNT": 80,
             "EXPECTED_PRIVATE_EPISODE_COUNT": 400,
-            "EXPECTED_EPISODES_PER_GROUP": {"public": 20, "private": 100},
+            "EXPECTED_EPISODES_PER_TASK": {"public": 20, "private": 100},
             "PRIVATE_ANSWER_KEY_PATH_ENV_VAR": "RULESHIFT_PRIVATE_ANSWER_KEY_PATH",
             "PRIVATE_ANSWER_KEY_PATH": None,
         }
@@ -110,7 +110,28 @@ class FakeLLM:
         return self.final_response
 
 
-class RuleshiftNotebookRuntimeTests(unittest.TestCase):
+class FakeRuns:
+    def __init__(self, results: list[dict[str, object]]) -> None:
+        self._results = results
+
+    def __bool__(self) -> bool:
+        return True
+
+    def as_dataframe(self):
+        class _ResultFrame:
+            def __init__(self, results):
+                self.result = results
+
+            def reset_index(self, drop: bool = True):
+                return self
+
+            def __len__(self):
+                return len(self.result)
+
+        return _ResultFrame(self._results)
+
+
+class CogflexNotebookRuntimeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.bootstrap_namespace = load_bootstrap_namespace()
@@ -118,8 +139,7 @@ class RuleshiftNotebookRuntimeTests(unittest.TestCase):
         cls.rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
         private_rows, private_answers = build_split(
             "private",
-            variants_per_rule=5,
-            variant_start=1,
+            variants_per_family=10,
             private_seed="notebook-test-private-seed",
         )
         cls.private_rows = sanitize_private_rows(private_rows)
@@ -130,6 +150,10 @@ class RuleshiftNotebookRuntimeTests(unittest.TestCase):
             loaded_rows = self.namespace["_load_rows"](PUBLIC_ROWS_PATH)
         self.assertEqual(len(loaded_rows), 80)
         self.assertEqual(len(loaded_rows[0]["inference"]["turns"]), 3)
+        self.assertEqual(
+            sorted(loaded_rows[0]["analysis"]),
+            ["difficulty_bin", "faculty_id", "shift_mode", "suite_task_id"],
+        )
 
     def test_runtime_score_cell_uses_plain_dict_return_type_for_kbench_task(self) -> None:
         code_cells = _load_code_cells()
@@ -142,11 +166,11 @@ class RuleshiftNotebookRuntimeTests(unittest.TestCase):
     def test_bootstrap_uses_expected_kaggle_dataset_roots(self) -> None:
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_DATASET_ROOT"],
-            Path("/kaggle/input/datasets/raptorengineer/ruleshift-cogflex-runtime"),
+            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime"),
         )
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
-            Path("/kaggle/input/datasets/raptorengineer/ruleshift-cogflex-runtime-private"),
+            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-private"),
         )
 
     def test_load_rows_accepts_private_inference_only_split(self) -> None:
@@ -207,3 +231,31 @@ class RuleshiftNotebookRuntimeTests(unittest.TestCase):
     def test_normalize_binary_response_accepts_plain_text(self) -> None:
         normalized = self.namespace["normalize_binary_response"]("type_a, type_b\ntype_a, type_b")
         self.assertEqual(normalized, ("type_a", "type_b", "type_a", "type_b"))
+
+    def test_suite_summary_uses_macro_average(self) -> None:
+        code_cells = _load_code_cells()
+        namespace = dict(self.namespace)
+        exec(code_cells["cell-task"], namespace)
+        rows = [
+            {"analysis": {"suite_task_id": "explicit_rule_update", "shift_mode": "explicit_instruction", "difficulty_bin": "hard"}},
+            {"analysis": {"suite_task_id": "latent_rule_update", "shift_mode": "latent_example_change", "difficulty_bin": "hard"}},
+            {"analysis": {"suite_task_id": "context_binding", "shift_mode": "context_gate", "difficulty_bin": "medium"}},
+            {"analysis": {"suite_task_id": "trial_cued_switch", "shift_mode": "cue_switching", "difficulty_bin": "medium"}},
+        ]
+        runs = FakeRuns(
+            [
+                {"numerator": 4, "denominator": 4, "predictions": ["type_a"] * 4},
+                {"numerator": 2, "denominator": 4, "predictions": ["type_a"] * 4},
+                {"numerator": 4, "denominator": 4, "predictions": ["type_a"] * 4},
+                {"numerator": 0, "denominator": 4, "predictions": ["type_a"] * 4},
+            ]
+        )
+        summary = namespace["summarize_suite_benchmark"](runs, rows)
+        self.assertAlmostEqual(summary["micro_accuracy"], 0.625)
+        self.assertAlmostEqual(summary["macro_accuracy"], 0.625)
+        self.assertEqual(set(summary["per_task_accuracy"]), {
+            "explicit_rule_update",
+            "latent_rule_update",
+            "context_binding",
+            "trial_cued_switch",
+        })

@@ -1,12 +1,12 @@
-# RuleShift CogFlex Benchmark
+# CogFlex Suite Benchmark
 
-Minimal Kaggle benchmark project for a targeted executive-functions task:
+Kaggle-oriented benchmark project for a targeted executive-functions suite:
 
 - faculty: `executive_functions/cognitive_flexibility`
-- benchmark form: multi-turn dataset evaluation
-- official task name: `ruleshift_cogflex_binary`
+- benchmark form: multi-turn suite evaluation
+- official task name: `cogflex_suite_binary`
 
-This repository keeps the original Kaggle-oriented structure, but replaces the old single-turn RuleShift task with a three-turn cognitive-flexibility benchmark focused on switching between active classification rules.
+This repository replaces the old single RuleShift microbenchmark with a four-task cognitive-flexibility suite designed to be harder to game with simple symbolic shortcuts while keeping the same dataset and notebook publishing workflow.
 
 ## Repository Layout
 
@@ -37,55 +37,56 @@ tests/
 Makefile
 ```
 
-## Benchmark Shape
+## Suite Shape
 
 Each scored episode contains:
 
-1. `learn_turn`: 4 labeled examples for the initial rule
-2. `shift_turn`: 4 labeled examples for the shifted rule regime
+1. `learn_turn`: 4 labeled examples for the current rule
+2. `shift_turn`: 4 labeled examples after a task-specific shift
 3. `decision_turn`: 4 probes scored only on the final turn
 
-Public and private rows share the same schema:
+Published public and private rows share the same analysis schema:
 
-- `inference.turns`: exactly 3 user turns
-- `analysis.faculty_id`: always `executive_functions/cognitive_flexibility`
-- `analysis.group_id`: one of `explicit_switch`, `reversal`, `latent_switch`, `context_switch`
-- `analysis.transition_family_id`
-- `analysis.initial_rule_id`
-- `analysis.shift_rule_id`
+- `analysis.faculty_id`
+- `analysis.suite_task_id`
 - `analysis.shift_mode`
+- `analysis.difficulty_bin`
 
 Public rows include `scoring.final_probe_targets`.
 
 Private rows are inference-only. Private scoring is attached locally from `kaggle/dataset/private/private_answer_key.json`.
 
-## Groups
+## Suite Tasks
 
-- `explicit_switch`: turn 2 explicitly says the active rule changed
-- `reversal`: the condition stays fixed but the label mapping flips
-- `latent_switch`: turn 2 changes the rule without explicit switch language
-- `context_switch`: turns 1 and 2 teach context-bound rules; turn 3 mixes contexts
+- `explicit_rule_update`: turn 2 explicitly states that the rule changed
+- `latent_rule_update`: turn 2 changes the rule without explicit switch language
+- `context_binding`: turn 1 teaches `context=alpha`, turn 2 teaches `context=beta`, turn 3 mixes contexts
+- `trial_cued_switch`: turn 2 introduces a cue legend that selects either the original rule or an alternate rule
 
-The generator enforces adversarial probe constraints:
+The generator enforces stronger acceptance checks than the prior benchmark:
 
-- `explicit_switch`, `reversal`, `latent_switch`: following the previous rule scores at most `1/4`
-- `context_switch`: using one rule across all probes scores at most `2/4`
+- `explicit_rule_update` and `latent_rule_update`: previous-rule accuracy must stay at or below `1/4`
+- `context_binding` and `trial_cued_switch`: one-rule or cue-agnostic accuracy must stay at or below `2/4`
+- every episode must keep the symbolic version-space majority baseline at or below `3/4`
+- every split must keep symbolic-majority micro accuracy at or below `0.65`
+- every suite task must keep symbolic-majority accuracy at or below `0.70`
 
 ## Split Design
 
-- Public split: 80 rows, 20 per group
-- Private split: 400 rows, 100 per group
-- Public/private splits use disjoint `transition_family_id` values
-- Private rows are regenerated from a maintainer-only manifest seed
+- Public split: 80 rows, 20 per suite task
+- Private split: 400 rows, 100 per suite task
+- Public rows are generated only from held-in rule families: axis-threshold, sign, parity, and max/min simple predicates
+- Private rows are generated only from held-out rule families: linear, relational, and absolute-value comparisons
+- Public/private validation checks semantic disjointness, rule-template isolation, and cue-template isolation
 
 The public split is tracked in the repository. The private split remains local-only and is expected under `kaggle/dataset/private/`.
 
 ## Local Usage
 
-Open the notebook locally:
+Run the repo test suite:
 
 ```bash
-make notelab
+make test
 ```
 
 Verify the tracked public split:
@@ -150,26 +151,26 @@ make deploy-notebook
 Public dataset:
 
 ```text
-raptorengineer/ruleshift-cogflex-runtime
+raptorengineer/cogflex-suite-runtime
 ```
 
 Private dataset:
 
 ```text
-raptorengineer/ruleshift-cogflex-runtime-private
+raptorengineer/cogflex-suite-runtime-private
 ```
 
 Notebook:
 
 ```text
-raptorengineer/ruleshift-cogflex-notebook
+raptorengineer/cogflex-suite-notebook
 ```
 
 ## Notes
 
 - The notebook is the source of truth for the Kaggle runtime contract.
-- The verifier checks row counts, turn counts, final probe counts, family disjointness, semantic split isolation, and baseline behavior.
-- Local verification reports deterministic non-LLM baselines: oracle, invalid response, previous-rule heuristic, majority-label heuristic, and context-agnostic heuristic.
+- The verifier checks schema, reproducibility, split isolation, label balance, difficulty bins, and stronger symbolic baselines.
+- Public/private published rows intentionally omit answer-relevant latent rule identifiers.
 - Human-baseline collection is intentionally out of scope for this repository revision.
 
 ## References

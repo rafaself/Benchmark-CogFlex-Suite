@@ -1,6 +1,6 @@
 {
-  "id": "raptorengineer/ruleshift-cogflex-notebook",
-  "title": "RuleShift CogFlex Notebook",
+  "id": "raptorengineer/cogflex-suite-notebook",
+  "title": "CogFlex Suite Notebook",
   "code_file": "ruleshift_notebook_task.ipynb",
   "language": "python",
   "kernel_type": "notebook",
@@ -9,8 +9,8 @@
   "enable_tpu": false,
   "enable_internet": false,
   "dataset_sources": [
-    "raptorengineer/ruleshift-cogflex-runtime",
-    "raptorengineer/ruleshift-cogflex-runtime-private"
+    "raptorengineer/cogflex-suite-runtime",
+    "raptorengineer/cogflex-suite-runtime-private"
   ],
   "competition_sources": [],
   "kernel_sources": []

@@ -10,7 +10,7 @@ KAGGLE_BIN="${KAGGLE_BIN:-$DEFAULT_KAGGLE_BIN}"
 KAGGLE_TMP_HOME="$(mktemp -d)"
 KAGGLE_TMPDIR="$KAGGLE_TMP_HOME/tmp"
 STAGING_DIR="$(mktemp -d)"
-LEGACY_NOTEBOOK_ID="${LEGACY_NOTEBOOK_ID:-raptorengineer/ruleshift-cogflex-notebook-v2}"
+LEGACY_NOTEBOOK_ID="${LEGACY_NOTEBOOK_ID:-raptorengineer/cogflex-suite-notebook-v2}"
 
 cleanup() {
   rm -rf "$KAGGLE_TMP_HOME" "$STAGING_DIR"
@@ -93,7 +93,7 @@ fi
 cat "$OUTPUT_LOG"
 
 echo "Retrying notebook push with canonical slug." >&2
-update_kernel_id "$STAGING_DIR/kernel-metadata.json" "raptorengineer/ruleshift-cogflex-notebook"
+update_kernel_id "$STAGING_DIR/kernel-metadata.json" "raptorengineer/cogflex-suite-notebook"
 if ! run_kernel_push "$STAGING_DIR" "$OUTPUT_LOG"; then
   cat "$OUTPUT_LOG" >&2
   exit 1

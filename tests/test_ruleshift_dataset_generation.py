@@ -5,8 +5,11 @@ from collections import Counter
 from pathlib import Path
 
 from scripts.build_ruleshift_dataset import (
+    NOTEBOOK_ID,
     PRIVATE_DATASET_ID,
     PUBLIC_DATASET_ID,
+    SUITE_TASKS,
+    TASK_NAME,
     build_private_artifacts,
     build_split,
     dataset_metadata,
@@ -23,17 +26,16 @@ MAKEFILE_PATH = ROOT / "Makefile"
 README_PATH = ROOT / "README.md"
 
 
-class RuleshiftDatasetGenerationTests(unittest.TestCase):
+class CogflexDatasetGenerationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.generated_public_rows, cls.public_answers = build_split("public", variants_per_rule=1)
+        cls.generated_public_rows, cls.public_answers = build_split("public", variants_per_family=2)
         for row in cls.generated_public_rows:
             row.pop("split", None)
         cls.tracked_public_rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
         cls.generated_private_rows, cls.private_answers = build_split(
             "private",
-            variants_per_rule=5,
-            variant_start=1,
+            variants_per_family=10,
             private_seed="unit-test-private-seed",
         )
         cls.sanitized_private_rows = sanitize_private_rows(cls.generated_private_rows)
@@ -42,77 +44,65 @@ class RuleshiftDatasetGenerationTests(unittest.TestCase):
     def test_generated_public_split_matches_tracked_public_rows(self) -> None:
         self.assertEqual(self.generated_public_rows, self.tracked_public_rows)
 
-    def test_generated_public_split_has_expected_multi_turn_shape(self) -> None:
+    def test_generated_public_split_has_expected_suite_shape(self) -> None:
         row = self.generated_public_rows[0]
         self.assertEqual(len(row["inference"]["turns"]), 3)
         self.assertEqual(len(row["scoring"]["final_probe_targets"]), 4)
         self.assertEqual(
             sorted(row["analysis"]),
-            [
-                "faculty_id",
-                "group_id",
-                "initial_rule_id",
-                "shift_mode",
-                "shift_rule_id",
-                "transition_family_id",
-            ],
+            ["difficulty_bin", "faculty_id", "shift_mode", "suite_task_id"],
         )
+        self.assertNotIn("initial_rule_id", row["analysis"])
+        self.assertNotIn("shift_rule_id", row["analysis"])
 
     def test_generated_private_split_has_expected_counts(self) -> None:
         self.assertEqual(len(self.sanitized_private_rows), 400)
-        counts = Counter(row["analysis"]["group_id"] for row in self.sanitized_private_rows)
-        self.assertEqual(
-            counts,
-            Counter(
-                {
-                    "explicit_switch": 100,
-                    "reversal": 100,
-                    "latent_switch": 100,
-                    "context_switch": 100,
-                }
-            ),
-        )
+        task_counts = Counter(row["analysis"]["suite_task_id"] for row in self.sanitized_private_rows)
+        self.assertEqual(task_counts, Counter({suite_task_id: 100 for suite_task_id in SUITE_TASKS}))
+        difficulty_counts = Counter(row["analysis"]["difficulty_bin"] for row in self.sanitized_private_rows)
+        self.assertEqual(difficulty_counts, Counter({"hard": 200, "medium": 200}))
 
     def test_generated_private_split_has_no_semantic_duplicates(self) -> None:
         signatures = {episode_signature(answer) for answer in self.private_answers}
         self.assertEqual(len(signatures), len(self.private_answers))
 
-    def test_generated_private_rows_do_not_expose_scoring(self) -> None:
-        self.assertNotIn("scoring", self.sanitized_private_rows[0])
-        self.assertEqual(len(self.sanitized_private_rows[0]["inference"]["turns"]), 3)
+    def test_generated_private_rows_do_not_expose_scoring_or_latent_metadata(self) -> None:
+        row = self.sanitized_private_rows[0]
+        self.assertNotIn("scoring", row)
+        self.assertEqual(
+            sorted(row["analysis"]),
+            ["difficulty_bin", "faculty_id", "shift_mode", "suite_task_id"],
+        )
 
-    def test_private_answer_key_contains_turns_and_final_probe_targets(self) -> None:
-        episodes = self.private_answer_key["episodes"]
-        self.assertEqual(len(episodes), 400)
-        self.assertEqual(len(episodes[0]["turns"]), 3)
-        self.assertEqual(len(episodes[0]["final_probe_targets"]), 4)
+    def test_private_answer_key_contains_latent_metadata(self) -> None:
+        episode = self.private_answer_key["episodes"][0]
+        self.assertIn("initial_rule_id", episode)
+        self.assertIn("shift_rule_id", episode)
+        self.assertIn("cue_template_id", episode)
+        self.assertIn("generator_diagnostics", episode)
+        self.assertEqual(len(episode["final_probe_targets"]), 4)
 
     def test_generated_public_and_private_splits_are_disjoint(self) -> None:
         public_signatures = {episode_signature(answer) for answer in self.public_answers}
         private_signatures = {episode_signature(answer) for answer in self.private_answers}
         self.assertFalse(public_signatures & private_signatures)
 
-    def test_generated_public_and_private_transition_families_are_disjoint(self) -> None:
-        public_families = {answer["transition_family_id"] for answer in self.public_answers}
-        private_families = {answer["transition_family_id"] for answer in self.private_answers}
-        self.assertFalse(public_families & private_families)
-
     def test_public_dataset_metadata_payload_matches_expected_id(self) -> None:
         self.assertEqual(
-            dataset_metadata(PUBLIC_DATASET_ID, "RuleShift CogFlex Runtime"),
+            dataset_metadata(PUBLIC_DATASET_ID, "CogFlex Suite Runtime"),
             {
-                "id": "raptorengineer/ruleshift-cogflex-runtime",
-                "title": "RuleShift CogFlex Runtime",
+                "id": "raptorengineer/cogflex-suite-runtime",
+                "title": "CogFlex Suite Runtime",
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
 
     def test_private_dataset_metadata_payload_matches_expected_id(self) -> None:
         self.assertEqual(
-            dataset_metadata(PRIVATE_DATASET_ID, "RuleShift CogFlex Runtime Private"),
+            dataset_metadata(PRIVATE_DATASET_ID, "CogFlex Suite Runtime Private"),
             {
-                "id": "raptorengineer/ruleshift-cogflex-runtime-private",
-                "title": "RuleShift CogFlex Runtime Private",
+                "id": "raptorengineer/cogflex-suite-runtime-private",
+                "title": "CogFlex Suite Runtime Private",
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
@@ -123,25 +113,26 @@ class RuleshiftDatasetGenerationTests(unittest.TestCase):
             with self.assertRaisesRegex(FileNotFoundError, "Missing private split manifest"):
                 build_private_artifacts(missing_manifest)
 
-    def test_makefile_uses_module_verifier_entrypoint(self) -> None:
+    def test_makefile_exposes_test_and_verifier_targets(self) -> None:
         makefile = MAKEFILE_PATH.read_text(encoding="utf-8")
+        self.assertIn(".venv/bin/python -m unittest discover -s tests -q", makefile)
         self.assertIn(".venv/bin/python -m scripts.verify_ruleshift --split public", makefile)
         self.assertIn(".venv/bin/python -m scripts.verify_ruleshift --split private", makefile)
 
     def test_kernel_metadata_matches_canonical_assets(self) -> None:
         metadata = json.loads(KERNEL_METADATA_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(metadata["id"], "raptorengineer/ruleshift-cogflex-notebook")
+        self.assertEqual(metadata["id"], NOTEBOOK_ID)
         self.assertEqual(
             metadata["dataset_sources"],
             [
-                "raptorengineer/ruleshift-cogflex-runtime",
-                "raptorengineer/ruleshift-cogflex-runtime-private",
+                "raptorengineer/cogflex-suite-runtime",
+                "raptorengineer/cogflex-suite-runtime-private",
             ],
         )
 
     def test_readme_references_new_task_and_assets(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")
-        self.assertIn("ruleshift_cogflex_binary", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-runtime", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-runtime-private", readme)
-        self.assertIn("raptorengineer/ruleshift-cogflex-notebook", readme)
+        self.assertIn(TASK_NAME, readme)
+        self.assertIn("raptorengineer/cogflex-suite-runtime", readme)
+        self.assertIn("raptorengineer/cogflex-suite-runtime-private", readme)
+        self.assertIn("raptorengineer/cogflex-suite-notebook", readme)
