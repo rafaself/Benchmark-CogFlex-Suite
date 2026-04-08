@@ -4,13 +4,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
-DATASET_DIR="$ROOT_DIR/kaggle/dataset/private"
-METADATA_FILE="$DATASET_DIR/dataset-metadata.json"
-ROWS_FILE="$DATASET_DIR/private_leaderboard_rows.json"
 DEFAULT_KAGGLE_BIN="$ROOT_DIR/.venv/bin/kaggle"
 KAGGLE_BIN="${KAGGLE_BIN:-$DEFAULT_KAGGLE_BIN}"
 KAGGLE_TMP_HOME="$(mktemp -d)"
 KAGGLE_TMPDIR="$KAGGLE_TMP_HOME/tmp"
+PRIVATE_BUNDLE_DIR="${COGFLEX_PRIVATE_BUNDLE_DIR:-}"
+ROWS_FILE="private_leaderboard_rows.json"
+ANSWER_KEY_FILE="private_answer_key.json"
+MANIFEST_FILE="private_release_manifest.json"
+QUALITY_FILE="private_quality_report.json"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing .env file at $ENV_FILE" >&2
@@ -31,13 +33,8 @@ if [[ -z "${KAGGLE_API_TOKEN:-}" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$METADATA_FILE" ]]; then
-  echo "Missing private dataset metadata at $METADATA_FILE. Run scripts/build_ruleshift_dataset.py first." >&2
-  exit 1
-fi
-
-if [[ ! -f "$ROWS_FILE" ]]; then
-  echo "Missing private leaderboard rows at $ROWS_FILE. Run scripts/build_ruleshift_dataset.py first." >&2
+if [[ -z "$PRIVATE_BUNDLE_DIR" ]]; then
+  echo "Missing COGFLEX_PRIVATE_BUNDLE_DIR. Point it at a private bundle directory." >&2
   exit 1
 fi
 
@@ -50,8 +47,33 @@ cleanup() {
 
 trap cleanup EXIT
 
-cp "$METADATA_FILE" "$STAGING_DIR/dataset-metadata.json"
-cp "$ROWS_FILE" "$STAGING_DIR/private_leaderboard_rows.json"
+if [[ ! -d "$PRIVATE_BUNDLE_DIR" ]]; then
+  echo "Private bundle directory does not exist: $PRIVATE_BUNDLE_DIR" >&2
+  exit 1
+fi
+
+for required_file in "$ROWS_FILE" "$ANSWER_KEY_FILE" "$MANIFEST_FILE" "$QUALITY_FILE"; do
+  if [[ ! -f "$PRIVATE_BUNDLE_DIR/$required_file" ]]; then
+    echo "Missing required private bundle file: $PRIVATE_BUNDLE_DIR/$required_file" >&2
+    exit 1
+  fi
+done
+
+cp "$PRIVATE_BUNDLE_DIR/$ROWS_FILE" "$STAGING_DIR/$ROWS_FILE"
+cp "$PRIVATE_BUNDLE_DIR/$ANSWER_KEY_FILE" "$STAGING_DIR/$ANSWER_KEY_FILE"
+cp "$PRIVATE_BUNDLE_DIR/$MANIFEST_FILE" "$STAGING_DIR/$MANIFEST_FILE"
+cp "$PRIVATE_BUNDLE_DIR/$QUALITY_FILE" "$STAGING_DIR/$QUALITY_FILE"
+cat >"$STAGING_DIR/dataset-metadata.json" <<'JSON'
+{
+  "id": "raptorengineer/cogflex-suite-runtime-private",
+  "title": "CogFlex Suite Runtime Private",
+  "licenses": [
+    {
+      "name": "CC0-1.0"
+    }
+  ]
+}
+JSON
 
 mkdir -p "$KAGGLE_TMP_HOME/.kaggle"
 mkdir -p "$KAGGLE_TMPDIR"

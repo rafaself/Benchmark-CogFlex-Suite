@@ -9,11 +9,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.build_ruleshift_dataset import build_split, private_answer_key_payload, sanitize_private_rows
+from cogflex_fixtures import public_fixture, write_private_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK_PATH = ROOT / "kaggle/notebook/ruleshift_notebook_task.ipynb"
+NOTEBOOK_PATH = ROOT / "kaggle/notebook/cogflex_notebook_task.ipynb"
 PUBLIC_ROWS_PATH = ROOT / "kaggle/dataset/public/public_leaderboard_rows.json"
 
 
@@ -62,10 +62,10 @@ def load_bootstrap_namespace() -> dict[str, object]:
         ), patch.dict(
             os.environ,
             {
-                "RULESHIFT_EVAL_SPLIT": "public",
-                "RULESHIFT_DATASET_ROOT": str(dataset_root),
-                "RULESHIFT_PRIVATE_DATASET_ROOT": "",
-                "RULESHIFT_PRIVATE_ANSWER_KEY_PATH": "",
+                "COGFLEX_EVAL_SPLIT": "public",
+                "COGFLEX_DATASET_ROOT": str(dataset_root),
+                "COGFLEX_PRIVATE_DATASET_ROOT": "",
+                "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
             },
             clear=False,
         ):
@@ -75,23 +75,41 @@ def load_bootstrap_namespace() -> dict[str, object]:
 
 def load_notebook_namespace() -> dict[str, object]:
     code_cells = _load_code_cells()
-    namespace: dict[str, object] = {"Path": Path, "kbench": _BenchStub(), "pd": None}
+    namespace: dict[str, object] = {
+        "Path": Path,
+        "kbench": _BenchStub(),
+        "pd": None,
+        "PROBE_COUNT": 8,
+        "TURN_COUNT": 3,
+        "FACULTY_ID": "executive_functions/cognitive_flexibility",
+        "TURN_HEADER_PREFIX": "CogFlex suite task. Episode ",
+        "OUTPUT_INSTRUCTION": "Return exactly 8 outputs in order, one per probe. Use only type_a or type_b.",
+        "ALLOWED_SUITE_TASKS": {
+            "explicit_rule_update",
+            "latent_rule_update",
+            "context_binding",
+            "trial_cued_switch",
+        },
+        "SUITE_SHIFT_MODES": {
+            "explicit_rule_update": "explicit_instruction",
+            "latent_rule_update": "latent_example_change",
+            "context_binding": "context_gate",
+            "trial_cued_switch": "cue_switching",
+        },
+    }
     exec(code_cells["cell-runtime-types"], namespace)
     exec(code_cells["cell-runtime-normalize"], namespace)
     exec(code_cells["cell-runtime-score"], namespace)
-    runtime_load_prefix = code_cells["cell-runtime-load"].split(
-        "leaderboard_rows = load_selected_rows()",
-        1,
-    )[0]
+    runtime_load_prefix = code_cells["cell-runtime-load"].split("leaderboard_rows = load_selected_rows()", 1)[0]
     exec(runtime_load_prefix, namespace)
     namespace.update(
         {
             "EVAL_SPLIT": "public",
             "ROWS_PATH": PUBLIC_ROWS_PATH,
-            "EXPECTED_PUBLIC_EPISODE_COUNT": 80,
-            "EXPECTED_PRIVATE_EPISODE_COUNT": 400,
-            "EXPECTED_EPISODES_PER_TASK": {"public": 20, "private": 100},
-            "PRIVATE_ANSWER_KEY_PATH_ENV_VAR": "RULESHIFT_PRIVATE_ANSWER_KEY_PATH",
+            "EXPECTED_PUBLIC_EPISODE_COUNT": 120,
+            "EXPECTED_PRIVATE_EPISODE_COUNT": 480,
+            "EXPECTED_EPISODES_PER_TASK": {"public": 30, "private": 120},
+            "PRIVATE_ANSWER_KEY_PATH_ENV_VAR": "COGFLEX_PRIVATE_ANSWER_KEY_PATH",
             "PRIVATE_ANSWER_KEY_PATH": None,
         }
     )
@@ -136,30 +154,28 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.bootstrap_namespace = load_bootstrap_namespace()
         cls.namespace = load_notebook_namespace()
-        cls.rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
-        private_rows, private_answers = build_split(
-            "private",
-            variants_per_family=10,
-            private_seed="notebook-test-private-seed",
-        )
-        cls.private_rows = sanitize_private_rows(private_rows)
-        cls.private_answer_key = private_answer_key_payload(private_answers)
+        cls.rows, _answers, _report = public_fixture()
 
     def test_load_rows_accepts_the_public_split(self) -> None:
         with contextlib.redirect_stdout(io.StringIO()):
             loaded_rows = self.namespace["_load_rows"](PUBLIC_ROWS_PATH)
-        self.assertEqual(len(loaded_rows), 80)
+        self.assertEqual(len(loaded_rows), 120)
         self.assertEqual(len(loaded_rows[0]["inference"]["turns"]), 3)
         self.assertEqual(
             sorted(loaded_rows[0]["analysis"]),
             ["difficulty_bin", "faculty_id", "shift_mode", "suite_task_id"],
         )
-        self.assertIn("shape=", loaded_rows[0]["inference"]["turns"][0])
-        self.assertIn("tone=", loaded_rows[0]["inference"]["turns"][0])
+        self.assertEqual(len(loaded_rows[0]["scoring"]["final_probe_targets"]), 8)
 
     def test_runtime_score_cell_uses_plain_dict_return_type_for_kbench_task(self) -> None:
         code_cells = _load_code_cells()
-        namespace: dict[str, object] = {"Path": Path, "kbench": _StrictBenchStub(), "pd": None}
+        namespace: dict[str, object] = {
+            "Path": Path,
+            "kbench": _StrictBenchStub(),
+            "pd": None,
+            "PROBE_COUNT": 8,
+            "TURN_COUNT": 3,
+        }
         exec(code_cells["cell-runtime-types"], namespace)
         exec(code_cells["cell-runtime-normalize"], namespace)
         exec(code_cells["cell-runtime-score"], namespace)
@@ -183,30 +199,35 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def test_load_rows_accepts_private_inference_only_split(self) -> None:
         self.namespace["EVAL_SPLIT"] = "private"
         with tempfile.TemporaryDirectory() as tmpdir, contextlib.redirect_stdout(io.StringIO()):
-            private_rows_path = Path(tmpdir) / "private_rows.json"
-            private_rows_path.write_text(json.dumps(self.private_rows), encoding="utf-8")
-            loaded_rows = self.namespace["_load_rows"](private_rows_path)
-        self.assertEqual(len(loaded_rows), 400)
+            bundle_dir = Path(tmpdir) / "bundle"
+            bundle_paths = write_private_bundle(bundle_dir)
+            loaded_rows = self.namespace["_load_rows"](bundle_paths["rows"])
+        self.assertEqual(len(loaded_rows), 480)
         self.assertNotIn("scoring", loaded_rows[0])
         self.namespace["EVAL_SPLIT"] = "public"
 
     def test_attach_private_scoring_joins_by_episode_id(self) -> None:
         self.namespace["EVAL_SPLIT"] = "private"
         with tempfile.TemporaryDirectory() as tmpdir:
-            answer_key_path = Path(tmpdir) / "private_answer_key.json"
-            answer_key_path.write_text(json.dumps(self.private_answer_key), encoding="utf-8")
-            self.namespace["PRIVATE_ANSWER_KEY_PATH"] = answer_key_path
-            attached_rows = self.namespace["_attach_private_scoring"](self.private_rows)
+            bundle_dir = Path(tmpdir) / "bundle"
+            bundle_paths = write_private_bundle(bundle_dir)
+            private_rows = self.namespace["_load_rows"](bundle_paths["rows"])
+            self.namespace["PRIVATE_ANSWER_KEY_PATH"] = bundle_paths["answer_key"]
+            attached_rows = self.namespace["_attach_private_scoring"](private_rows)
         self.assertIn("scoring", attached_rows[0])
-        self.assertEqual(len(attached_rows[0]["scoring"]["final_probe_targets"]), 4)
+        self.assertEqual(len(attached_rows[0]["scoring"]["final_probe_targets"]), 8)
         self.namespace["PRIVATE_ANSWER_KEY_PATH"] = None
         self.namespace["EVAL_SPLIT"] = "public"
 
     def test_attach_private_scoring_requires_external_answer_key(self) -> None:
         self.namespace["EVAL_SPLIT"] = "private"
         self.namespace["PRIVATE_ANSWER_KEY_PATH"] = None
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_dir = Path(tmpdir) / "bundle"
+            bundle_paths = write_private_bundle(bundle_dir)
+            private_rows = self.namespace["_load_rows"](bundle_paths["rows"])
         with self.assertRaisesRegex(RuntimeError, "Private split requires an external answer key"):
-            self.namespace["attach_selected_scoring"](self.private_rows)
+            self.namespace["attach_selected_scoring"](private_rows)
         self.namespace["EVAL_SPLIT"] = "public"
 
     def test_validate_row_rejects_missing_turn(self) -> None:
@@ -217,27 +238,33 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
 
     def test_run_binary_task_sends_first_two_turns_before_scored_turn(self) -> None:
         row = self.rows[0]
-        llm = FakeLLM({"probe_1": "type_b", "probe_2": "type_b", "probe_3": "type_a", "probe_4": "type_a"})
+        llm = FakeLLM(
+            {
+                **{f"probe_{index}": ("type_a" if index % 2 else "type_b") for index in range(1, 9)},
+            }
+        )
         result = self.namespace["run_binary_task"](llm, row["inference"]["turns"], tuple(row["scoring"]["final_probe_targets"]))
-        self.assertEqual(result["denominator"], 4)
-        self.assertIsInstance(result["predictions"], list)
-        self.assertEqual(len(result["predictions"]), 4)
+        self.assertEqual(result["denominator"], 8)
+        self.assertEqual(len(result["predictions"]), 8)
         self.assertEqual(len(llm.calls), 3)
         self.assertIsNone(llm.calls[0][1])
         self.assertIsNone(llm.calls[1][1])
         self.assertIs(self.namespace["BinaryResponse"], llm.calls[2][1])
 
     def test_score_episode_returns_json_safe_predictions(self) -> None:
-        result = self.namespace["score_episode"](
-            ("type_a", "type_b", "type_a", "type_b"),
-            ("type_a", "type_b", "type_a", "type_b"),
-        )
-        self.assertEqual(result["predictions"], ["type_a", "type_b", "type_a", "type_b"])
+        predictions = tuple("type_a" if index % 2 else "type_b" for index in range(1, 9))
+        result = self.namespace["score_episode"](predictions, predictions)
+        self.assertEqual(result["predictions"], list(predictions))
         self.assertIsInstance(result["predictions"], list)
 
     def test_normalize_binary_response_accepts_plain_text(self) -> None:
-        normalized = self.namespace["normalize_binary_response"]("type_a, type_b\ntype_a, type_b")
-        self.assertEqual(normalized, ("type_a", "type_b", "type_a", "type_b"))
+        normalized = self.namespace["normalize_binary_response"](
+            "type_a, type_b, type_a, type_b, type_a, type_b, type_a, type_b"
+        )
+        self.assertEqual(
+            normalized,
+            ("type_a", "type_b", "type_a", "type_b", "type_a", "type_b", "type_a", "type_b"),
+        )
 
     def test_suite_summary_uses_macro_average(self) -> None:
         code_cells = _load_code_cells()
@@ -251,18 +278,16 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         ]
         runs = FakeRuns(
             [
-                {"numerator": 4, "denominator": 4, "predictions": ["type_a"] * 4},
-                {"numerator": 2, "denominator": 4, "predictions": ["type_a"] * 4},
-                {"numerator": 4, "denominator": 4, "predictions": ["type_a"] * 4},
-                {"numerator": 0, "denominator": 4, "predictions": ["type_a"] * 4},
+                {"numerator": 8, "denominator": 8, "predictions": ["type_a"] * 8},
+                {"numerator": 4, "denominator": 8, "predictions": ["type_a"] * 8},
+                {"numerator": 8, "denominator": 8, "predictions": ["type_a"] * 8},
+                {"numerator": 0, "denominator": 8, "predictions": ["type_a"] * 8},
             ]
         )
         summary = namespace["summarize_suite_benchmark"](runs, rows)
         self.assertAlmostEqual(summary["micro_accuracy"], 0.625)
         self.assertAlmostEqual(summary["macro_accuracy"], 0.625)
-        self.assertEqual(set(summary["per_task_accuracy"]), {
-            "explicit_rule_update",
-            "latent_rule_update",
-            "context_binding",
-            "trial_cued_switch",
-        })
+        self.assertEqual(
+            set(summary["per_task_accuracy"]),
+            {"explicit_rule_update", "latent_rule_update", "context_binding", "trial_cued_switch"},
+        )

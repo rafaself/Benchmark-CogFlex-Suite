@@ -1,0 +1,101 @@
+{
+  "version": "cogflex_public_v1",
+  "task_name": "cogflex_suite_binary",
+  "split": "public",
+  "row_count": 120,
+  "episodes_per_task": 30,
+  "transition_family_count": 15,
+  "transition_family_usage": {
+    "public::pair::axis_r1_ge_-1__to__cross_shape_square_or_sum_ge_2": 8,
+    "public::pair::axis_r1_ge_-1__to__parity_r1_even": 8,
+    "public::pair::axis_r1_le_+1__to__cross_shape_square_or_sum_ge_2": 8,
+    "public::pair::axis_r1_le_+1__to__gate_shape_circle_then_sum_positive_else_diff_positive": 8,
+    "public::pair::axis_r2_ge_-1__to__rel_r1_ge_r2_plus_2": 8,
+    "public::pair::axis_r2_ge_-1__to__rel_r2_ge_r1_plus_2": 8,
+    "public::pair::axis_r2_le_+1__to__gate_shape_circle_then_sum_positive_else_diff_positive": 8,
+    "public::pair::axis_r2_le_+1__to__sign_r1_positive": 8,
+    "public::pair::cross_shape_circle_xor_tone_warm__to__parity_r1_even": 8,
+    "public::pair::cross_shape_circle_xor_tone_warm__to__rel_r1_ge_r2_plus_2": 8,
+    "public::pair::cross_shape_square_or_sum_ge_2__to__axis_r1_ge_-1": 8,
+    "public::pair::cross_shape_square_or_sum_ge_2__to__axis_r1_le_+1": 8,
+    "public::pair::cross_tone_matches_r1_sign__to__gate_tone_warm_then_r1_ge_1_else_r2_ge_1": 8,
+    "public::pair::cross_tone_matches_r1_sign__to__sign_r1_positive": 8,
+    "public::pair::cross_tone_matches_r2_sign__to__gate_tone_warm_then_r1_ge_1_else_r2_ge_1": 8
+  },
+  "disagreement_bin_counts": {
+    "high": 80,
+    "low": 40
+  },
+  "difficulty_bin_counts": {
+    "hard": 60,
+    "medium": 60
+  },
+  "cue_lexicon_ids": [
+    "public_cue_lexicon::0",
+    "public_cue_lexicon::1",
+    "public_cue_lexicon::2",
+    "public_cue_lexicon::3"
+  ],
+  "context_lexicon_ids": [
+    "public_context_lexicon::0",
+    "public_context_lexicon::1",
+    "public_context_lexicon::2",
+    "public_context_lexicon::3"
+  ],
+  "attack_suite": {
+    "previous_rule_accuracy": {
+      "micro_accuracy": 0.25,
+      "per_task_accuracy": {
+        "explicit_rule_update": 0.0,
+        "latent_rule_update": 0.0,
+        "context_binding": 0.5,
+        "trial_cued_switch": 0.5
+      }
+    },
+    "majority_label_accuracy": {
+      "micro_accuracy": 0.4656,
+      "per_task_accuracy": {
+        "explicit_rule_update": 0.4583,
+        "latent_rule_update": 0.45,
+        "context_binding": 0.4833,
+        "trial_cued_switch": 0.4708
+      }
+    },
+    "nearest_neighbor_accuracy": {
+      "micro_accuracy": 0.4125,
+      "per_task_accuracy": {
+        "explicit_rule_update": 0.4,
+        "latent_rule_update": 0.3083,
+        "context_binding": 0.475,
+        "trial_cued_switch": 0.4667
+      }
+    },
+    "cue_agnostic_accuracy": {
+      "micro_accuracy": 0.5,
+      "per_task_accuracy": {
+        "explicit_rule_update": null,
+        "latent_rule_update": null,
+        "context_binding": 0.5,
+        "trial_cued_switch": 0.5
+      }
+    },
+    "dsl_search_accuracy": {
+      "micro_accuracy": 0.5302,
+      "per_task_accuracy": {
+        "explicit_rule_update": 0.5083,
+        "latent_rule_update": 0.5042,
+        "context_binding": 0.5333,
+        "trial_cued_switch": 0.575
+      }
+    },
+    "public_retrieval_accuracy": {
+      "micro_accuracy": 0.5156,
+      "per_task_accuracy": {
+        "explicit_rule_update": 0.5333,
+        "latent_rule_update": 0.5375,
+        "context_binding": 0.4875,
+        "trial_cued_switch": 0.5042
+      }
+    }
+  }
+}

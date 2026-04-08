@@ -1,16 +1,16 @@
 .PHONY: notelab test verify-public verify-private deploy-dataset deploy-private-dataset deploy-notebook deploy-all
 
 notelab:
-	.venv/bin/jupyter lab --no-browser kaggle/notebook/ruleshift_notebook_task.ipynb
+	.venv/bin/jupyter lab --no-browser kaggle/notebook/cogflex_notebook_task.ipynb
 
 test:
 	.venv/bin/python -m unittest discover -s tests -q
 
 verify-public:
-	.venv/bin/python -m scripts.verify_ruleshift --split public
+	.venv/bin/python -m scripts.verify_cogflex --split public
 
 verify-private:
-	.venv/bin/python -m scripts.verify_ruleshift --split private
+	.venv/bin/python -m scripts.verify_cogflex --split private
 
 deploy-dataset:
 	./scripts/deploy_dataset.sh

@@ -1,7 +1,7 @@
 {
   "id": "raptorengineer/cogflex-suite-notebook",
   "title": "CogFlex Suite Notebook",
-  "code_file": "ruleshift_notebook_task.ipynb",
+  "code_file": "cogflex_notebook_task.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
