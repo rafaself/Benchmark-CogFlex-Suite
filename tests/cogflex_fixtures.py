@@ -1,85 +1,281 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 from scripts.build_cogflex_dataset import (
+    FACULTY_ID,
     PRIVATE_ANSWER_KEY_FILENAME,
+    PRIVATE_ANSWER_KEY_VERSION,
     PRIVATE_BUNDLE_VERSION,
     PRIVATE_QUALITY_REPORT_FILENAME,
     PRIVATE_QUALITY_REPORT_VERSION,
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     PRIVATE_ROWS_FILENAME,
+    REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
+    SHIFT_MODES,
+    SUITE_TASKS,
+    EpisodeStructure,
+    build_domain,
+    build_episode_payload,
     build_public_artifacts,
     compute_sha256,
+    enumerate_items,
+    make_three_label_rule,
+    make_two_label_rule,
+    sample_for_rule,
 )
+
+
+PRIVATE_DOMAIN = build_domain(
+    tuple(range(-9, 10)),
+    ("diamond", "pentagon", "kite", "oval"),
+    ("bright", "dim", "muted"),
+    extras={
+        "pattern": ("striped", "dotted", "grain"),
+        "channel": ("aurora", "signal", "hinge"),
+    },
+)
+
+PRIVATE_RULES = {
+    "orbit_anchor_signal": make_two_label_rule(
+        "orbit_anchor_signal",
+        "private_router",
+        ("orbit", "anchor"),
+        "orbit when channel=signal or r1>0",
+        lambda stimulus: str(stimulus["channel"]) == "signal" or int(stimulus["r1"]) > 0,
+    ),
+    "orbit_anchor_pattern": make_two_label_rule(
+        "orbit_anchor_pattern",
+        "private_router",
+        ("orbit", "anchor"),
+        "orbit when pattern is striped or r2 is even",
+        lambda stimulus: str(stimulus["pattern"]) == "striped" or int(stimulus["r2"]) % 2 == 0,
+    ),
+    "ember_mist_tide_band": make_three_label_rule(
+        "ember_mist_tide_band",
+        "private_tri_band",
+        ("ember", "mist", "tide"),
+        "band over r1-r2 with distractors",
+        lambda stimulus: (
+            "ember"
+            if int(stimulus["r1"]) - int(stimulus["r2"]) <= -4
+            else "tide"
+            if int(stimulus["r1"]) - int(stimulus["r2"]) >= 4
+            else "mist"
+        ),
+    ),
+    "ember_mist_tide_symbolic": make_three_label_rule(
+        "ember_mist_tide_symbolic",
+        "private_tri_band",
+        ("ember", "mist", "tide"),
+        "pattern/tone symbolic router",
+        lambda stimulus: (
+            "ember"
+            if str(stimulus["pattern"]) == "dotted"
+            else "tide"
+            if str(stimulus["tone"]) == "bright"
+            else "mist"
+        ),
+    ),
+}
+
+PRIVATE_STRUCTURES = {
+    "delayed_reversal": EpisodeStructure("delayed_reversal", (3, 2, 3), 5),
+    "irrelevant_feature_interference": EpisodeStructure("irrelevant_feature_interference", (4, 4), 6),
+    "competitive_rule_switch": EpisodeStructure("competitive_rule_switch", (3, 3, 3), 6),
+    "latent_rebinding": EpisodeStructure("latent_rebinding", (4, 2, 3), 5),
+    "variable_evidence_budget": EpisodeStructure("variable_evidence_budget", (2, 5), 7),
+}
 
 
 def public_fixture() -> tuple[list[dict[str, object]], list[dict[str, object]], dict[str, object]]:
     return build_public_artifacts()
 
 
-def _private_turns(turns: list[str], marker: str) -> list[str]:
-    adjusted: list[str] = []
-    for turn_index, turn in enumerate(turns, start=1):
-        parts = turn.split("\n\n", 2)
-        if len(parts) < 2:
-            adjusted.append(turn)
-            continue
-        header = parts[0]
-        body = "\n\n".join(parts[1:])
-        adjusted.append(f"{header}\n\nPrivate calibration marker {marker} turn_{turn_index}.\n\n{body}")
-    return adjusted
+def _private_row_summary(rows: list[dict[str, object]]) -> dict[str, object]:
+    difficulty_counts = Counter(str(row["analysis"]["difficulty_bin"]) for row in rows)
+    structure_counts = Counter(str(row["analysis"]["structure_family_id"]) for row in rows)
+    turn_counts = Counter(len(row["inference"]["turns"]) for row in rows)
+    probe_counts = Counter(int(row["inference"]["response_spec"]["probe_count"]) for row in rows)
+    label_vocab_sizes = Counter(len(row["inference"]["response_spec"]["label_vocab"]) for row in rows)
+    numeric_r1: list[int] = []
+    numeric_r2: list[int] = []
+    nominal_values: dict[str, set[str]] = {}
+    optional_keys: set[str] = set()
+    for row in rows:
+        for turn, spec in zip(row["inference"]["turns"], row["inference"]["turn_specs"], strict=True):
+            from scripts.build_cogflex_dataset import parse_turn_items
+
+            for item in parse_turn_items(turn, kind=str(spec["kind"])):
+                numeric_r1.append(int(item["r1"]))
+                numeric_r2.append(int(item["r2"]))
+                for key, value in item.items():
+                    if key in {"index", "label", "rule_id"}:
+                        continue
+                    if isinstance(value, str):
+                        nominal_values.setdefault(key, set()).add(value)
+                    if key not in {"r1", "r2", "shape", "tone"}:
+                        optional_keys.add(key)
+    return {
+        "difficulty_bin_counts": dict(sorted(difficulty_counts.items())),
+        "structure_family_counts": dict(sorted(structure_counts.items())),
+        "turn_count_distribution": {str(key): value for key, value in sorted(turn_counts.items())},
+        "probe_count_distribution": {str(key): value for key, value in sorted(probe_counts.items())},
+        "label_vocab_size_distribution": {str(key): value for key, value in sorted(label_vocab_sizes.items())},
+        "stimulus_space_summary": {
+            "numeric_range": {
+                "r1": {"min": min(numeric_r1), "max": max(numeric_r1)},
+                "r2": {"min": min(numeric_r2), "max": max(numeric_r2)},
+            },
+            "nominal_cardinality": {key: len(values) for key, values in sorted(nominal_values.items())},
+            "optional_field_keys": sorted(optional_keys),
+        },
+    }
+
+
+def _build_private_episode(
+    episode_id: str,
+    suite_task_id: str,
+    structure_family_id: str,
+    variant: int,
+) -> tuple[dict[str, object], dict[str, object]]:
+    import random
+
+    seed = variant * 97 + len(episode_id) * 11
+    rng = random.Random(seed)
+    structure = PRIVATE_STRUCTURES[structure_family_id]
+    if structure_family_id in {"delayed_reversal", "competitive_rule_switch", "variable_evidence_budget"}:
+        initial_rule = PRIVATE_RULES["orbit_anchor_signal"]
+        shift_rule = PRIVATE_RULES["orbit_anchor_pattern"]
+    else:
+        initial_rule = PRIVATE_RULES["ember_mist_tide_band"]
+        shift_rule = PRIVATE_RULES["ember_mist_tide_symbolic"]
+    label_vocab = initial_rule.label_vocab
+    used: set[tuple[object, ...]] = set()
+    turn_items: list[list[dict[str, object]]] = []
+    prompts: list[str] = []
+
+    for evidence_index, count in enumerate(structure.evidence_counts):
+        prompts.append(
+            [
+                "Learn the active private routing pattern from these examples.",
+                "Update your routing hypothesis using the new evidence.",
+                "Revisit the earlier evidence in light of these labels.",
+            ][evidence_index % 3]
+        )
+        current_rule = initial_rule
+        if structure_family_id in {"delayed_reversal", "competitive_rule_switch"} and evidence_index == len(structure.evidence_counts) - 1:
+            current_rule = shift_rule
+        if structure_family_id == "latent_rebinding" and evidence_index >= 1:
+            current_rule = shift_rule
+        sampled = sample_for_rule(
+            rng,
+            PRIVATE_DOMAIN,
+            current_rule,
+            count,
+            exclude=used,
+            rotation=variant + evidence_index,
+            mismatch_rule=initial_rule if current_rule is shift_rule else None,
+            min_mismatch=1 if current_rule is shift_rule else 0,
+        )
+        for stimulus in sampled:
+            used.add(tuple((key, stimulus[key]) for key in sorted(stimulus)))
+        items = enumerate_items(sampled, current_rule)
+        if structure_family_id in {"competitive_rule_switch"}:
+            cue_value = "copper" if evidence_index % 2 == 0 else "silver"
+            for item in items:
+                item["cue"] = cue_value
+        if structure_family_id in {"latent_rebinding"}:
+            context_value = "mesa" if evidence_index % 2 == 0 else "fjord"
+            for item in items:
+                item["context"] = context_value
+        turn_items.append(items)
+
+    decision_rule = shift_rule if structure_family_id != "irrelevant_feature_interference" else initial_rule
+    prompts.append("Classify each probe using the currently implied routing behavior.")
+    probes = sample_for_rule(
+        rng,
+        PRIVATE_DOMAIN,
+        decision_rule,
+        structure.probe_count,
+        exclude=used,
+        rotation=variant + 9,
+        mismatch_rule=initial_rule if decision_rule is shift_rule else None,
+        min_mismatch=1 if decision_rule is shift_rule else 0,
+    )
+    probe_items = enumerate_items(probes, decision_rule)
+    if structure_family_id in {"competitive_rule_switch"}:
+        for index, item in enumerate(probe_items):
+            item["cue"] = "copper" if index % 2 == 0 else "silver"
+    if structure_family_id in {"latent_rebinding"}:
+        for index, item in enumerate(probe_items):
+            item["context"] = "mesa" if index % 2 == 0 else "fjord"
+    turn_items.append(probe_items)
+
+    row, answer = build_episode_payload(
+        episode_id,
+        suite_task_id=suite_task_id,
+        difficulty_bin="hard" if variant % 2 == 0 else "medium",
+        structure=structure,
+        label_vocab=label_vocab,
+        turn_prompts=prompts,
+        turn_items=turn_items,
+    )
+    row["analysis"]["structure_family_id"] = structure_family_id
+    answer["analysis"]["structure_family_id"] = structure_family_id
+    return row, answer
 
 
 def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
-    public_rows, _public_answers, _public_report = public_fixture()
     bundle_dir.mkdir(parents=True, exist_ok=True)
-
-    private_rows: list[dict[str, object]] = []
-    answer_episodes: list[dict[str, object]] = []
-    episode_counter = 1
-    for replica in range(4):
-        for row in public_rows:
-            episode_id = f"{episode_counter:04d}"
-            marker = f"replica_{replica + 1}_{episode_id}"
-            turns = _private_turns(list(row["inference"]["turns"]), marker)
-            for turn_index, turn in enumerate(turns, start=1):
-                old = f"Episode {row['episode_id']}. Turn {turn_index} of 3."
-                new = f"Episode {episode_id}. Turn {turn_index} of 3."
-                turns[turn_index - 1] = turn.replace(old, new)
-            private_rows.append(
+    rows: list[dict[str, object]] = []
+    answers: list[dict[str, object]] = []
+    episode_number = 1
+    for family_index, structure_family_id in enumerate(REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS):
+        for task_index, suite_task_id in enumerate(SUITE_TASKS):
+            episode_id = f"p{episode_number:04d}"
+            row, answer = _build_private_episode(
+                episode_id,
+                suite_task_id,
+                structure_family_id,
+                variant=family_index * 10 + task_index,
+            )
+            rows.append(
                 {
-                    "episode_id": episode_id,
-                    "inference": {"turns": turns},
-                    "analysis": dict(row["analysis"]),
+                    "episode_id": row["episode_id"],
+                    "analysis": row["analysis"],
+                    "inference": row["inference"],
                 }
             )
-            answer_episodes.append(
+            answers.append(
                 {
-                    "episode_id": episode_id,
-                    "faculty_id": row["analysis"]["faculty_id"],
-                    "suite_task_id": row["analysis"]["suite_task_id"],
-                    "shift_mode": row["analysis"]["shift_mode"],
-                    "difficulty_bin": row["analysis"]["difficulty_bin"],
-                    "turns": turns,
-                    "final_probe_targets": list(row["scoring"]["final_probe_targets"]),
+                    "episode_id": answer["episode_id"],
+                    "faculty_id": answer["analysis"]["faculty_id"],
+                    "suite_task_id": answer["analysis"]["suite_task_id"],
+                    "shift_mode": answer["analysis"]["shift_mode"],
+                    "difficulty_bin": answer["analysis"]["difficulty_bin"],
+                    "structure_family_id": answer["analysis"]["structure_family_id"],
+                    "inference": answer["inference"],
+                    "final_probe_targets": answer["final_probe_targets"],
                 }
             )
-            episode_counter += 1
+            episode_number += 1
 
+    summary = _private_row_summary(rows)
     rows_path = bundle_dir / PRIVATE_ROWS_FILENAME
     answer_key_path = bundle_dir / PRIVATE_ANSWER_KEY_FILENAME
     quality_path = bundle_dir / PRIVATE_QUALITY_REPORT_FILENAME
     manifest_path = bundle_dir / PRIVATE_RELEASE_MANIFEST_FILENAME
 
-    rows_path.write_text(json.dumps(private_rows, indent=2) + "\n", encoding="utf-8")
+    rows_path.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     answer_key_path.write_text(
         json.dumps(
             {
-                "version": "cogflex_private_answer_key_v1",
+                "version": PRIVATE_ANSWER_KEY_VERSION,
                 "split": "private",
-                "episodes": answer_episodes,
+                "episodes": answers,
             },
             indent=2,
         )
@@ -91,56 +287,43 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
             {
                 "version": PRIVATE_QUALITY_REPORT_VERSION,
                 "split": "private",
-                "row_count": 480,
-                "episodes_per_task": 120,
-                "difficulty_bin_counts": {"hard": 240, "medium": 240},
-                "attack_suite": {
-                    "dsl_search_accuracy": {
-                        "micro_accuracy": 0.55,
-                        "per_task_accuracy": {
-                            "explicit_rule_update": 0.56,
-                            "latent_rule_update": 0.54,
-                            "context_binding": 0.55,
-                            "trial_cued_switch": 0.55,
-                        },
-                    }
-                },
+                "row_count": len(rows),
+                **summary,
                 "calibration_summary": {
                     "models": [
-                        {"name": "panel-model-a", "macro_accuracy": 0.61, "micro_accuracy": 0.60},
-                        {"name": "panel-model-b", "macro_accuracy": 0.57, "micro_accuracy": 0.56},
-                        {"name": "panel-model-c", "macro_accuracy": 0.52, "micro_accuracy": 0.51},
+                        {"name": "panel-model-a", "macro_accuracy": 0.58, "micro_accuracy": 0.57},
+                        {"name": "panel-model-b", "macro_accuracy": 0.54, "micro_accuracy": 0.53},
+                        {"name": "panel-model-c", "macro_accuracy": 0.49, "micro_accuracy": 0.48},
                     ]
                 },
                 "semantic_isolation_summary": {
                     "exact_public_overlap_count": 0,
-                    "lexicon_overlap_count": 0,
+                    "structural_overlap_count": 0,
+                    "near_duplicate_overlap_count": 0,
                 },
-                "public_generator_commit_sha": "0" * 40,
             },
             indent=2,
         )
         + "\n",
         encoding="utf-8",
     )
-
-    manifest = {
-        "version": PRIVATE_BUNDLE_VERSION,
-        "split": "private",
-        "row_count": 480,
-        "episodes_per_task": 120,
-        "public_generator_commit_sha": "0" * 40,
-        "lexicons": {
-            "cue_terms": ["quartz", "sable", "lumen", "cinder"],
-            "context_terms": ["mesa", "fjord", "delta", "tundra"],
-        },
-        "sha256": {
-            PRIVATE_ROWS_FILENAME: compute_sha256(rows_path),
-            PRIVATE_ANSWER_KEY_FILENAME: compute_sha256(answer_key_path),
-            PRIVATE_QUALITY_REPORT_FILENAME: compute_sha256(quality_path),
-        },
-    }
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "version": PRIVATE_BUNDLE_VERSION,
+                "split": "private",
+                "row_count": len(rows),
+                "sha256": {
+                    PRIVATE_ROWS_FILENAME: compute_sha256(rows_path),
+                    PRIVATE_ANSWER_KEY_FILENAME: compute_sha256(answer_key_path),
+                    PRIVATE_QUALITY_REPORT_FILENAME: compute_sha256(quality_path),
+                },
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     return {
         "rows": rows_path,
         "answer_key": answer_key_path,
