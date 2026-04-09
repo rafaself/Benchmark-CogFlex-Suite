@@ -14,6 +14,7 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     compute_sha256,
     empirical_difficulty_entries_from_predictions,
+    public_generator_reference,
 )
 from scripts.verify_cogflex import (
     attach_private_scoring,
@@ -180,6 +181,24 @@ class CogflexVerificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "difficulty_bin mismatch"):
                 verify_private_answer_key(answer_key, private_rows)
 
+    def test_verify_private_answer_key_rejects_missing_generator_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
+            answer_key = load_private_answer_key(bundle_paths["answer_key"])
+            answer_key["episodes"][0].pop("generator")
+            with self.assertRaisesRegex(RuntimeError, "must include generator metadata"):
+                verify_private_answer_key(answer_key, private_rows)
+
+    def test_verify_private_answer_key_rejects_unknown_operator_class(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
+            answer_key = load_private_answer_key(bundle_paths["answer_key"])
+            answer_key["episodes"][0]["generator"]["operator_class"] = "unknown_operator"
+            with self.assertRaisesRegex(RuntimeError, "unsupported operator_class"):
+                verify_private_answer_key(answer_key, private_rows)
+
     def test_verify_manifest_rejects_digest_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
@@ -195,7 +214,7 @@ class CogflexVerificationTests(unittest.TestCase):
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
             private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
             answer_key = load_private_answer_key(bundle_paths["answer_key"])
-            _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+            _summary, episode_targets, _episode_generators = verify_private_answer_key(answer_key, private_rows)
             predictions = load_private_calibration_predictions(bundle_paths["predictions"])
             predictions["models"][0]["episodes"] = predictions["models"][0]["episodes"][:-1]
             with self.assertRaisesRegex(RuntimeError, "missing episode_ids"):
@@ -206,7 +225,7 @@ class CogflexVerificationTests(unittest.TestCase):
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
             private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
             answer_key = load_private_answer_key(bundle_paths["answer_key"])
-            _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+            _summary, episode_targets, _episode_generators = verify_private_answer_key(answer_key, private_rows)
             predictions = load_private_calibration_predictions(bundle_paths["predictions"])
             predictions["models"][0]["episodes"][0]["predicted_labels"][0] = "not_in_vocab"
             with self.assertRaisesRegex(RuntimeError, "invalid predicted_labels"):
@@ -220,6 +239,16 @@ class CogflexVerificationTests(unittest.TestCase):
             payload["calibration_summary"]["models"] = payload["calibration_summary"]["models"][:2]
             bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "exactly 3 models"):
+                verify_quality_report(bundle_paths["quality"])
+
+    def test_verify_quality_report_requires_generator_isolation_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            payload = json.loads(bundle_paths["quality"].read_text(encoding="utf-8"))
+            payload["version"] = PRIVATE_QUALITY_REPORT_VERSION
+            payload.pop("generator_isolation_summary")
+            bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "generator_isolation_summary"):
                 verify_quality_report(bundle_paths["quality"])
 
     def test_verify_private_bundle_rejects_calibration_summary_mismatch(self) -> None:
@@ -267,6 +296,45 @@ class CogflexVerificationTests(unittest.TestCase):
             manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
             bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "semantic_isolation_summary mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_generator_isolation_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            payload = json.loads(bundle_paths["quality"].read_text(encoding="utf-8"))
+            payload["generator_isolation_summary"]["family_ids"].append("tampered_family")
+            bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            manifest = json.loads(bundle_paths["manifest"].read_text(encoding="utf-8"))
+            manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
+            bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "generator_isolation_summary mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_generator_family_overlap(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            rows, answer_key, predictions, manifest, quality = _load_bundle_payloads(bundle_paths)
+            answer_key["episodes"][0]["generator"]["family_id"] = public_generator_reference()["family_ids"][0]
+            _write_bundle_payloads(bundle_paths, rows, answer_key, predictions, manifest, quality)
+            with self.assertRaisesRegex(RuntimeError, "generator family_id overlap"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_generator_template_overlap(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            rows, answer_key, predictions, manifest, quality = _load_bundle_payloads(bundle_paths)
+            answer_key["episodes"][0]["generator"]["template_id"] = public_generator_reference()["template_ids"][0]
+            _write_bundle_payloads(bundle_paths, rows, answer_key, predictions, manifest, quality)
+            with self.assertRaisesRegex(RuntimeError, "generator template_id overlap"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_generator_operator_overlap(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            rows, answer_key, predictions, manifest, quality = _load_bundle_payloads(bundle_paths)
+            answer_key["episodes"][0]["generator"]["operator_class"] = public_generator_reference()["operator_classes"][0]
+            _write_bundle_payloads(bundle_paths, rows, answer_key, predictions, manifest, quality)
+            with self.assertRaisesRegex(RuntimeError, "generator operator_class overlap"):
                 verify_private_bundle(Path(tmpdir) / "bundle")
 
     def test_verify_private_bundle_rejects_missing_structure_family(self) -> None:

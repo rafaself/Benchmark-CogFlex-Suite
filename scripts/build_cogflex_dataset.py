@@ -34,9 +34,9 @@ PRIVATE_BUNDLE_ENV_VAR = "COGFLEX_PRIVATE_BUNDLE_DIR"
 
 PUBLIC_BUNDLE_VERSION = "cogflex_public_v2"
 PUBLIC_DIFFICULTY_CALIBRATION_VERSION = "cogflex_public_difficulty_v1"
-PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v3"
-PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v3"
-PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v3"
+PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v4"
+PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v4"
+PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v4"
 PRIVATE_CALIBRATION_PREDICTIONS_VERSION = "cogflex_private_predictions_v3"
 
 PUBLIC_EPISODES_PER_TASK = 30
@@ -61,6 +61,13 @@ SHIFT_MODES: Final[dict[str, str]] = {
     "trial_cued_switch": "cue_switching",
 }
 
+PUBLIC_GENERATOR_OPERATOR_CLASS_BY_TASK: Final[dict[str, str]] = {
+    "explicit_rule_update": "explicit_rule_update",
+    "latent_rule_update": "latent_rule_update",
+    "context_binding": "context_binding",
+    "trial_cued_switch": "trial_cued_switch",
+}
+
 PUBLIC_STRUCTURE_FAMILY_IDS: Final[tuple[str, ...]] = (
     "two_step_focus",
     "three_step_bridge",
@@ -72,6 +79,23 @@ REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS: Final[tuple[str, ...]] = (
     "competitive_rule_switch",
     "latent_rebinding",
     "variable_evidence_budget",
+)
+
+PRIVATE_GENERATOR_OPERATOR_CLASS_BY_STRUCTURE: Final[dict[str, str]] = {
+    "delayed_reversal": "delayed_reversal",
+    "irrelevant_feature_interference": "irrelevant_feature_interference",
+    "competitive_rule_switch": "competitive_rule_switch",
+    "latent_rebinding": "latent_rebinding",
+    "variable_evidence_budget": "variable_evidence_budget",
+}
+
+SUPPORTED_OPERATOR_CLASSES: Final[tuple[str, ...]] = tuple(
+    sorted(
+        {
+            *PUBLIC_GENERATOR_OPERATOR_CLASS_BY_TASK.values(),
+            *PRIVATE_GENERATOR_OPERATOR_CLASS_BY_STRUCTURE.values(),
+        }
+    )
 )
 
 PUBLIC_CONTEXT_TERMS: Final[tuple[tuple[str, str], ...]] = (
@@ -446,6 +470,35 @@ TASK_RULE_PAIRS: Final[dict[str, tuple[tuple[str, str], ...]]] = {
         ("north_r1_ge_r2", "north_warm_or_positive"),
     ),
 }
+
+
+def public_generator_metadata(suite_task_id: str, *, variant: int) -> dict[str, str]:
+    if suite_task_id not in TASK_RULE_PAIRS:
+        raise ValueError(f"unsupported suite_task_id {suite_task_id!r}")
+    pair_index = variant % len(TASK_RULE_PAIRS[suite_task_id])
+    source_rule_id, target_rule_id = TASK_RULE_PAIRS[suite_task_id][pair_index]
+    return {
+        "family_id": f"public::{suite_task_id}",
+        "template_id": f"public::{suite_task_id}::{source_rule_id}__{target_rule_id}",
+        "operator_class": PUBLIC_GENERATOR_OPERATOR_CLASS_BY_TASK[suite_task_id],
+    }
+
+
+def public_generator_reference() -> dict[str, tuple[str, ...]]:
+    family_ids: set[str] = set()
+    template_ids: set[str] = set()
+    operator_classes: set[str] = set()
+    for suite_task_id in SUITE_TASKS:
+        for variant in range(len(TASK_RULE_PAIRS[suite_task_id])):
+            metadata = public_generator_metadata(suite_task_id, variant=variant)
+            family_ids.add(metadata["family_id"])
+            template_ids.add(metadata["template_id"])
+            operator_classes.add(metadata["operator_class"])
+    return {
+        "family_ids": tuple(sorted(family_ids)),
+        "template_ids": tuple(sorted(template_ids)),
+        "operator_classes": tuple(sorted(operator_classes)),
+    }
 
 
 def stimulus_signature(stimulus: Stimulus) -> tuple[object, ...]:

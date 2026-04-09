@@ -102,6 +102,10 @@ Validation covers:
 - answer-key joins by `episode_id`
 - file SHA256 digests declared in the manifest
 - exact, structural, and near-duplicate isolation from the public split
+- generator-level isolation from the public generator reference:
+  - zero overlap in hidden `generator.family_id`
+  - zero overlap in hidden `generator.template_id`
+  - zero overlap in hidden `generator.operator_class`
 - reported calibration metrics recomputed from per-episode panel predictions
 - empirical `difficulty_bin` recomputed from the fixed panel predictions
 - canonical attack slices recomputed from public metadata dimensions only
@@ -120,8 +124,28 @@ Validation covers:
   - `calibration_summary`
   - `attack_suite`
   - `semantic_isolation_summary`
+  - `generator_isolation_summary`
 
 The public repo does not ship private formulas or a private production generator.
+
+### `private_answer_key.json`
+
+Each private answer-key episode must expose:
+
+- `episode_id`
+- `faculty_id`
+- `suite_task_id`
+- `shift_mode`
+- `difficulty_bin`
+- `structure_family_id`
+- `generator`: hidden generator metadata with:
+  - `family_id`
+  - `template_id`
+  - `operator_class`
+- `inference`
+- `final_probe_targets`
+
+`private_leaderboard_rows.json` remains inference-only. The hidden `generator` block lives only in the answer key and is used to enforce generator-level isolation.
 
 ### `private_calibration_predictions.json`
 
@@ -143,6 +167,19 @@ The verifier then recomputes these claims from the private bundle itself and rej
 - `calibration_summary`
 - `attack_suite`
 - `semantic_isolation_summary`
+- `generator_isolation_summary`
+
+### `generator_isolation_summary`
+
+The private quality report must expose:
+
+- `family_ids`
+- `template_ids`
+- `operator_class_counts`
+- `operator_diversity.distinct_operator_class_count`
+- `public_non_overlap_assertion`
+
+The verifier recomputes this summary from the answer key's hidden generator metadata and a canonical public generator reference derived from the tracked public generator. This check complements episode-level isolation instead of replacing it.
 
 ## Local Usage
 

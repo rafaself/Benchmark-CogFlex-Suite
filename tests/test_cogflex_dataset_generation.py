@@ -154,3 +154,5 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertIn("response_spec", readme)
         self.assertIn("structure_family_id", readme)
         self.assertIn(PUBLIC_DIFFICULTY_CALIBRATION_PATH.name, readme)
+        self.assertIn("generator_isolation_summary", readme)
+        self.assertIn("operator_class", readme)

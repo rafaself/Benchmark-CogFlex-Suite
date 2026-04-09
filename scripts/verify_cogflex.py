@@ -32,8 +32,10 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
     REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
+    SUPPORTED_OPERATOR_CLASSES,
     SHIFT_MODES,
     SUITE_TASKS,
+    public_generator_reference,
     empirical_difficulty_entries_from_predictions,
     load_public_difficulty_calibration,
     TASK_NAME,
@@ -62,6 +64,25 @@ def normalize_labels(values: object, label_vocab: list[str]) -> tuple[str, ...] 
     normalized = tuple(str(value).strip() for value in values)
     if len(normalized) == 0 or any(label not in label_vocab for label in normalized):
         return None
+    return normalized
+
+
+def _normalize_generator_metadata(episode: dict[str, object], *, episode_id: str) -> dict[str, str]:
+    generator = episode.get("generator")
+    if not isinstance(generator, dict):
+        raise RuntimeError(f"private answer key episode {episode_id} must include generator metadata")
+    expected_keys = {"family_id", "operator_class", "template_id"}
+    if set(generator) != expected_keys:
+        raise RuntimeError(
+            f"private answer key episode {episode_id} generator must expose {sorted(expected_keys)}"
+        )
+    normalized = {key: str(generator[key]).strip() for key in expected_keys}
+    if any(not value for value in normalized.values()):
+        raise RuntimeError(f"private answer key episode {episode_id} has empty generator metadata")
+    if normalized["operator_class"] not in SUPPORTED_OPERATOR_CLASSES:
+        raise RuntimeError(
+            f"private answer key episode {episode_id} has unsupported operator_class {normalized['operator_class']!r}"
+        )
     return normalized
 
 
@@ -158,13 +179,14 @@ def build_private_quality_report(
     *,
     public_rows: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
-    _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+    _summary, episode_targets, private_generator_metadata = verify_private_answer_key(answer_key, private_rows)
     predictions_by_model = verify_private_calibration_predictions(predictions, private_rows, episode_targets)
     verify_private_empirical_difficulty(private_rows, answer_key, predictions_by_model, episode_targets)
     scored_private_rows = attach_private_scoring(private_rows, answer_key)
     if public_rows is None:
         public_rows = load_rows(PUBLIC_ROWS_PATH)
     isolation_summary = verify_split_isolation(public_rows, scored_private_rows)
+    generator_isolation_summary = verify_generator_isolation(private_generator_metadata)
     row_summary = _summary_from_rows(private_rows)
     all_episode_ids = [str(row["episode_id"]) for row in private_rows]
     attack_suite = {
@@ -195,6 +217,7 @@ def build_private_quality_report(
         ),
         "attack_suite": attack_suite,
         "semantic_isolation_summary": isolation_summary,
+        "generator_isolation_summary": generator_isolation_summary,
     }
 
 
@@ -347,6 +370,45 @@ def verify_split_isolation(public_rows: list[dict[str, object]], private_rows: l
         "exact_public_overlap_count": 0,
         "structural_overlap_count": 0,
         "near_duplicate_overlap_count": 0,
+    }
+
+
+def verify_generator_isolation(
+    private_generator_metadata: dict[str, dict[str, str]],
+    *,
+    public_reference: dict[str, tuple[str, ...]] | None = None,
+) -> dict[str, object]:
+    if public_reference is None:
+        public_reference = public_generator_reference()
+    family_ids = sorted({metadata["family_id"] for metadata in private_generator_metadata.values()})
+    template_ids = sorted({metadata["template_id"] for metadata in private_generator_metadata.values()})
+    operator_class_counts = Counter(
+        metadata["operator_class"] for metadata in private_generator_metadata.values()
+    )
+    public_family_ids = set(public_reference["family_ids"])
+    public_template_ids = set(public_reference["template_ids"])
+    public_operator_classes = set(public_reference["operator_classes"])
+    family_overlap = sorted(set(family_ids) & public_family_ids)
+    template_overlap = sorted(set(template_ids) & public_template_ids)
+    operator_overlap = sorted(set(operator_class_counts) & public_operator_classes)
+    if family_overlap:
+        raise RuntimeError(f"public/private generator family_id overlap detected: {family_overlap}")
+    if template_overlap:
+        raise RuntimeError(f"public/private generator template_id overlap detected: {template_overlap}")
+    if operator_overlap:
+        raise RuntimeError(f"public/private generator operator_class overlap detected: {operator_overlap}")
+    return {
+        "family_ids": family_ids,
+        "template_ids": template_ids,
+        "operator_class_counts": dict(sorted(operator_class_counts.items())),
+        "operator_diversity": {
+            "distinct_operator_class_count": len(operator_class_counts),
+        },
+        "public_non_overlap_assertion": {
+            "family_ids": True,
+            "template_ids": True,
+            "operator_classes": True,
+        },
     }
 
 
@@ -685,9 +747,10 @@ def load_private_calibration_predictions(path: Path) -> dict[str, object]:
 def verify_private_answer_key(
     payload: dict[str, object],
     private_rows: list[dict[str, object]],
-) -> tuple[dict[str, object], dict[str, tuple[str, ...]]]:
+) -> tuple[dict[str, object], dict[str, tuple[str, ...]], dict[str, dict[str, str]]]:
     rows_by_id = {str(row["episode_id"]): row for row in private_rows}
     episode_targets: dict[str, tuple[str, ...]] = {}
+    episode_generators: dict[str, dict[str, str]] = {}
     label_counts: Counter[str] = Counter()
     for episode in payload["episodes"]:
         if not isinstance(episode, dict):
@@ -707,6 +770,7 @@ def verify_private_answer_key(
         targets = normalize_labels(episode.get("final_probe_targets"), label_vocab)
         if targets is None or len(targets) != int(row["inference"]["response_spec"]["probe_count"]):
             raise RuntimeError(f"private answer key episode {episode_id} has invalid final_probe_targets")
+        episode_generators[episode_id] = _normalize_generator_metadata(episode, episode_id=episode_id)
         episode_targets[episode_id] = targets
         label_counts.update(targets)
     missing_ids = set(rows_by_id) - set(episode_targets)
@@ -715,7 +779,7 @@ def verify_private_answer_key(
     return {
         "answer_key_episode_count": len(episode_targets),
         "answer_key_label_counts": dict(sorted(label_counts.items())),
-    }, episode_targets
+    }, episode_targets, episode_generators
 
 
 def verify_private_calibration_predictions(
@@ -780,7 +844,7 @@ def verify_private_calibration_predictions(
 
 
 def attach_private_scoring(private_rows: list[dict[str, object]], answer_key: dict[str, object]) -> list[dict[str, object]]:
-    _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+    _summary, episode_targets, _episode_generators = verify_private_answer_key(answer_key, private_rows)
     attached: list[dict[str, object]] = []
     for row in private_rows:
         episode_id = str(row["episode_id"])
@@ -836,6 +900,7 @@ def verify_quality_report(path: Path) -> dict[str, object]:
         "probe_count_distribution",
         "label_vocab_size_distribution",
         "stimulus_space_summary",
+        "generator_isolation_summary",
     ):
         if key not in payload:
             raise RuntimeError(f"private quality report must include {key}")
@@ -885,6 +950,52 @@ def verify_quality_report(path: Path) -> dict[str, object]:
     isolation = payload.get("semantic_isolation_summary")
     if not isinstance(isolation, dict):
         raise RuntimeError("private quality report must include semantic_isolation_summary")
+    generator_isolation = payload.get("generator_isolation_summary")
+    if not isinstance(generator_isolation, dict):
+        raise RuntimeError("private quality report must include generator_isolation_summary")
+    if set(generator_isolation) != {
+        "family_ids",
+        "operator_class_counts",
+        "operator_diversity",
+        "public_non_overlap_assertion",
+        "template_ids",
+    }:
+        raise RuntimeError("private quality report generator_isolation_summary has invalid keys")
+    for key in ("family_ids", "template_ids"):
+        values = generator_isolation.get(key)
+        if (
+            not isinstance(values, list)
+            or not values
+            or any(not isinstance(value, str) or not value.strip() for value in values)
+        ):
+            raise RuntimeError(f"private quality report generator_isolation_summary[{key}] must be a non-empty string list")
+    operator_class_counts = generator_isolation.get("operator_class_counts")
+    if not isinstance(operator_class_counts, dict) or not operator_class_counts:
+        raise RuntimeError("private quality report generator_isolation_summary must include operator_class_counts")
+    for operator_class, count in operator_class_counts.items():
+        if operator_class not in SUPPORTED_OPERATOR_CLASSES or not isinstance(count, int) or count <= 0:
+            raise RuntimeError("private quality report generator_isolation_summary has invalid operator_class_counts")
+    operator_diversity = generator_isolation.get("operator_diversity")
+    if (
+        not isinstance(operator_diversity, dict)
+        or set(operator_diversity) != {"distinct_operator_class_count"}
+        or not isinstance(operator_diversity.get("distinct_operator_class_count"), int)
+        or int(operator_diversity["distinct_operator_class_count"]) <= 0
+    ):
+        raise RuntimeError("private quality report generator_isolation_summary must include operator_diversity")
+    if int(operator_diversity["distinct_operator_class_count"]) != len(operator_class_counts):
+        raise RuntimeError(
+            "private quality report generator_isolation_summary operator_diversity must match operator_class_counts"
+        )
+    public_non_overlap_assertion = generator_isolation.get("public_non_overlap_assertion")
+    if (
+        not isinstance(public_non_overlap_assertion, dict)
+        or set(public_non_overlap_assertion) != {"family_ids", "operator_classes", "template_ids"}
+        or any(value is not True for value in public_non_overlap_assertion.values())
+    ):
+        raise RuntimeError(
+            "private quality report generator_isolation_summary must assert non-overlap with public generator metadata"
+        )
     return payload
 
 
@@ -896,7 +1007,7 @@ def verify_private_bundle(bundle_dir: Path) -> None:
     private_rows = load_rows(bundle_paths["rows"])
     schema_summary = verify_schema(private_rows, "private")
     answer_key = load_private_answer_key(bundle_paths["answer_key"])
-    answer_summary, _episode_targets = verify_private_answer_key(answer_key, private_rows)
+    answer_summary, _episode_targets, _episode_generators = verify_private_answer_key(answer_key, private_rows)
     predictions = load_private_calibration_predictions(bundle_paths["predictions"])
     prediction_models = verify_private_calibration_predictions(predictions, private_rows, _episode_targets)
     verify_private_empirical_difficulty(private_rows, answer_key, prediction_models, _episode_targets)
@@ -921,6 +1032,7 @@ def verify_private_bundle(bundle_dir: Path) -> None:
         "calibration_summary",
         "attack_suite",
         "semantic_isolation_summary",
+        "generator_isolation_summary",
     ):
         if quality_report.get(key) != expected_quality_report[key]:
             raise RuntimeError(f"private quality report {key} mismatch")
@@ -940,6 +1052,7 @@ def verify_private_bundle(bundle_dir: Path) -> None:
                 **answer_summary,
                 "prediction_model_names": [model["name"] for model in prediction_models],
                 "semantic_isolation_summary": expected_quality_report["semantic_isolation_summary"],
+                "generator_isolation_summary": expected_quality_report["generator_isolation_summary"],
             },
             indent=2,
         )

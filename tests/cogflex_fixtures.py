@@ -15,6 +15,7 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_QUALITY_REPORT_VERSION,
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     PRIVATE_ROWS_FILENAME,
+    PRIVATE_GENERATOR_OPERATOR_CLASS_BY_STRUCTURE,
     REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
     SHIFT_MODES,
     SUITE_TASKS,
@@ -93,6 +94,14 @@ PRIVATE_STRUCTURES = {
     "variable_evidence_budget": EpisodeStructure("variable_evidence_budget", (2, 5), 7),
 }
 PRIVATE_PANEL_MODEL_NAMES = ("panel-model-a", "panel-model-b", "panel-model-c")
+
+PRIVATE_GENERATOR_FAMILY_BY_STRUCTURE = {
+    "delayed_reversal": "private::reversal_family",
+    "irrelevant_feature_interference": "private::interference_family",
+    "competitive_rule_switch": "private::competition_family",
+    "latent_rebinding": "private::rebinding_family",
+    "variable_evidence_budget": "private::budget_family",
+}
 
 
 def public_fixture() -> tuple[list[dict[str, object]], list[dict[str, object]], dict[str, object]]:
@@ -232,6 +241,14 @@ def _build_private_episode(
     return row, answer
 
 
+def _private_generator_metadata(structure_family_id: str, suite_task_id: str) -> dict[str, str]:
+    return {
+        "family_id": PRIVATE_GENERATOR_FAMILY_BY_STRUCTURE[structure_family_id],
+        "template_id": f"private::{structure_family_id}::{suite_task_id}",
+        "operator_class": PRIVATE_GENERATOR_OPERATOR_CLASS_BY_STRUCTURE[structure_family_id],
+    }
+
+
 def _rotate_label(target: str, label_vocab: list[str], step: int) -> str:
     label_index = label_vocab.index(target)
     return label_vocab[(label_index + step) % len(label_vocab)]
@@ -343,6 +360,10 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
             "shift_mode": answer["analysis"]["shift_mode"],
             "difficulty_bin": answer["analysis"]["difficulty_bin"],
             "structure_family_id": answer["analysis"]["structure_family_id"],
+            "generator": _private_generator_metadata(
+                str(answer["analysis"]["structure_family_id"]),
+                str(answer["analysis"]["suite_task_id"]),
+            ),
             "inference": answer["inference"],
             "final_probe_targets": answer["final_probe_targets"],
         }
