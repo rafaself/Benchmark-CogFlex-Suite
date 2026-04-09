@@ -85,6 +85,8 @@ def load_notebook_namespace() -> dict[str, object]:
         exec(code_cells["cell-bootstrap"], namespace)
         exec(code_cells["cell-runtime-types"], namespace)
         exec(code_cells["cell-runtime-normalize"], namespace)
+        exec(code_cells["cell-runtime-parse"], namespace)
+        exec(code_cells["cell-runtime-validate"], namespace)
         exec(code_cells["cell-runtime-score"], namespace)
         runtime_load_prefix = code_cells["cell-runtime-load"].split("leaderboard_rows = load_selected_rows()", 1)[0]
         exec(runtime_load_prefix, namespace)
@@ -183,6 +185,8 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
                 "cell-bootstrap",
                 "cell-runtime-types",
                 "cell-runtime-normalize",
+                "cell-runtime-parse",
+                "cell-runtime-validate",
                 "cell-runtime-load",
                 "cell-runtime-score",
                 "cell-task",
