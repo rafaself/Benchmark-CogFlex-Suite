@@ -8,7 +8,8 @@ DEFAULT_KAGGLE_BIN="$ROOT_DIR/.venv/bin/kaggle"
 KAGGLE_BIN="${KAGGLE_BIN:-$DEFAULT_KAGGLE_BIN}"
 KAGGLE_TMP_HOME="$(mktemp -d)"
 KAGGLE_TMPDIR="$KAGGLE_TMP_HOME/tmp"
-PRIVATE_BUNDLE_DIR="${COGFLEX_PRIVATE_BUNDLE_DIR:-}"
+DEFAULT_PRIVATE_BUNDLE_DIR="$ROOT_DIR/kaggle/dataset/private"
+PRIVATE_BUNDLE_DIR="${COGFLEX_PRIVATE_BUNDLE_DIR:-$DEFAULT_PRIVATE_BUNDLE_DIR}"
 ROWS_FILE="private_leaderboard_rows.json"
 ANSWER_KEY_FILE="private_answer_key.json"
 PREDICTIONS_FILE="private_calibration_predictions.json"
@@ -31,11 +32,6 @@ set +a
 
 if [[ -z "${KAGGLE_API_TOKEN:-}" ]]; then
   echo "Missing KAGGLE_API_TOKEN in .env" >&2
-  exit 1
-fi
-
-if [[ -z "$PRIVATE_BUNDLE_DIR" ]]; then
-  echo "Missing COGFLEX_PRIVATE_BUNDLE_DIR. Point it at a private bundle directory." >&2
   exit 1
 fi
 

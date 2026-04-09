@@ -6,7 +6,7 @@ Kaggle-oriented benchmark project for a flexible executive-functions suite:
 - benchmark form: multi-turn suite evaluation
 - official task name: `cogflex_suite_flexible`
 
-This repository publishes the public CogFlex contract, the deterministic public split generator, the Kaggle notebook runtime, and validators for externally managed private bundles.
+This repository publishes the public CogFlex contract, the deterministic public split generator, the Kaggle notebook runtime, validators for externally managed private bundles, and a local synthetic private-bundle builder for testing and deployment workflows.
 
 ## Repository Layout
 
@@ -87,6 +87,7 @@ Each public suite task appears in at least two structural formats so the runtime
 ## Private Bundle Contract
 
 `scripts/verify_cogflex.py --split private` validates an external private bundle directory exposed through `--private-bundle-dir` or `COGFLEX_PRIVATE_BUNDLE_DIR`.
+For local workflows, `python -m scripts.build_private_cogflex_dataset` materializes the synthetic private bundle into `kaggle/dataset/private`.
 
 Required files inside that directory:
 
@@ -195,6 +196,12 @@ Rebuild the tracked public assets:
 python3 -m scripts.build_cogflex_dataset
 ```
 
+Build the local synthetic private bundle:
+
+```bash
+python3 -m scripts.build_private_cogflex_dataset
+```
+
 Verify the tracked public split:
 
 ```bash
@@ -205,4 +212,10 @@ Verify an external private bundle:
 
 ```bash
 COGFLEX_PRIVATE_BUNDLE_DIR=/abs/path/to/private-bundle make verify-private
+```
+
+Deploy the local private bundle from `kaggle/dataset/private`:
+
+```bash
+make deploy-private-dataset
 ```

@@ -1,10 +1,13 @@
-.PHONY: notelab test verify-public verify-private deploy-dataset deploy-private-dataset deploy-notebook deploy-all
+.PHONY: notelab test build-private verify-public verify-private deploy-dataset deploy-private-dataset deploy-notebook deploy-all
 
 notelab:
 	.venv/bin/jupyter lab --no-browser kaggle/notebook/cogflex_notebook_task.ipynb
 
 test:
 	.venv/bin/python -m unittest discover -s tests -q
+
+build-private:
+	.venv/bin/python -m scripts.build_private_cogflex_dataset
 
 verify-public:
 	.venv/bin/python -m scripts.verify_cogflex --split public

@@ -2,10 +2,12 @@ import json
 import unittest
 from collections import Counter
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from scripts.build_cogflex_dataset import (
     NOTEBOOK_ID,
+    PRIVATE_DATASET_ID,
     PUBLIC_DATASET_ID,
     PUBLIC_DIFFICULTY_CALIBRATION_PATH,
     PUBLIC_QUALITY_REPORT_PATH,
@@ -17,6 +19,7 @@ from scripts.build_cogflex_dataset import (
     empirical_difficulty_entries_from_scores,
     load_public_difficulty_calibration,
 )
+from scripts.build_private_cogflex_dataset import build_private_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -137,6 +140,16 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
+
+    def test_build_private_bundle_materializes_required_files(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            bundle_paths = build_private_bundle(Path(tmpdir))
+            self.assertEqual(
+                json.loads(bundle_paths["metadata"].read_text(encoding="utf-8")),
+                dataset_metadata(PRIVATE_DATASET_ID, "CogFlex Suite Runtime Private"),
+            )
+            for key in ("rows", "answer_key", "predictions", "quality", "manifest", "metadata"):
+                self.assertTrue(bundle_paths[key].exists(), key)
 
     def test_makefile_and_kernel_metadata_point_to_cogflex_assets(self) -> None:
         makefile = MAKEFILE_PATH.read_text(encoding="utf-8")
