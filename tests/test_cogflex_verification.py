@@ -9,17 +9,21 @@ from pathlib import Path
 from cogflex_fixtures import _private_row_summary, public_fixture, write_private_bundle
 from scripts.build_cogflex_dataset import (
     PRIVATE_BUNDLE_VERSION,
+    PRIVATE_CALIBRATION_PREDICTIONS_FILENAME,
     PRIVATE_QUALITY_REPORT_VERSION,
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     compute_sha256,
 )
 from scripts.verify_cogflex import (
     attach_private_scoring,
+    build_private_quality_report,
+    load_private_calibration_predictions,
     load_private_answer_key,
     structural_overlap_score,
     verify_manifest,
     verify_private_answer_key,
     verify_private_bundle,
+    verify_private_calibration_predictions,
     verify_public_split,
     verify_quality_report,
     verify_schema,
@@ -27,10 +31,13 @@ from scripts.verify_cogflex import (
 )
 
 
-def _load_bundle_payloads(bundle_paths: dict[str, Path]) -> tuple[list[dict[str, object]], dict[str, object], dict[str, object], dict[str, object]]:
+def _load_bundle_payloads(
+    bundle_paths: dict[str, Path],
+) -> tuple[list[dict[str, object]], dict[str, object], dict[str, object], dict[str, object], dict[str, object]]:
     return (
         json.loads(bundle_paths["rows"].read_text(encoding="utf-8")),
         json.loads(bundle_paths["answer_key"].read_text(encoding="utf-8")),
+        json.loads(bundle_paths["predictions"].read_text(encoding="utf-8")),
         json.loads(bundle_paths["manifest"].read_text(encoding="utf-8")),
         json.loads(bundle_paths["quality"].read_text(encoding="utf-8")),
     )
@@ -40,14 +47,17 @@ def _write_bundle_payloads(
     bundle_paths: dict[str, Path],
     rows: list[dict[str, object]],
     answer_key: dict[str, object],
+    predictions: dict[str, object],
     manifest: dict[str, object],
     quality: dict[str, object],
 ) -> None:
     bundle_paths["rows"].write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     bundle_paths["answer_key"].write_text(json.dumps(answer_key, indent=2) + "\n", encoding="utf-8")
+    bundle_paths["predictions"].write_text(json.dumps(predictions, indent=2) + "\n", encoding="utf-8")
     bundle_paths["quality"].write_text(json.dumps(quality, indent=2) + "\n", encoding="utf-8")
     manifest["sha256"]["private_leaderboard_rows.json"] = compute_sha256(bundle_paths["rows"])
     manifest["sha256"]["private_answer_key.json"] = compute_sha256(bundle_paths["answer_key"])
+    manifest["sha256"][PRIVATE_CALIBRATION_PREDICTIONS_FILENAME] = compute_sha256(bundle_paths["predictions"])
     manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
     bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
@@ -144,6 +154,14 @@ class CogflexVerificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "missing required files"):
                 verify_private_bundle(bundle_dir)
 
+    def test_verify_private_bundle_rejects_missing_predictions_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_dir = Path(tmpdir) / "bundle"
+            bundle_paths = write_private_bundle(bundle_dir)
+            bundle_paths["predictions"].unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing required files"):
+                verify_private_bundle(bundle_dir)
+
     def test_verify_private_answer_key_rejects_analysis_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
@@ -163,6 +181,28 @@ class CogflexVerificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "digest mismatch"):
                 verify_manifest(bundle_paths["manifest"], bundle_paths)
 
+    def test_verify_private_calibration_predictions_rejects_partial_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
+            answer_key = load_private_answer_key(bundle_paths["answer_key"])
+            _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+            predictions = load_private_calibration_predictions(bundle_paths["predictions"])
+            predictions["models"][0]["episodes"] = predictions["models"][0]["episodes"][:-1]
+            with self.assertRaisesRegex(RuntimeError, "missing episode_ids"):
+                verify_private_calibration_predictions(predictions, private_rows, episode_targets)
+
+    def test_verify_private_calibration_predictions_rejects_invalid_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            private_rows = json.loads(bundle_paths["rows"].read_text(encoding="utf-8"))
+            answer_key = load_private_answer_key(bundle_paths["answer_key"])
+            _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+            predictions = load_private_calibration_predictions(bundle_paths["predictions"])
+            predictions["models"][0]["episodes"][0]["predicted_labels"][0] = "not_in_vocab"
+            with self.assertRaisesRegex(RuntimeError, "invalid predicted_labels"):
+                verify_private_calibration_predictions(predictions, private_rows, episode_targets)
+
     def test_verify_quality_report_requires_three_models(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
@@ -173,16 +213,60 @@ class CogflexVerificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "exactly 3 models"):
                 verify_quality_report(bundle_paths["quality"])
 
+    def test_verify_private_bundle_rejects_calibration_summary_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            payload = json.loads(bundle_paths["quality"].read_text(encoding="utf-8"))
+            payload["calibration_summary"]["models"][0]["micro_accuracy"] = 0.0
+            bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            manifest = json.loads(bundle_paths["manifest"].read_text(encoding="utf-8"))
+            manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
+            bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "calibration_summary mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_attack_suite_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            payload = json.loads(bundle_paths["quality"].read_text(encoding="utf-8"))
+            payload["attack_suite"]["difficulty_bin"]["hard"]["models"][0]["macro_accuracy"] = 0.0
+            bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            manifest = json.loads(bundle_paths["manifest"].read_text(encoding="utf-8"))
+            manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
+            bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "attack_suite mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
+    def test_verify_private_bundle_rejects_semantic_isolation_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            payload = json.loads(bundle_paths["quality"].read_text(encoding="utf-8"))
+            payload["semantic_isolation_summary"]["near_duplicate_overlap_count"] = 1
+            bundle_paths["quality"].write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            manifest = json.loads(bundle_paths["manifest"].read_text(encoding="utf-8"))
+            manifest["sha256"]["private_quality_report.json"] = compute_sha256(bundle_paths["quality"])
+            bundle_paths["manifest"].write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "semantic_isolation_summary mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
     def test_verify_private_bundle_rejects_missing_structure_family(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
-            rows, answer_key, manifest, quality = _load_bundle_payloads(bundle_paths)
+            rows, answer_key, predictions, manifest, quality = _load_bundle_payloads(bundle_paths)
             target_family = next(iter(quality["structure_family_counts"]))
             rows = [row for row in rows if row["analysis"]["structure_family_id"] != target_family]
             answer_key["episodes"] = [
                 episode for episode in answer_key["episodes"] if episode["structure_family_id"] != target_family
             ]
+            remaining_episode_ids = {episode["episode_id"] for episode in answer_key["episodes"]}
+            for model in predictions["models"]:
+                model["episodes"] = [
+                    episode
+                    for episode in model["episodes"]
+                    if episode["episode_id"] in remaining_episode_ids
+                ]
             summary = _private_row_summary(rows)
+            quality = build_private_quality_report(rows, answer_key, predictions, public_rows=public_fixture()[0])
             quality["row_count"] = len(rows)
             quality["difficulty_bin_counts"] = summary["difficulty_bin_counts"]
             quality["structure_family_counts"] = summary["structure_family_counts"]
@@ -190,6 +274,6 @@ class CogflexVerificationTests(unittest.TestCase):
             quality["probe_count_distribution"] = summary["probe_count_distribution"]
             quality["label_vocab_size_distribution"] = summary["label_vocab_size_distribution"]
             quality["stimulus_space_summary"] = summary["stimulus_space_summary"]
-            _write_bundle_payloads(bundle_paths, rows, answer_key, manifest, quality)
+            _write_bundle_payloads(bundle_paths, rows, answer_key, predictions, manifest, quality)
             with self.assertRaisesRegex(RuntimeError, "missing required structure families"):
                 verify_private_bundle(Path(tmpdir) / "bundle")

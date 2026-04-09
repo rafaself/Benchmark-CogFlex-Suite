@@ -9,6 +9,8 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_ANSWER_KEY_FILENAME,
     PRIVATE_ANSWER_KEY_VERSION,
     PRIVATE_BUNDLE_VERSION,
+    PRIVATE_CALIBRATION_PREDICTIONS_FILENAME,
+    PRIVATE_CALIBRATION_PREDICTIONS_VERSION,
     PRIVATE_QUALITY_REPORT_FILENAME,
     PRIVATE_QUALITY_REPORT_VERSION,
     PRIVATE_RELEASE_MANIFEST_FILENAME,
@@ -26,6 +28,7 @@ from scripts.build_cogflex_dataset import (
     make_two_label_rule,
     sample_for_rule,
 )
+from scripts.verify_cogflex import build_private_quality_report
 
 
 PRIVATE_DOMAIN = build_domain(
@@ -88,6 +91,7 @@ PRIVATE_STRUCTURES = {
     "latent_rebinding": EpisodeStructure("latent_rebinding", (4, 2, 3), 5),
     "variable_evidence_budget": EpisodeStructure("variable_evidence_budget", (2, 5), 7),
 }
+PRIVATE_PANEL_MODEL_NAMES = ("panel-model-a", "panel-model-b", "panel-model-c")
 
 
 def public_fixture() -> tuple[list[dict[str, object]], list[dict[str, object]], dict[str, object]]:
@@ -228,6 +232,58 @@ def _build_private_episode(
     return row, answer
 
 
+def _rotate_label(target: str, label_vocab: list[str], step: int) -> str:
+    label_index = label_vocab.index(target)
+    return label_vocab[(label_index + step) % len(label_vocab)]
+
+
+def _predicted_labels_for_model(
+    *,
+    model_name: str,
+    episode_index: int,
+    answer: dict[str, object],
+) -> list[str]:
+    label_vocab = [str(label) for label in answer["inference"]["response_spec"]["label_vocab"]]
+    targets = [str(label) for label in answer["final_probe_targets"]]
+    predictions: list[str] = []
+    for probe_index, target in enumerate(targets):
+        miss = False
+        step = 1
+        if model_name == "panel-model-a":
+            miss = (episode_index + probe_index) % 5 == 0
+        elif model_name == "panel-model-b":
+            miss = (episode_index + probe_index) % 3 == 0
+        else:
+            miss = (episode_index + probe_index) % 2 == 0
+            step = 2 if len(label_vocab) > 2 else 1
+        predictions.append(_rotate_label(target, label_vocab, step) if miss else target)
+    return predictions
+
+
+def _build_private_predictions_payload(answers: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "version": PRIVATE_CALIBRATION_PREDICTIONS_VERSION,
+        "split": "private",
+        "models": [
+            {
+                "name": model_name,
+                "episodes": [
+                    {
+                        "episode_id": answer["episode_id"],
+                        "predicted_labels": _predicted_labels_for_model(
+                            model_name=model_name,
+                            episode_index=episode_index,
+                            answer=answer,
+                        ),
+                    }
+                    for episode_index, answer in enumerate(answers)
+                ],
+            }
+            for model_name in PRIVATE_PANEL_MODEL_NAMES
+        ],
+    }
+
+
 def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
     bundle_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
@@ -263,11 +319,12 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
             )
             episode_number += 1
 
-    summary = _private_row_summary(rows)
     rows_path = bundle_dir / PRIVATE_ROWS_FILENAME
     answer_key_path = bundle_dir / PRIVATE_ANSWER_KEY_FILENAME
+    predictions_path = bundle_dir / PRIVATE_CALIBRATION_PREDICTIONS_FILENAME
     quality_path = bundle_dir / PRIVATE_QUALITY_REPORT_FILENAME
     manifest_path = bundle_dir / PRIVATE_RELEASE_MANIFEST_FILENAME
+    predictions_payload = _build_private_predictions_payload(answers)
 
     rows_path.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
     answer_key_path.write_text(
@@ -282,31 +339,17 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
         + "\n",
         encoding="utf-8",
     )
-    quality_path.write_text(
-        json.dumps(
-            {
-                "version": PRIVATE_QUALITY_REPORT_VERSION,
-                "split": "private",
-                "row_count": len(rows),
-                **summary,
-                "calibration_summary": {
-                    "models": [
-                        {"name": "panel-model-a", "macro_accuracy": 0.58, "micro_accuracy": 0.57},
-                        {"name": "panel-model-b", "macro_accuracy": 0.54, "micro_accuracy": 0.53},
-                        {"name": "panel-model-c", "macro_accuracy": 0.49, "micro_accuracy": 0.48},
-                    ]
-                },
-                "semantic_isolation_summary": {
-                    "exact_public_overlap_count": 0,
-                    "structural_overlap_count": 0,
-                    "near_duplicate_overlap_count": 0,
-                },
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+    predictions_path.write_text(json.dumps(predictions_payload, indent=2) + "\n", encoding="utf-8")
+    quality_payload = build_private_quality_report(
+        rows,
+        {
+            "version": PRIVATE_ANSWER_KEY_VERSION,
+            "split": "private",
+            "episodes": answers,
+        },
+        predictions_payload,
     )
+    quality_path.write_text(json.dumps(quality_payload, indent=2) + "\n", encoding="utf-8")
     manifest_path.write_text(
         json.dumps(
             {
@@ -316,6 +359,7 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
                 "sha256": {
                     PRIVATE_ROWS_FILENAME: compute_sha256(rows_path),
                     PRIVATE_ANSWER_KEY_FILENAME: compute_sha256(answer_key_path),
+                    PRIVATE_CALIBRATION_PREDICTIONS_FILENAME: compute_sha256(predictions_path),
                     PRIVATE_QUALITY_REPORT_FILENAME: compute_sha256(quality_path),
                 },
             },
@@ -327,6 +371,7 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
     return {
         "rows": rows_path,
         "answer_key": answer_key_path,
+        "predictions": predictions_path,
         "quality": quality_path,
         "manifest": manifest_path,
     }

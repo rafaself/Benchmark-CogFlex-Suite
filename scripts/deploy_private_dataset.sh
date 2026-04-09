@@ -11,6 +11,7 @@ KAGGLE_TMPDIR="$KAGGLE_TMP_HOME/tmp"
 PRIVATE_BUNDLE_DIR="${COGFLEX_PRIVATE_BUNDLE_DIR:-}"
 ROWS_FILE="private_leaderboard_rows.json"
 ANSWER_KEY_FILE="private_answer_key.json"
+PREDICTIONS_FILE="private_calibration_predictions.json"
 MANIFEST_FILE="private_release_manifest.json"
 QUALITY_FILE="private_quality_report.json"
 
@@ -52,7 +53,7 @@ if [[ ! -d "$PRIVATE_BUNDLE_DIR" ]]; then
   exit 1
 fi
 
-for required_file in "$ROWS_FILE" "$ANSWER_KEY_FILE" "$MANIFEST_FILE" "$QUALITY_FILE"; do
+for required_file in "$ROWS_FILE" "$ANSWER_KEY_FILE" "$PREDICTIONS_FILE" "$MANIFEST_FILE" "$QUALITY_FILE"; do
   if [[ ! -f "$PRIVATE_BUNDLE_DIR/$required_file" ]]; then
     echo "Missing required private bundle file: $PRIVATE_BUNDLE_DIR/$required_file" >&2
     exit 1
@@ -61,6 +62,7 @@ done
 
 cp "$PRIVATE_BUNDLE_DIR/$ROWS_FILE" "$STAGING_DIR/$ROWS_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$ANSWER_KEY_FILE" "$STAGING_DIR/$ANSWER_KEY_FILE"
+cp "$PRIVATE_BUNDLE_DIR/$PREDICTIONS_FILE" "$STAGING_DIR/$PREDICTIONS_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$MANIFEST_FILE" "$STAGING_DIR/$MANIFEST_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$QUALITY_FILE" "$STAGING_DIR/$QUALITY_FILE"
 cat >"$STAGING_DIR/dataset-metadata.json" <<'JSON'

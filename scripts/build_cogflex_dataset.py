@@ -25,14 +25,16 @@ FACULTY_ID = "executive_functions/cognitive_flexibility"
 PUBLIC_ROWS_FILENAME = "public_leaderboard_rows.json"
 PRIVATE_ROWS_FILENAME = "private_leaderboard_rows.json"
 PRIVATE_ANSWER_KEY_FILENAME = "private_answer_key.json"
+PRIVATE_CALIBRATION_PREDICTIONS_FILENAME = "private_calibration_predictions.json"
 PRIVATE_RELEASE_MANIFEST_FILENAME = "private_release_manifest.json"
 PRIVATE_QUALITY_REPORT_FILENAME = "private_quality_report.json"
 PRIVATE_BUNDLE_ENV_VAR = "COGFLEX_PRIVATE_BUNDLE_DIR"
 
 PUBLIC_BUNDLE_VERSION = "cogflex_public_v2"
-PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v2"
-PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v2"
-PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v2"
+PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v3"
+PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v3"
+PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v3"
+PRIVATE_CALIBRATION_PREDICTIONS_VERSION = "cogflex_private_predictions_v3"
 
 PUBLIC_EPISODES_PER_TASK = 30
 EXPECTED_PUBLIC_ROW_COUNT = PUBLIC_EPISODES_PER_TASK * 4

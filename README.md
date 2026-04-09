@@ -78,6 +78,7 @@ Required files inside that directory:
 
 - `private_leaderboard_rows.json`
 - `private_answer_key.json`
+- `private_calibration_predictions.json`
 - `private_release_manifest.json`
 - `private_quality_report.json`
 
@@ -87,6 +88,8 @@ Validation covers:
 - answer-key joins by `episode_id`
 - file SHA256 digests declared in the manifest
 - exact, structural, and near-duplicate isolation from the public split
+- reported calibration metrics recomputed from per-episode panel predictions
+- canonical attack slices recomputed from public metadata dimensions only
 - required private structure families:
   - `delayed_reversal`
   - `irrelevant_feature_interference`
@@ -100,9 +103,31 @@ Validation covers:
   - `label_vocab_size_distribution`
   - `stimulus_space_summary`
   - `calibration_summary`
+  - `attack_suite`
   - `semantic_isolation_summary`
 
 The public repo does not ship private formulas or a private production generator.
+
+### `private_calibration_predictions.json`
+
+The private bundle must expose a panel-prediction file with this schema:
+
+- top-level object with `version`, `split`, and `models`
+- `models` must contain exactly 3 model objects
+- each model object must expose:
+  - `name`
+  - `episodes`
+- each episode entry must expose:
+  - `episode_id`
+  - `predicted_labels`
+
+The verifier checks that every model covers every private episode exactly once, that each prediction list matches the episode `probe_count`, and that every predicted label belongs to that episode's `label_vocab`.
+
+The verifier then recomputes these claims from the private bundle itself and rejects mismatches:
+
+- `calibration_summary`
+- `attack_suite`
+- `semantic_isolation_summary`
 
 ## Local Usage
 

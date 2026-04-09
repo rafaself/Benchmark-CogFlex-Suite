@@ -18,6 +18,8 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     FACULTY_ID,
     PRIVATE_ANSWER_KEY_FILENAME,
     PRIVATE_ANSWER_KEY_VERSION,
+    PRIVATE_CALIBRATION_PREDICTIONS_FILENAME,
+    PRIVATE_CALIBRATION_PREDICTIONS_VERSION,
     PRIVATE_BUNDLE_ENV_VAR,
     PRIVATE_BUNDLE_VERSION,
     PRIVATE_QUALITY_REPORT_FILENAME,
@@ -28,20 +30,27 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     PUBLIC_EPISODES_PER_TASK,
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
-     REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
-     SHIFT_MODES,
-     SUITE_TASKS,
-     TASK_NAME,
+    REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
+    SHIFT_MODES,
+    SUITE_TASKS,
+    TASK_NAME,
     TURN_HEADER_PREFIX,
-     build_public_artifacts,
-     compute_sha256,
-     normalized_turn_text,
+    build_public_artifacts,
+    compute_sha256,
+    normalized_turn_text,
     parse_case_line,
     parse_turn_items,
 )
 
 EXPECTED_PUBLIC_ROW_COUNT: Final[int] = len(SUITE_TASKS) * PUBLIC_EPISODES_PER_TASK
 PRIVATE_NEAR_DUPLICATE_OVERLAP_THRESHOLD: Final[float] = 0.9
+PRIVATE_PANEL_MODEL_COUNT: Final[int] = 3
+ATTACK_SUITE_DIMENSIONS: Final[tuple[str, ...]] = (
+    "difficulty_bin",
+    "shift_mode",
+    "structure_family_id",
+    "suite_task_id",
+)
 
 
 def normalize_labels(values: object, label_vocab: list[str]) -> tuple[str, ...] | None:
@@ -51,6 +60,138 @@ def normalize_labels(values: object, label_vocab: list[str]) -> tuple[str, ...] 
     if len(normalized) == 0 or any(label not in label_vocab for label in normalized):
         return None
     return normalized
+
+
+def _rounded_accuracy(correct: int, total: int) -> float:
+    if total <= 0:
+        return 0.0
+    return round(correct / total, 6)
+
+
+def _verify_metric_value(value: object, *, context: str) -> None:
+    if not isinstance(value, (int, float)):
+        raise RuntimeError(f"{context} must be numeric")
+
+
+def _verify_model_metric_payload(model: object, *, context: str) -> None:
+    if not isinstance(model, dict):
+        raise RuntimeError(f"{context} entries must be objects")
+    expected_keys = {"macro_accuracy", "micro_accuracy", "name", "per_task_accuracy"}
+    if set(model) != expected_keys:
+        raise RuntimeError(f"{context} entries must expose {sorted(expected_keys)}")
+    if not isinstance(model.get("name"), str) or not model["name"].strip():
+        raise RuntimeError(f"{context} name must be a non-empty string")
+    _verify_metric_value(model.get("macro_accuracy"), context=f"{context} macro_accuracy")
+    _verify_metric_value(model.get("micro_accuracy"), context=f"{context} micro_accuracy")
+    per_task_accuracy = model.get("per_task_accuracy")
+    if not isinstance(per_task_accuracy, dict) or set(per_task_accuracy) != set(SUITE_TASKS):
+        raise RuntimeError(f"{context} per_task_accuracy must cover all suite tasks")
+    for suite_task_id in SUITE_TASKS:
+        _verify_metric_value(
+            per_task_accuracy[suite_task_id],
+            context=f"{context} per_task_accuracy[{suite_task_id}]",
+        )
+
+
+def _episode_ids_by_dimension(
+    private_rows: list[dict[str, object]],
+    dimension: str,
+) -> dict[str, list[str]]:
+    grouped: dict[str, list[str]] = {}
+    for row in private_rows:
+        if dimension in row["analysis"]:
+            value = str(row["analysis"][dimension])
+        else:
+            raise RuntimeError(f"unsupported attack suite dimension {dimension}")
+        grouped.setdefault(value, []).append(str(row["episode_id"]))
+    return dict(sorted(grouped.items()))
+
+
+def _metrics_for_episode_subset(
+    episode_ids: list[str],
+    *,
+    private_rows: list[dict[str, object]],
+    episode_targets: dict[str, tuple[str, ...]],
+    predictions_by_model: list[dict[str, object]],
+) -> dict[str, object]:
+    rows_by_id = {str(row["episode_id"]): row for row in private_rows}
+    total_probe_count = sum(len(episode_targets[episode_id]) for episode_id in episode_ids)
+    models_summary: list[dict[str, object]] = []
+    for model in predictions_by_model:
+        model_total_correct = 0
+        per_task_correct = {suite_task_id: 0 for suite_task_id in SUITE_TASKS}
+        per_task_total = {suite_task_id: 0 for suite_task_id in SUITE_TASKS}
+        model_episodes = model["episodes"]
+        for episode_id in episode_ids:
+            suite_task_id = str(rows_by_id[episode_id]["analysis"]["suite_task_id"])
+            targets = episode_targets[episode_id]
+            predictions = model_episodes[episode_id]
+            correct = sum(1 for predicted, target in zip(predictions, targets, strict=True) if predicted == target)
+            model_total_correct += correct
+            per_task_correct[suite_task_id] += correct
+            per_task_total[suite_task_id] += len(targets)
+        per_task_accuracy = {
+            suite_task_id: _rounded_accuracy(per_task_correct[suite_task_id], per_task_total[suite_task_id])
+            for suite_task_id in SUITE_TASKS
+        }
+        models_summary.append(
+            {
+                "name": model["name"],
+                "micro_accuracy": _rounded_accuracy(model_total_correct, total_probe_count),
+                "macro_accuracy": round(
+                    sum(per_task_accuracy[suite_task_id] for suite_task_id in SUITE_TASKS) / len(SUITE_TASKS),
+                    6,
+                ),
+                "per_task_accuracy": per_task_accuracy,
+            }
+        )
+    return {"models": models_summary}
+
+
+def build_private_quality_report(
+    private_rows: list[dict[str, object]],
+    answer_key: dict[str, object],
+    predictions: dict[str, object],
+    *,
+    public_rows: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
+    predictions_by_model = verify_private_calibration_predictions(predictions, private_rows, episode_targets)
+    scored_private_rows = attach_private_scoring(private_rows, answer_key)
+    if public_rows is None:
+        public_rows = load_rows(PUBLIC_ROWS_PATH)
+    isolation_summary = verify_split_isolation(public_rows, scored_private_rows)
+    row_summary = _summary_from_rows(private_rows)
+    all_episode_ids = [str(row["episode_id"]) for row in private_rows]
+    attack_suite = {
+        dimension: {
+            value: {
+                "row_count": len(episode_ids),
+                **_metrics_for_episode_subset(
+                    episode_ids,
+                    private_rows=private_rows,
+                    episode_targets=episode_targets,
+                    predictions_by_model=predictions_by_model,
+                ),
+            }
+            for value, episode_ids in _episode_ids_by_dimension(private_rows, dimension).items()
+        }
+        for dimension in ATTACK_SUITE_DIMENSIONS
+    }
+    return {
+        "version": PRIVATE_QUALITY_REPORT_VERSION,
+        "split": "private",
+        "row_count": len(private_rows),
+        **row_summary,
+        "calibration_summary": _metrics_for_episode_subset(
+            all_episode_ids,
+            private_rows=private_rows,
+            episode_targets=episode_targets,
+            predictions_by_model=predictions_by_model,
+        ),
+        "attack_suite": attack_suite,
+        "semantic_isolation_summary": isolation_summary,
+    }
 
 
 def _response_spec(row: dict[str, object]) -> dict[str, object]:
@@ -437,6 +578,7 @@ def private_bundle_paths(bundle_dir: Path) -> dict[str, Path]:
     return {
         "rows": bundle_dir / PRIVATE_ROWS_FILENAME,
         "answer_key": bundle_dir / PRIVATE_ANSWER_KEY_FILENAME,
+        "predictions": bundle_dir / PRIVATE_CALIBRATION_PREDICTIONS_FILENAME,
         "manifest": bundle_dir / PRIVATE_RELEASE_MANIFEST_FILENAME,
         "quality": bundle_dir / PRIVATE_QUALITY_REPORT_FILENAME,
     }
@@ -466,6 +608,20 @@ def load_private_answer_key(path: Path) -> dict[str, object]:
     episodes = payload.get("episodes")
     if not isinstance(episodes, list):
         raise RuntimeError("private answer key must expose an episodes list")
+    return payload
+
+
+def load_private_calibration_predictions(path: Path) -> dict[str, object]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("private calibration predictions payload must be a JSON object")
+    if payload.get("version") != PRIVATE_CALIBRATION_PREDICTIONS_VERSION:
+        raise RuntimeError("private calibration predictions have an unsupported version")
+    if payload.get("split") != "private":
+        raise RuntimeError("private calibration predictions must declare split='private'")
+    models = payload.get("models")
+    if not isinstance(models, list):
+        raise RuntimeError("private calibration predictions must expose a models list")
     return payload
 
 
@@ -503,6 +659,67 @@ def verify_private_answer_key(
         "answer_key_episode_count": len(episode_targets),
         "answer_key_label_counts": dict(sorted(label_counts.items())),
     }, episode_targets
+
+
+def verify_private_calibration_predictions(
+    payload: dict[str, object],
+    private_rows: list[dict[str, object]],
+    episode_targets: dict[str, tuple[str, ...]],
+) -> list[dict[str, object]]:
+    rows_by_id = {str(row["episode_id"]): row for row in private_rows}
+    models = payload.get("models")
+    if not isinstance(models, list) or len(models) != PRIVATE_PANEL_MODEL_COUNT:
+        raise RuntimeError(
+            f"private calibration predictions must include exactly {PRIVATE_PANEL_MODEL_COUNT} models"
+        )
+    normalized_models: list[dict[str, object]] = []
+    seen_names: set[str] = set()
+    for model in models:
+        if not isinstance(model, dict):
+            raise RuntimeError("private calibration prediction models must be JSON objects")
+        if set(model) != {"episodes", "name"}:
+            raise RuntimeError("private calibration prediction models must expose name and episodes")
+        name = str(model.get("name", "")).strip()
+        if not name:
+            raise RuntimeError("private calibration prediction model name must be non-empty")
+        if name in seen_names:
+            raise RuntimeError(f"private calibration predictions duplicate model name {name}")
+        seen_names.add(name)
+        episodes = model.get("episodes")
+        if not isinstance(episodes, list):
+            raise RuntimeError(f"private calibration prediction model {name} must expose an episodes list")
+        seen_episode_ids: set[str] = set()
+        normalized_episodes: dict[str, tuple[str, ...]] = {}
+        for episode in episodes:
+            if not isinstance(episode, dict):
+                raise RuntimeError(f"private calibration prediction model {name} episodes must be objects")
+            if set(episode) != {"episode_id", "predicted_labels"}:
+                raise RuntimeError(
+                    f"private calibration prediction model {name} episodes must expose episode_id and predicted_labels"
+                )
+            episode_id = str(episode.get("episode_id", "")).strip()
+            if not episode_id:
+                raise RuntimeError(f"private calibration prediction model {name} has an empty episode_id")
+            if episode_id in seen_episode_ids:
+                raise RuntimeError(f"private calibration prediction model {name} duplicates episode_id {episode_id}")
+            seen_episode_ids.add(episode_id)
+            row = rows_by_id.get(episode_id)
+            if row is None:
+                raise RuntimeError(f"private calibration prediction model {name} contains unknown episode_id {episode_id}")
+            label_vocab = [str(label) for label in row["inference"]["response_spec"]["label_vocab"]]
+            predictions = normalize_labels(episode.get("predicted_labels"), label_vocab)
+            if predictions is None or len(predictions) != len(episode_targets[episode_id]):
+                raise RuntimeError(
+                    f"private calibration prediction model {name} episode {episode_id} has invalid predicted_labels"
+                )
+            normalized_episodes[episode_id] = predictions
+        missing_episode_ids = set(rows_by_id) - set(normalized_episodes)
+        if missing_episode_ids:
+            raise RuntimeError(
+                f"private calibration prediction model {name} is missing episode_ids: {sorted(missing_episode_ids)}"
+            )
+        normalized_models.append({"name": name, "episodes": normalized_episodes})
+    return normalized_models
 
 
 def attach_private_scoring(private_rows: list[dict[str, object]], answer_key: dict[str, object]) -> list[dict[str, object]]:
@@ -565,15 +782,49 @@ def verify_quality_report(path: Path) -> dict[str, object]:
     ):
         if key not in payload:
             raise RuntimeError(f"private quality report must include {key}")
-    models = payload.get("calibration_summary", {}).get("models")
-    if not isinstance(models, list) or len(models) != 3:
-        raise RuntimeError("private quality report calibration_summary must include exactly 3 models")
-    for model in models:
-        if not isinstance(model, dict):
-            raise RuntimeError("private quality report model entries must be objects")
-        for key in ("name", "macro_accuracy", "micro_accuracy"):
-            if key not in model:
-                raise RuntimeError(f"private quality report model is missing {key}")
+    calibration_summary = payload.get("calibration_summary")
+    if not isinstance(calibration_summary, dict):
+        raise RuntimeError("private quality report must include calibration_summary")
+    models = calibration_summary.get("models")
+    if not isinstance(models, list) or len(models) != PRIVATE_PANEL_MODEL_COUNT:
+        raise RuntimeError(
+            f"private quality report calibration_summary must include exactly {PRIVATE_PANEL_MODEL_COUNT} models"
+        )
+    for index, model in enumerate(models):
+        _verify_model_metric_payload(model, context=f"private quality report calibration_summary model {index}")
+    attack_suite = payload.get("attack_suite")
+    if not isinstance(attack_suite, dict):
+        raise RuntimeError("private quality report must include attack_suite")
+    if set(attack_suite) != set(ATTACK_SUITE_DIMENSIONS):
+        raise RuntimeError("private quality report attack_suite must include only supported dimensions")
+    for dimension in ATTACK_SUITE_DIMENSIONS:
+        slices = attack_suite[dimension]
+        if not isinstance(slices, dict) or not slices:
+            raise RuntimeError(f"private quality report attack_suite[{dimension}] must be a non-empty object")
+        for slice_name, summary in slices.items():
+            if not isinstance(slice_name, str) or not slice_name:
+                raise RuntimeError(f"private quality report attack_suite[{dimension}] has an invalid slice name")
+            if not isinstance(summary, dict):
+                raise RuntimeError(f"private quality report attack_suite[{dimension}][{slice_name}] must be an object")
+            if set(summary) != {"models", "row_count"}:
+                raise RuntimeError(
+                    f"private quality report attack_suite[{dimension}][{slice_name}] must expose row_count and models"
+                )
+            if not isinstance(summary["row_count"], int) or summary["row_count"] <= 0:
+                raise RuntimeError(
+                    f"private quality report attack_suite[{dimension}][{slice_name}] row_count must be positive"
+                )
+            slice_models = summary["models"]
+            if not isinstance(slice_models, list) or len(slice_models) != PRIVATE_PANEL_MODEL_COUNT:
+                raise RuntimeError(
+                    f"private quality report attack_suite[{dimension}][{slice_name}] must include exactly "
+                    f"{PRIVATE_PANEL_MODEL_COUNT} models"
+                )
+            for index, model in enumerate(slice_models):
+                _verify_model_metric_payload(
+                    model,
+                    context=f"private quality report attack_suite[{dimension}][{slice_name}] model {index}",
+                )
     isolation = payload.get("semantic_isolation_summary")
     if not isinstance(isolation, dict):
         raise RuntimeError("private quality report must include semantic_isolation_summary")
@@ -589,13 +840,18 @@ def verify_private_bundle(bundle_dir: Path) -> None:
     schema_summary = verify_schema(private_rows, "private")
     answer_key = load_private_answer_key(bundle_paths["answer_key"])
     answer_summary, _episode_targets = verify_private_answer_key(answer_key, private_rows)
+    predictions = load_private_calibration_predictions(bundle_paths["predictions"])
+    prediction_models = verify_private_calibration_predictions(predictions, private_rows, _episode_targets)
     verify_manifest(bundle_paths["manifest"], bundle_paths)
     quality_report = verify_quality_report(bundle_paths["quality"])
-    scored_private_rows = attach_private_scoring(private_rows, answer_key)
     public_rows = load_rows(PUBLIC_ROWS_PATH)
-    isolation_summary = verify_split_isolation(public_rows, scored_private_rows)
-    row_summary = _summary_from_rows(private_rows)
-    if quality_report.get("row_count") != len(private_rows):
+    expected_quality_report = build_private_quality_report(
+        private_rows,
+        answer_key,
+        predictions,
+        public_rows=public_rows,
+    )
+    if quality_report.get("row_count") != expected_quality_report["row_count"]:
         raise RuntimeError("private quality report row_count mismatch")
     for key in (
         "difficulty_bin_counts",
@@ -604,15 +860,16 @@ def verify_private_bundle(bundle_dir: Path) -> None:
         "probe_count_distribution",
         "label_vocab_size_distribution",
         "stimulus_space_summary",
+        "calibration_summary",
+        "attack_suite",
+        "semantic_isolation_summary",
     ):
-        if quality_report.get(key) != row_summary[key]:
+        if quality_report.get(key) != expected_quality_report[key]:
             raise RuntimeError(f"private quality report {key} mismatch")
-    if quality_report.get("semantic_isolation_summary") != isolation_summary:
-        raise RuntimeError("private quality report semantic_isolation_summary mismatch")
     missing_families = [
         family_id
         for family_id in REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS
-        if quality_report["structure_family_counts"].get(family_id, 0) <= 0
+        if expected_quality_report["structure_family_counts"].get(family_id, 0) <= 0
     ]
     if missing_families:
         raise RuntimeError(f"private quality report is missing required structure families: {missing_families}")
@@ -623,7 +880,8 @@ def verify_private_bundle(bundle_dir: Path) -> None:
                 "bundle_dir": str(bundle_dir),
                 **schema_summary,
                 **answer_summary,
-                "semantic_isolation_summary": isolation_summary,
+                "prediction_model_names": [model["name"] for model in prediction_models],
+                "semantic_isolation_summary": expected_quality_report["semantic_isolation_summary"],
             },
             indent=2,
         )
