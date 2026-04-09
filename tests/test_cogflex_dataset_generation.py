@@ -2,16 +2,20 @@ import json
 import unittest
 from collections import Counter
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.build_cogflex_dataset import (
     NOTEBOOK_ID,
     PUBLIC_DATASET_ID,
+    PUBLIC_DIFFICULTY_CALIBRATION_PATH,
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
     SUITE_TASKS,
     TASK_NAME,
     build_public_artifacts,
     dataset_metadata,
+    empirical_difficulty_entries_from_scores,
+    load_public_difficulty_calibration,
 )
 
 
@@ -58,6 +62,35 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertEqual(task_counts, Counter({suite_task_id: 30 for suite_task_id in SUITE_TASKS}))
         difficulty_counts = Counter(row["analysis"]["difficulty_bin"] for row in self.generated_rows)
         self.assertEqual(difficulty_counts, Counter({"hard": 60, "medium": 60}))
+
+    def test_public_split_uses_tracked_difficulty_calibration_snapshot(self) -> None:
+        _payload, entries_by_episode = load_public_difficulty_calibration()
+        self.assertEqual(
+            {row["episode_id"]: row["analysis"]["difficulty_bin"] for row in self.generated_rows},
+            {episode_id: entry["difficulty_bin"] for episode_id, entry in entries_by_episode.items()},
+        )
+
+    def test_empirical_difficulty_tie_breaks_by_episode_id(self) -> None:
+        entries = empirical_difficulty_entries_from_scores({"0002": 0.25, "0001": 0.25, "0003": 0.9, "0004": 0.9})
+        self.assertEqual(entries["0001"]["rank"], 1)
+        self.assertEqual(entries["0001"]["difficulty_bin"], "hard")
+        self.assertEqual(entries["0002"]["rank"], 2)
+        self.assertEqual(entries["0002"]["difficulty_bin"], "hard")
+        self.assertEqual(entries["0003"]["rank"], 3)
+        self.assertEqual(entries["0003"]["difficulty_bin"], "medium")
+        self.assertEqual(entries["0004"]["rank"], 4)
+        self.assertEqual(entries["0004"]["difficulty_bin"], "medium")
+
+    def test_build_public_artifacts_rejects_calibration_coverage_mismatch(self) -> None:
+        _payload, entries_by_episode = load_public_difficulty_calibration()
+        missing_episode_id = next(iter(entries_by_episode))
+        incomplete_entries = {episode_id: value for episode_id, value in entries_by_episode.items() if episode_id != missing_episode_id}
+        with patch(
+            "scripts.build_cogflex_dataset.load_public_difficulty_calibration",
+            return_value=({"version": "test"}, incomplete_entries),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coverage mismatch"):
+                build_public_artifacts()
 
     def test_public_split_varies_turn_probe_and_label_shapes(self) -> None:
         self.assertEqual(
@@ -120,3 +153,4 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertIn("turn_specs", readme)
         self.assertIn("response_spec", readme)
         self.assertIn("structure_family_id", readme)
+        self.assertIn(PUBLIC_DIFFICULTY_CALIBRATION_PATH.name, readme)

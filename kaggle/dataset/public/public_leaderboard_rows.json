@@ -136,7 +136,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -189,7 +189,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -238,7 +238,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -291,7 +291,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -393,7 +393,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -442,7 +442,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -495,7 +495,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -544,7 +544,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -597,7 +597,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -699,7 +699,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -801,7 +801,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -850,7 +850,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -903,7 +903,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1005,7 +1005,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1107,7 +1107,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1156,7 +1156,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -1209,7 +1209,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1311,7 +1311,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1413,7 +1413,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1462,7 +1462,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "explicit_rule_update",
       "shift_mode": "explicit_instruction",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -1564,7 +1564,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -1617,7 +1617,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1719,7 +1719,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1768,7 +1768,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -1821,7 +1821,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -1870,7 +1870,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -1923,7 +1923,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2025,7 +2025,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2074,7 +2074,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -2127,7 +2127,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2278,7 +2278,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -2331,7 +2331,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2380,7 +2380,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -2433,7 +2433,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2535,7 +2535,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2584,7 +2584,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -2637,7 +2637,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2686,7 +2686,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -2739,7 +2739,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2841,7 +2841,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -2992,7 +2992,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "latent_rule_update",
       "shift_mode": "latent_example_change",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -3301,7 +3301,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -3354,7 +3354,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -3610,7 +3610,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -3713,7 +3713,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -3869,7 +3869,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -3919,7 +3919,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4022,7 +4022,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4228,7 +4228,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4384,7 +4384,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -4434,7 +4434,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4537,7 +4537,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "context_binding",
       "shift_mode": "context_gate",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4741,7 +4741,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4843,7 +4843,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -4896,7 +4896,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -5149,7 +5149,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -5406,7 +5406,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -5455,7 +5455,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -5761,7 +5761,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -5863,7 +5863,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {
@@ -5916,7 +5916,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "medium",
+      "difficulty_bin": "hard",
       "structure_family_id": "three_step_bridge"
     },
     "scoring": {
@@ -6067,7 +6067,7 @@
       "faculty_id": "executive_functions/cognitive_flexibility",
       "suite_task_id": "trial_cued_switch",
       "shift_mode": "cue_switching",
-      "difficulty_bin": "hard",
+      "difficulty_bin": "medium",
       "structure_family_id": "two_step_focus"
     },
     "scoring": {

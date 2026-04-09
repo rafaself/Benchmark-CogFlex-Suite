@@ -13,6 +13,7 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_QUALITY_REPORT_VERSION,
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     compute_sha256,
+    empirical_difficulty_entries_from_predictions,
 )
 from scripts.verify_cogflex import (
     attach_private_scoring,
@@ -24,6 +25,7 @@ from scripts.verify_cogflex import (
     verify_private_answer_key,
     verify_private_bundle,
     verify_private_calibration_predictions,
+    verify_public_difficulty_calibration,
     verify_public_split,
     verify_quality_report,
     verify_schema,
@@ -91,6 +93,13 @@ class CogflexVerificationTests(unittest.TestCase):
             bundle_dir = Path(tmpdir) / "bundle"
             write_private_bundle(bundle_dir)
             verify_private_bundle(bundle_dir)
+
+    def test_verify_public_difficulty_calibration_rejects_mismatch(self) -> None:
+        public_rows, _answers, _report = public_fixture()
+        row = json.loads(json.dumps(public_rows[0]))
+        row["analysis"]["difficulty_bin"] = "medium" if row["analysis"]["difficulty_bin"] == "hard" else "hard"
+        with self.assertRaisesRegex(RuntimeError, "public difficulty calibration mismatch"):
+            verify_public_difficulty_calibration([row, *public_rows[1:]])
 
     def test_verify_split_isolation_rejects_exact_overlap(self) -> None:
         public_rows, _answers, _report = public_fixture()
@@ -225,6 +234,17 @@ class CogflexVerificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "calibration_summary mismatch"):
                 verify_private_bundle(Path(tmpdir) / "bundle")
 
+    def test_verify_private_bundle_rejects_empirical_difficulty_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
+            rows, answer_key, predictions, manifest, quality = _load_bundle_payloads(bundle_paths)
+            replacement = "medium" if rows[0]["analysis"]["difficulty_bin"] == "hard" else "hard"
+            rows[0]["analysis"]["difficulty_bin"] = replacement
+            answer_key["episodes"][0]["difficulty_bin"] = replacement
+            _write_bundle_payloads(bundle_paths, rows, answer_key, predictions, manifest, quality)
+            with self.assertRaisesRegex(RuntimeError, "private empirical difficulty mismatch"):
+                verify_private_bundle(Path(tmpdir) / "bundle")
+
     def test_verify_private_bundle_rejects_attack_suite_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             bundle_paths = write_private_bundle(Path(tmpdir) / "bundle")
@@ -265,6 +285,25 @@ class CogflexVerificationTests(unittest.TestCase):
                     for episode in model["episodes"]
                     if episode["episode_id"] in remaining_episode_ids
                 ]
+            normalized_models = [
+                {
+                    "name": str(model["name"]),
+                    "episodes": {
+                        str(episode["episode_id"]): tuple(str(label) for label in episode["predicted_labels"])
+                        for episode in model["episodes"]
+                    },
+                }
+                for model in predictions["models"]
+            ]
+            episode_targets = {
+                str(episode["episode_id"]): tuple(str(label) for label in episode["final_probe_targets"])
+                for episode in answer_key["episodes"]
+            }
+            difficulty_entries = empirical_difficulty_entries_from_predictions(episode_targets, normalized_models)
+            for row in rows:
+                row["analysis"]["difficulty_bin"] = str(difficulty_entries[str(row["episode_id"])]["difficulty_bin"])
+            for episode in answer_key["episodes"]:
+                episode["difficulty_bin"] = str(difficulty_entries[str(episode["episode_id"])]["difficulty_bin"])
             summary = _private_row_summary(rows)
             quality = build_private_quality_report(rows, answer_key, predictions, public_rows=public_fixture()[0])
             quality["row_count"] = len(rows)

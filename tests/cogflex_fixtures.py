@@ -23,6 +23,7 @@ from scripts.build_cogflex_dataset import (
     build_episode_payload,
     build_public_artifacts,
     compute_sha256,
+    empirical_difficulty_entries_from_predictions,
     enumerate_items,
     make_three_label_rule,
     make_two_label_rule,
@@ -221,7 +222,6 @@ def _build_private_episode(
     row, answer = build_episode_payload(
         episode_id,
         suite_task_id=suite_task_id,
-        difficulty_bin="hard" if variant % 2 == 0 else "medium",
         structure=structure,
         label_vocab=label_vocab,
         turn_prompts=prompts,
@@ -298,25 +298,8 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
                 structure_family_id,
                 variant=family_index * 10 + task_index,
             )
-            rows.append(
-                {
-                    "episode_id": row["episode_id"],
-                    "analysis": row["analysis"],
-                    "inference": row["inference"],
-                }
-            )
-            answers.append(
-                {
-                    "episode_id": answer["episode_id"],
-                    "faculty_id": answer["analysis"]["faculty_id"],
-                    "suite_task_id": answer["analysis"]["suite_task_id"],
-                    "shift_mode": answer["analysis"]["shift_mode"],
-                    "difficulty_bin": answer["analysis"]["difficulty_bin"],
-                    "structure_family_id": answer["analysis"]["structure_family_id"],
-                    "inference": answer["inference"],
-                    "final_probe_targets": answer["final_probe_targets"],
-                }
-            )
+            rows.append(row)
+            answers.append(answer)
             episode_number += 1
 
     rows_path = bundle_dir / PRIVATE_ROWS_FILENAME
@@ -325,14 +308,54 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
     quality_path = bundle_dir / PRIVATE_QUALITY_REPORT_FILENAME
     manifest_path = bundle_dir / PRIVATE_RELEASE_MANIFEST_FILENAME
     predictions_payload = _build_private_predictions_payload(answers)
+    normalized_models = [
+        {
+            "name": str(model["name"]),
+            "episodes": {
+                str(episode["episode_id"]): tuple(str(label) for label in episode["predicted_labels"])
+                for episode in model["episodes"]
+            },
+        }
+        for model in predictions_payload["models"]
+    ]
+    episode_targets = {
+        str(answer["episode_id"]): tuple(str(label) for label in answer["final_probe_targets"])
+        for answer in answers
+    }
+    difficulty_entries = empirical_difficulty_entries_from_predictions(episode_targets, normalized_models)
+    for row in rows:
+        row["analysis"]["difficulty_bin"] = str(difficulty_entries[str(row["episode_id"])]["difficulty_bin"])
+    for answer in answers:
+        answer["analysis"]["difficulty_bin"] = str(difficulty_entries[str(answer["episode_id"])]["difficulty_bin"])
+    private_rows = [
+        {
+            "episode_id": row["episode_id"],
+            "analysis": row["analysis"],
+            "inference": row["inference"],
+        }
+        for row in rows
+    ]
+    private_answers = [
+        {
+            "episode_id": answer["episode_id"],
+            "faculty_id": answer["analysis"]["faculty_id"],
+            "suite_task_id": answer["analysis"]["suite_task_id"],
+            "shift_mode": answer["analysis"]["shift_mode"],
+            "difficulty_bin": answer["analysis"]["difficulty_bin"],
+            "structure_family_id": answer["analysis"]["structure_family_id"],
+            "inference": answer["inference"],
+            "final_probe_targets": answer["final_probe_targets"],
+        }
+        for answer in answers
+    ]
 
-    rows_path.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
+    rows_path.write_text(json.dumps(private_rows, indent=2) + "\n", encoding="utf-8")
     answer_key_path.write_text(
         json.dumps(
             {
                 "version": PRIVATE_ANSWER_KEY_VERSION,
                 "split": "private",
-                "episodes": answers,
+                "episodes": private_answers,
             },
             indent=2,
         )
@@ -341,11 +364,11 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
     )
     predictions_path.write_text(json.dumps(predictions_payload, indent=2) + "\n", encoding="utf-8")
     quality_payload = build_private_quality_report(
-        rows,
+        private_rows,
         {
             "version": PRIVATE_ANSWER_KEY_VERSION,
             "split": "private",
-            "episodes": answers,
+            "episodes": private_answers,
         },
         predictions_payload,
     )
@@ -355,7 +378,7 @@ def write_private_bundle(bundle_dir: Path) -> dict[str, Path]:
             {
                 "version": PRIVATE_BUNDLE_VERSION,
                 "split": "private",
-                "row_count": len(rows),
+                "row_count": len(private_rows),
                 "sha256": {
                     PRIVATE_ROWS_FILENAME: compute_sha256(rows_path),
                     PRIVATE_ANSWER_KEY_FILENAME: compute_sha256(answer_key_path),

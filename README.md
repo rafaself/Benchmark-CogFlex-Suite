@@ -15,6 +15,7 @@ kaggle/
   dataset/
     public/
       dataset-metadata.json
+      public_difficulty_calibration.json
       public_leaderboard_rows.json
       public_quality_report.json
   notebook/
@@ -49,6 +50,8 @@ Each scored row exposes:
 
 Public rows also include `scoring.final_probe_targets`. Private rows are inference-only and must be paired with an external answer key.
 
+`analysis.difficulty_bin` is an empirical model-calibration bin, not a claim about human difficulty and not a shortcut-resistance label. The public split consumes the tracked `public_difficulty_calibration.json` snapshot, and the private verifier recomputes the same bin from the fixed panel predictions shipped in the private bundle.
+
 The current public split exercises two structural families:
 
 - `two_step_focus`: 2 evidence turns followed by a decision turn
@@ -60,6 +63,17 @@ The public rows intentionally vary:
 - decision probes: `5` or `6`
 - label vocabulary size: `2` or `3`
 - routing metadata: some tasks attach `context`, others attach `cue`
+
+### Public Difficulty Calibration
+
+`kaggle/dataset/public/public_difficulty_calibration.json` records the public difficulty snapshot with:
+
+- `version`
+- `policy`: `median_split`
+- `score_kind`: `mean_panel_episode_accuracy`
+- `episodes`: per-episode `panel_mean_accuracy`, `difficulty_bin`, and rank
+
+Episodes are ordered by `(panel_mean_accuracy asc, episode_id asc)`. The lower half is assigned `hard`; the upper half is assigned `medium`.
 
 ## Suite Tasks
 
@@ -89,6 +103,7 @@ Validation covers:
 - file SHA256 digests declared in the manifest
 - exact, structural, and near-duplicate isolation from the public split
 - reported calibration metrics recomputed from per-episode panel predictions
+- empirical `difficulty_bin` recomputed from the fixed panel predictions
 - canonical attack slices recomputed from public metadata dimensions only
 - required private structure families:
   - `delayed_reversal`

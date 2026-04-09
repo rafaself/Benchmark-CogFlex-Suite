@@ -27,12 +27,15 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     PRIVATE_ROWS_FILENAME,
     PUBLIC_BUNDLE_VERSION,
+    PUBLIC_DIFFICULTY_CALIBRATION_PATH,
     PUBLIC_EPISODES_PER_TASK,
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
     REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
     SHIFT_MODES,
     SUITE_TASKS,
+    empirical_difficulty_entries_from_predictions,
+    load_public_difficulty_calibration,
     TASK_NAME,
     TURN_HEADER_PREFIX,
     build_public_artifacts,
@@ -157,6 +160,7 @@ def build_private_quality_report(
 ) -> dict[str, object]:
     _summary, episode_targets = verify_private_answer_key(answer_key, private_rows)
     predictions_by_model = verify_private_calibration_predictions(predictions, private_rows, episode_targets)
+    verify_private_empirical_difficulty(private_rows, answer_key, predictions_by_model, episode_targets)
     scored_private_rows = attach_private_scoring(private_rows, answer_key)
     if public_rows is None:
         public_rows = load_rows(PUBLIC_ROWS_PATH)
@@ -481,10 +485,6 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
             raise RuntimeError(f"public split must contain {EXPECTED_PUBLIC_ROW_COUNT} rows")
         if task_counts != Counter({suite_task_id: PUBLIC_EPISODES_PER_TASK for suite_task_id in SUITE_TASKS}):
             raise RuntimeError(f"public task counts mismatch: {task_counts}")
-        if difficulty_counts != Counter({"hard": EXPECTED_PUBLIC_ROW_COUNT // 2, "medium": EXPECTED_PUBLIC_ROW_COUNT // 2}):
-            raise RuntimeError("public difficulty balance mismatch")
-    elif difficulty_counts["hard"] != difficulty_counts["medium"]:
-        raise RuntimeError("private difficulty balance must stay even across hard and medium")
 
     return {
         "row_count": len(rows),
@@ -514,6 +514,61 @@ def public_quality_report_payload() -> dict[str, object]:
     if not isinstance(payload, dict):
         raise RuntimeError("public quality report must be a JSON object")
     return payload
+
+
+def verify_public_difficulty_calibration(rows: list[dict[str, object]]) -> dict[str, object]:
+    _payload, entries_by_episode = load_public_difficulty_calibration()
+    rows_by_id = {str(row["episode_id"]): row for row in rows}
+    missing_episode_ids = sorted(set(entries_by_episode) - set(rows_by_id))
+    extra_episode_ids = sorted(set(rows_by_id) - set(entries_by_episode))
+    if missing_episode_ids or extra_episode_ids:
+        raise RuntimeError(
+            "public difficulty calibration coverage mismatch: "
+            f"missing={missing_episode_ids}, extra={extra_episode_ids}"
+        )
+    for episode_id, row in rows_by_id.items():
+        expected = str(entries_by_episode[episode_id]["difficulty_bin"])
+        actual = str(row["analysis"]["difficulty_bin"])
+        if actual != expected:
+            raise RuntimeError(f"public difficulty calibration mismatch for episode {episode_id}")
+    return {
+        "difficulty_calibration_path": str(PUBLIC_DIFFICULTY_CALIBRATION_PATH),
+        "difficulty_bin_counts": dict(
+            sorted(Counter(str(entry["difficulty_bin"]) for entry in entries_by_episode.values()).items())
+        ),
+    }
+
+
+def verify_private_empirical_difficulty(
+    private_rows: list[dict[str, object]],
+    answer_key: dict[str, object],
+    predictions_by_model: list[dict[str, object]],
+    episode_targets: dict[str, tuple[str, ...]],
+) -> dict[str, dict[str, object]]:
+    entries_by_episode = empirical_difficulty_entries_from_predictions(episode_targets, predictions_by_model)
+    rows_by_id = {str(row["episode_id"]): row for row in private_rows}
+    answer_key_by_id = {str(episode["episode_id"]): episode for episode in answer_key["episodes"]}
+    missing_row_ids = sorted(set(entries_by_episode) - set(rows_by_id))
+    extra_row_ids = sorted(set(rows_by_id) - set(entries_by_episode))
+    if missing_row_ids or extra_row_ids:
+        raise RuntimeError(
+            "private empirical difficulty coverage mismatch for rows: "
+            f"missing={missing_row_ids}, extra={extra_row_ids}"
+        )
+    missing_answer_ids = sorted(set(entries_by_episode) - set(answer_key_by_id))
+    extra_answer_ids = sorted(set(answer_key_by_id) - set(entries_by_episode))
+    if missing_answer_ids or extra_answer_ids:
+        raise RuntimeError(
+            "private empirical difficulty coverage mismatch for answer key: "
+            f"missing={missing_answer_ids}, extra={extra_answer_ids}"
+        )
+    for episode_id, entry in entries_by_episode.items():
+        expected = str(entry["difficulty_bin"])
+        if str(rows_by_id[episode_id]["analysis"]["difficulty_bin"]) != expected:
+            raise RuntimeError(f"private empirical difficulty mismatch for row {episode_id}")
+        if str(answer_key_by_id[episode_id]["difficulty_bin"]) != expected:
+            raise RuntimeError(f"private empirical difficulty mismatch for answer key episode {episode_id}")
+    return entries_by_episode
 
 
 def verify_public_report(payload: dict[str, object], rows: list[dict[str, object]]) -> dict[str, object]:
@@ -553,6 +608,7 @@ def verify_public_report(payload: dict[str, object], rows: list[dict[str, object
 def verify_public_split() -> None:
     rows = load_rows(PUBLIC_ROWS_PATH)
     schema_summary = verify_schema(rows, "public")
+    calibration_summary = verify_public_difficulty_calibration(rows)
     expected_rows, _answers, report = build_public_artifacts()
     if rows != expected_rows:
         raise RuntimeError("public split rows are not reproducible from the generator")
@@ -567,6 +623,7 @@ def verify_public_split() -> None:
                 "rows_path": str(PUBLIC_ROWS_PATH),
                 "quality_report_path": str(PUBLIC_QUALITY_REPORT_PATH),
                 **schema_summary,
+                **calibration_summary,
                 **report_summary,
             },
             indent=2,
@@ -842,6 +899,7 @@ def verify_private_bundle(bundle_dir: Path) -> None:
     answer_summary, _episode_targets = verify_private_answer_key(answer_key, private_rows)
     predictions = load_private_calibration_predictions(bundle_paths["predictions"])
     prediction_models = verify_private_calibration_predictions(predictions, private_rows, _episode_targets)
+    verify_private_empirical_difficulty(private_rows, answer_key, prediction_models, _episode_targets)
     verify_manifest(bundle_paths["manifest"], bundle_paths)
     quality_report = verify_quality_report(bundle_paths["quality"])
     public_rows = load_rows(PUBLIC_ROWS_PATH)

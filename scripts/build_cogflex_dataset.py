@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_ROWS_PATH = ROOT / "kaggle/dataset/public/public_leaderboard_rows.json"
 PUBLIC_METADATA_PATH = ROOT / "kaggle/dataset/public/dataset-metadata.json"
 PUBLIC_QUALITY_REPORT_PATH = ROOT / "kaggle/dataset/public/public_quality_report.json"
+PUBLIC_DIFFICULTY_CALIBRATION_PATH = ROOT / "kaggle/dataset/public/public_difficulty_calibration.json"
 
 PUBLIC_DATASET_ID = "raptorengineer/cogflex-suite-runtime"
 PRIVATE_DATASET_ID = "raptorengineer/cogflex-suite-runtime-private"
@@ -23,6 +24,7 @@ TASK_NAME = "cogflex_suite_flexible"
 FACULTY_ID = "executive_functions/cognitive_flexibility"
 
 PUBLIC_ROWS_FILENAME = "public_leaderboard_rows.json"
+PUBLIC_DIFFICULTY_CALIBRATION_FILENAME = "public_difficulty_calibration.json"
 PRIVATE_ROWS_FILENAME = "private_leaderboard_rows.json"
 PRIVATE_ANSWER_KEY_FILENAME = "private_answer_key.json"
 PRIVATE_CALIBRATION_PREDICTIONS_FILENAME = "private_calibration_predictions.json"
@@ -31,6 +33,7 @@ PRIVATE_QUALITY_REPORT_FILENAME = "private_quality_report.json"
 PRIVATE_BUNDLE_ENV_VAR = "COGFLEX_PRIVATE_BUNDLE_DIR"
 
 PUBLIC_BUNDLE_VERSION = "cogflex_public_v2"
+PUBLIC_DIFFICULTY_CALIBRATION_VERSION = "cogflex_public_difficulty_v1"
 PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v3"
 PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v3"
 PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v3"
@@ -112,6 +115,143 @@ class EpisodeStructure:
     @property
     def turn_count(self) -> int:
         return len(self.evidence_counts) + 1
+
+
+def empirical_difficulty_entries_from_scores(scores_by_episode: dict[str, float]) -> dict[str, dict[str, object]]:
+    if not scores_by_episode:
+        raise RuntimeError("empirical difficulty calibration requires at least one episode")
+    ranked = sorted(scores_by_episode.items(), key=lambda item: (item[1], item[0]))
+    hard_count = len(ranked) // 2
+    assignments: dict[str, dict[str, object]] = {}
+    for index, (episode_id, score) in enumerate(ranked, start=1):
+        assignments[episode_id] = {
+            "panel_mean_accuracy": round(float(score), 6),
+            "difficulty_bin": "hard" if index <= hard_count else "medium",
+            "rank": index,
+        }
+    return assignments
+
+
+def empirical_difficulty_scores_from_predictions(
+    episode_targets: dict[str, tuple[str, ...]],
+    predictions_by_model: list[dict[str, object]],
+) -> dict[str, float]:
+    if not predictions_by_model:
+        raise RuntimeError("empirical difficulty calibration requires at least one model")
+    scores_by_episode: dict[str, float] = {}
+    for episode_id, targets in episode_targets.items():
+        per_model_accuracy: list[float] = []
+        for model in predictions_by_model:
+            predictions = model["episodes"][episode_id]
+            correct = sum(1 for predicted, target in zip(predictions, targets, strict=True) if predicted == target)
+            per_model_accuracy.append(correct / len(targets))
+        scores_by_episode[episode_id] = sum(per_model_accuracy) / len(per_model_accuracy)
+    return scores_by_episode
+
+
+def empirical_difficulty_entries_from_predictions(
+    episode_targets: dict[str, tuple[str, ...]],
+    predictions_by_model: list[dict[str, object]],
+) -> dict[str, dict[str, object]]:
+    return empirical_difficulty_entries_from_scores(
+        empirical_difficulty_scores_from_predictions(episode_targets, predictions_by_model)
+    )
+
+
+def public_difficulty_calibration_payload_from_entries(
+    entries_by_episode: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    return {
+        "version": PUBLIC_DIFFICULTY_CALIBRATION_VERSION,
+        "policy": "median_split",
+        "score_kind": "mean_panel_episode_accuracy",
+        "episodes": [
+            {
+                "episode_id": episode_id,
+                "panel_mean_accuracy": entry["panel_mean_accuracy"],
+                "difficulty_bin": entry["difficulty_bin"],
+                "rank": entry["rank"],
+            }
+            for episode_id, entry in sorted(entries_by_episode.items(), key=lambda item: int(item[1]["rank"]))
+        ],
+    }
+
+
+def load_public_difficulty_calibration(
+    path: Path = PUBLIC_DIFFICULTY_CALIBRATION_PATH,
+) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("public difficulty calibration must be a JSON object")
+    if payload.get("version") != PUBLIC_DIFFICULTY_CALIBRATION_VERSION:
+        raise RuntimeError("public difficulty calibration has an unsupported version")
+    if payload.get("policy") != "median_split":
+        raise RuntimeError("public difficulty calibration must declare policy='median_split'")
+    if payload.get("score_kind") != "mean_panel_episode_accuracy":
+        raise RuntimeError("public difficulty calibration must declare score_kind='mean_panel_episode_accuracy'")
+    episodes = payload.get("episodes")
+    if not isinstance(episodes, list) or not episodes:
+        raise RuntimeError("public difficulty calibration must expose a non-empty episodes list")
+    entries_by_episode: dict[str, dict[str, object]] = {}
+    seen_ranks: set[int] = set()
+    for episode in episodes:
+        if not isinstance(episode, dict):
+            raise RuntimeError("public difficulty calibration episodes must be objects")
+        if set(episode) != {"difficulty_bin", "episode_id", "panel_mean_accuracy", "rank"}:
+            raise RuntimeError("public difficulty calibration episodes must expose episode_id, panel_mean_accuracy, difficulty_bin, and rank")
+        episode_id = str(episode.get("episode_id", "")).strip()
+        if not episode_id:
+            raise RuntimeError("public difficulty calibration episode_id must be non-empty")
+        if episode_id in entries_by_episode:
+            raise RuntimeError(f"public difficulty calibration duplicates episode_id {episode_id}")
+        difficulty_bin = str(episode.get("difficulty_bin"))
+        if difficulty_bin not in {"hard", "medium"}:
+            raise RuntimeError(f"public difficulty calibration episode {episode_id} has unsupported difficulty_bin")
+        score = episode.get("panel_mean_accuracy")
+        if not isinstance(score, (int, float)):
+            raise RuntimeError(f"public difficulty calibration episode {episode_id} has invalid panel_mean_accuracy")
+        rank = episode.get("rank")
+        if not isinstance(rank, int) or rank <= 0:
+            raise RuntimeError(f"public difficulty calibration episode {episode_id} has invalid rank")
+        if rank in seen_ranks:
+            raise RuntimeError(f"public difficulty calibration duplicates rank {rank}")
+        seen_ranks.add(rank)
+        entries_by_episode[episode_id] = {
+            "panel_mean_accuracy": round(float(score), 6),
+            "difficulty_bin": difficulty_bin,
+            "rank": rank,
+        }
+    expected_ranks = set(range(1, len(entries_by_episode) + 1))
+    if seen_ranks != expected_ranks:
+        raise RuntimeError("public difficulty calibration ranks must form a contiguous sequence starting at 1")
+    return payload, entries_by_episode
+
+
+def apply_empirical_difficulty_to_payloads(
+    rows: list[dict[str, object]],
+    answers: list[dict[str, object]],
+    entries_by_episode: dict[str, dict[str, object]],
+) -> None:
+    row_episode_ids = {str(row["episode_id"]) for row in rows}
+    answer_episode_ids = {str(answer["episode_id"]) for answer in answers}
+    calibration_episode_ids = set(entries_by_episode)
+    missing_row_ids = sorted(calibration_episode_ids - row_episode_ids)
+    extra_row_ids = sorted(row_episode_ids - calibration_episode_ids)
+    if missing_row_ids or extra_row_ids:
+        raise RuntimeError(
+            "public difficulty calibration coverage mismatch for rows: "
+            f"missing={missing_row_ids}, extra={extra_row_ids}"
+        )
+    missing_answer_ids = sorted(calibration_episode_ids - answer_episode_ids)
+    extra_answer_ids = sorted(answer_episode_ids - calibration_episode_ids)
+    if missing_answer_ids or extra_answer_ids:
+        raise RuntimeError(
+            "public difficulty calibration coverage mismatch for answers: "
+            f"missing={missing_answer_ids}, extra={extra_answer_ids}"
+        )
+    for payload in [*rows, *answers]:
+        episode_id = str(payload["episode_id"])
+        payload["analysis"]["difficulty_bin"] = str(entries_by_episode[episode_id]["difficulty_bin"])
 
 
 def derive_seed(*parts: object) -> int:
@@ -563,7 +703,6 @@ def build_episode_payload(
     episode_id: str,
     *,
     suite_task_id: str,
-    difficulty_bin: str,
     structure: EpisodeStructure,
     label_vocab: tuple[str, ...],
     turn_prompts: list[str],
@@ -588,7 +727,7 @@ def build_episode_payload(
         "faculty_id": FACULTY_ID,
         "suite_task_id": suite_task_id,
         "shift_mode": SHIFT_MODES[suite_task_id],
-        "difficulty_bin": difficulty_bin,
+        "difficulty_bin": "pending_calibration",
         "structure_family_id": structure.structure_family_id,
     }
     inference = {"turns": turns, "turn_specs": specs, "response_spec": spec}
@@ -653,7 +792,6 @@ def build_explicit_episode(episode_id: str, *, structure: EpisodeStructure, vari
     return build_episode_payload(
         episode_id,
         suite_task_id="explicit_rule_update",
-        difficulty_bin="hard" if variant % 2 == 0 else "medium",
         structure=structure,
         label_vocab=shift_rule.label_vocab,
         turn_prompts=prompts,
@@ -702,7 +840,6 @@ def build_latent_episode(episode_id: str, *, structure: EpisodeStructure, varian
     return build_episode_payload(
         episode_id,
         suite_task_id="latent_rule_update",
-        difficulty_bin="hard" if variant % 2 == 0 else "medium",
         structure=structure,
         label_vocab=shift_rule.label_vocab,
         turn_prompts=prompts,
@@ -766,7 +903,6 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
     return build_episode_payload(
         episode_id,
         suite_task_id="context_binding",
-        difficulty_bin="hard" if variant % 2 == 0 else "medium",
         structure=structure,
         label_vocab=label_vocab,
         turn_prompts=prompts,
@@ -838,7 +974,6 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
     return build_episode_payload(
         episode_id,
         suite_task_id="trial_cued_switch",
-        difficulty_bin="hard" if variant % 2 == 0 else "medium",
         structure=structure,
         label_vocab=label_vocab,
         turn_prompts=prompts,
@@ -870,6 +1005,8 @@ def build_public_artifacts() -> tuple[list[dict[str, object]], list[dict[str, ob
             rows.append(row)
             answers.append(answer)
             episode_number += 1
+    _payload, calibration_entries = load_public_difficulty_calibration()
+    apply_empirical_difficulty_to_payloads(rows, answers, calibration_entries)
     report = build_public_quality_report(rows)
     return rows, answers, report
 
