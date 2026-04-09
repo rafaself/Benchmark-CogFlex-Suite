@@ -1,5 +1,5 @@
 {
-  "version": "cogflex_public_difficulty_v1",
+  "version": "cogflex_public_difficulty",
   "policy": "median_split",
   "score_kind": "mean_panel_episode_accuracy",
   "episodes": [

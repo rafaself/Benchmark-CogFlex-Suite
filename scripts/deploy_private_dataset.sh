@@ -15,6 +15,7 @@ ANSWER_KEY_FILE="private_answer_key.json"
 PREDICTIONS_FILE="private_calibration_predictions.json"
 MANIFEST_FILE="private_release_manifest.json"
 QUALITY_FILE="private_quality_report.json"
+METADATA_FILE="dataset-metadata.json"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing .env file at $ENV_FILE" >&2
@@ -61,7 +62,10 @@ cp "$PRIVATE_BUNDLE_DIR/$ANSWER_KEY_FILE" "$STAGING_DIR/$ANSWER_KEY_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$PREDICTIONS_FILE" "$STAGING_DIR/$PREDICTIONS_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$MANIFEST_FILE" "$STAGING_DIR/$MANIFEST_FILE"
 cp "$PRIVATE_BUNDLE_DIR/$QUALITY_FILE" "$STAGING_DIR/$QUALITY_FILE"
-cat >"$STAGING_DIR/dataset-metadata.json" <<'JSON'
+if [[ -f "$PRIVATE_BUNDLE_DIR/$METADATA_FILE" ]]; then
+  cp "$PRIVATE_BUNDLE_DIR/$METADATA_FILE" "$STAGING_DIR/$METADATA_FILE"
+else
+cat >"$STAGING_DIR/$METADATA_FILE" <<'JSON'
 {
   "id": "raptorengineer/cogflex-suite-runtime-private",
   "title": "CogFlex Suite Runtime Private",
@@ -72,6 +76,7 @@ cat >"$STAGING_DIR/dataset-metadata.json" <<'JSON'
   ]
 }
 JSON
+fi
 
 mkdir -p "$KAGGLE_TMP_HOME/.kaggle"
 mkdir -p "$KAGGLE_TMPDIR"

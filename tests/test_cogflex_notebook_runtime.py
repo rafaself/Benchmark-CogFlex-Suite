@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from cogflex_fixtures import public_fixture, write_private_bundle
+from scripts.private_cogflex_bundle import public_fixture, write_private_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]

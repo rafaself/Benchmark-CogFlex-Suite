@@ -32,12 +32,12 @@ PRIVATE_RELEASE_MANIFEST_FILENAME = "private_release_manifest.json"
 PRIVATE_QUALITY_REPORT_FILENAME = "private_quality_report.json"
 PRIVATE_BUNDLE_ENV_VAR = "COGFLEX_PRIVATE_BUNDLE_DIR"
 
-PUBLIC_BUNDLE_VERSION = "cogflex_public_v2"
-PUBLIC_DIFFICULTY_CALIBRATION_VERSION = "cogflex_public_difficulty_v1"
-PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle_v4"
-PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality_v5"
-PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key_v4"
-PRIVATE_CALIBRATION_PREDICTIONS_VERSION = "cogflex_private_predictions_v3"
+PUBLIC_BUNDLE_VERSION = "cogflex_public"
+PUBLIC_DIFFICULTY_CALIBRATION_VERSION = "cogflex_public_difficulty"
+PRIVATE_BUNDLE_VERSION = "cogflex_private_bundle"
+PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality"
+PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key"
+PRIVATE_CALIBRATION_PREDICTIONS_VERSION = "cogflex_private_predictions"
 
 PUBLIC_EPISODES_PER_TASK = 30
 EXPECTED_PUBLIC_ROW_COUNT = PUBLIC_EPISODES_PER_TASK * 4

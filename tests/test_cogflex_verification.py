@@ -6,7 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from cogflex_fixtures import _private_row_summary, public_fixture, write_private_bundle
+from scripts.private_cogflex_bundle import (
+    private_row_summary as _private_row_summary,
+    public_fixture,
+    write_private_bundle,
+)
 from scripts.build_cogflex_dataset import (
     PRIVATE_ANSWER_KEY_FILENAME,
     PRIVATE_BUNDLE_VERSION,

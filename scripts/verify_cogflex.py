@@ -53,7 +53,7 @@ EXPECTED_PUBLIC_ROW_COUNT: Final[int] = len(SUITE_TASKS) * PUBLIC_EPISODES_PER_T
 PRIVATE_NEAR_DUPLICATE_OVERLAP_THRESHOLD: Final[float] = 0.9
 PRIVATE_PANEL_MODEL_COUNT: Final[int] = 3
 AUDIT_REPORT_VERSION: Final[int] = 1
-AUDIT_VERIFIER_VERSION: Final[str] = "audit-v1"
+AUDIT_VERIFIER_VERSION: Final[str] = "audit"
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[1]
 ATTACK_SUITE_DIMENSIONS: Final[tuple[str, ...]] = (
     "difficulty_bin",
