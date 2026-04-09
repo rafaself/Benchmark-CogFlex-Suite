@@ -184,6 +184,11 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertIn("cell-choose", code_cells)
         self.assertIn("%choose cogflex_suite_flexible", code_cells["cell-choose"])
 
+    def test_notebook_runs_main_task_before_choose(self) -> None:
+        code_cells = _load_code_cells()
+        self.assertIn("cell-run", code_cells)
+        self.assertIn("cogflex_suite_flexible.run(kbench.llm)", code_cells["cell-run"])
+
     def test_notebook_starts_with_a_markdown_overview_cell(self) -> None:
         notebook = _load_notebook()
         self.assertEqual(notebook["cells"][0]["cell_type"], "markdown")
@@ -214,6 +219,7 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
                 "cell-runtime-load",
                 "cell-runtime-score",
                 "cell-task",
+                "cell-run",
                 "cell-choose",
             ],
         )
