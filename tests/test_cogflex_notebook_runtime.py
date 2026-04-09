@@ -129,6 +129,18 @@ class FakeLLM:
         return self.final_response if len(self.calls) == self.final_call_index else "ack"
 
 
+class FailingLLM:
+    def __init__(self, *, fail_on_call: int) -> None:
+        self.fail_on_call = fail_on_call
+        self.calls: list[tuple[str, object | None]] = []
+
+    def prompt(self, prompt: str, schema: object | None = None) -> object:
+        self.calls.append((prompt, schema))
+        if len(self.calls) == self.fail_on_call:
+            raise RuntimeError("prompt failed")
+        return "ack"
+
+
 class FakeRuns:
     def __init__(self, results: list[dict[str, object]]) -> None:
         self._results = results
@@ -301,6 +313,32 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         result = self.namespace["score_episode"](("orbit", "anchor"), ("orbit", "orbit"))
         self.assertEqual(result["numerator"], 1)
         self.assertEqual(result["denominator"], 2)
+
+    def test_run_flexible_task_scores_invalid_labels_as_zero_instead_of_raising(self) -> None:
+        row = self.rows[0]
+        llm = FakeLLM("not_in_vocab", final_call_index=len(row["inference"]["turns"]))
+        result = self.namespace["run_flexible_task"](
+            llm,
+            row["inference"]["turns"],
+            row["inference"]["response_spec"],
+            tuple(row["scoring"]["final_probe_targets"]),
+        )
+        self.assertEqual(result["numerator"], 0)
+        self.assertEqual(result["denominator"], len(row["scoring"]["final_probe_targets"]))
+        self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
+
+    def test_run_flexible_task_scores_prompt_failures_as_zero_instead_of_raising(self) -> None:
+        row = self.rows[0]
+        llm = FailingLLM(fail_on_call=len(row["inference"]["turns"]))
+        result = self.namespace["run_flexible_task"](
+            llm,
+            row["inference"]["turns"],
+            row["inference"]["response_spec"],
+            tuple(row["scoring"]["final_probe_targets"]),
+        )
+        self.assertEqual(result["numerator"], 0)
+        self.assertEqual(result["denominator"], len(row["scoring"]["final_probe_targets"]))
+        self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
 
     def test_normalize_ordered_labels_accepts_plain_text_and_dict(self) -> None:
         response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
