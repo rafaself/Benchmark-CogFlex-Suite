@@ -744,21 +744,58 @@ def serialize_case(
     return item
 
 
-def response_spec(label_vocab: tuple[str, ...], probe_count: int) -> dict[str, object]:
+def build_strict_output_schema(
+    probe_count: int,
+    label_vocab: tuple[str, ...],
+    suite_task_id: str,
+) -> dict[str, object]:
+    """Build the strict structured-output schema for a decision turn.
+
+    Args:
+        probe_count: Number of probes in the decision turn.
+        label_vocab: Allowed output labels.
+        suite_task_id: Suite task identifier used to name the schema.
+
+    Returns:
+        A strict JSON-schema payload for the final model response.
+
+    """
+    schema_id = re.sub(r"[^a-z0-9]+", "_", suite_task_id.lower()).strip("_") or "cogflex"
+    return {
+        "type": "object",
+        "title": f"cogflex_{schema_id}_response",
+        "additionalProperties": False,
+        "required": ["ordered_labels"],
+        "properties": {
+            "ordered_labels": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(label_vocab)},
+                "minItems": probe_count,
+                "maxItems": probe_count,
+            }
+        },
+    }
+
+
+def response_spec(label_vocab: tuple[str, ...], probe_count: int, suite_task_id: str) -> dict[str, object]:
     """Build the response specification for a decision turn.
 
     Args:
         label_vocab: Allowed output labels.
         probe_count: Number of probes in the decision turn.
+        suite_task_id: Suite task identifier for the episode.
 
     Returns:
         A normalized response specification payload.
 
     """
     return {
+        "schema_version": "cogflex.v2",
         "format": "ordered_labels",
         "probe_count": probe_count,
         "label_vocab": list(label_vocab),
+        "suite_task_id": suite_task_id,
+        "output_schema": build_strict_output_schema(probe_count, label_vocab, suite_task_id),
     }
 
 
@@ -1167,7 +1204,7 @@ def build_episode_payload(
 
     """
     specs = [turn_spec("evidence", len(items)) for items in turn_items[:-1]] + [turn_spec("decision", len(turn_items[-1]))]
-    spec = response_spec(label_vocab, len(turn_items[-1]))
+    spec = response_spec(label_vocab, len(turn_items[-1]), suite_task_id)
     turns = [
         render_turn(
             episode_id,

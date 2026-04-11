@@ -136,6 +136,7 @@ class CogflexVerificationTests(unittest.TestCase):
                 "public_rows_reproducibility",
                 "public_quality_report_reproducibility",
                 "public_quality_report_consistency",
+                "identifiability",
             ],
         )
 
@@ -196,6 +197,7 @@ class CogflexVerificationTests(unittest.TestCase):
                 "public_private_split_isolation",
                 "generator_non_overlap",
                 "required_structure_family_coverage",
+                "identifiability",
             ],
         )
         audit_text = json.dumps(audit_payload, sort_keys=True)

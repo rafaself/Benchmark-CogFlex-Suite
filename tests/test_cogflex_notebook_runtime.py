@@ -299,7 +299,7 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def test_run_flexible_task_sends_evidence_turns_before_scored_turn(self) -> None:
         row = self.rows[0]
         llm = FakeLLM(
-            {f"probe_{index}": label for index, label in enumerate(row["scoring"]["final_probe_targets"], start=1)},
+            {"ordered_labels": list(row["scoring"]["final_probe_targets"])},
             final_call_index=len(row["inference"]["turns"]),
         )
         result = self.namespace["run_flexible_task"](
@@ -313,11 +313,27 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(len(llm.calls), len(row["inference"]["turns"]))
         for prompt, schema in llm.calls[:-1]:
             self.assertIsNone(schema)
+        final_prompt, final_schema = llm.calls[-1]
+        self.assertEqual(final_prompt, row["inference"]["turns"][-1])
+        self.assertIsNotNone(final_schema)
+        self.assertEqual(final_schema["type"], "object")
+        self.assertEqual(final_schema["required"], ["ordered_labels"])
+        ordered_labels = final_schema["properties"]["ordered_labels"]
+        self.assertEqual(ordered_labels["type"], "array")
+        self.assertEqual(
+            ordered_labels["minItems"],
+            row["inference"]["response_spec"]["probe_count"],
+        )
+        self.assertEqual(
+            ordered_labels["maxItems"],
+            row["inference"]["response_spec"]["probe_count"],
+        )
 
     def test_score_episode_uses_dynamic_denominator(self) -> None:
         result = self.namespace["score_episode"](("orbit", "anchor"), ("orbit", "orbit"))
         self.assertEqual(result["numerator"], 1)
         self.assertEqual(result["denominator"], 2)
+        self.assertEqual(result["score_status"], "cognitive_mismatch")
 
     def test_score_episode_computes_incongruent_and_congruent_counts(self) -> None:
         result = self.namespace["score_episode"](
@@ -333,7 +349,7 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
 
     def test_run_flexible_task_scores_invalid_labels_as_zero_instead_of_raising(self) -> None:
         row = self.rows[0]
-        llm = FakeLLM("not_in_vocab", final_call_index=len(row["inference"]["turns"]))
+        llm = FakeLLM({"ordered_labels": ["not_in_vocab"] * len(row["scoring"]["final_probe_targets"])}, final_call_index=len(row["inference"]["turns"]))
         result = self.namespace["run_flexible_task"](
             llm,
             row["inference"]["turns"],
@@ -343,6 +359,7 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(result["numerator"], 0)
         self.assertEqual(result["denominator"], len(row["scoring"]["final_probe_targets"]))
         self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
+        self.assertEqual(result["score_status"], "invalid_label_vocab")
 
     def test_run_flexible_task_scores_prompt_failures_as_zero_instead_of_raising(self) -> None:
         row = self.rows[0]
@@ -356,16 +373,69 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(result["numerator"], 0)
         self.assertEqual(result["denominator"], len(row["scoring"]["final_probe_targets"]))
         self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
+        self.assertEqual(result["score_status"], "prompt_failure")
 
-    def test_normalize_ordered_labels_accepts_plain_text_and_dict(self) -> None:
+    def test_normalize_ordered_labels_accepts_structured_and_legacy_shapes(self) -> None:
         response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        normalized_structured = self.namespace["normalize_ordered_labels"](
+            {"ordered_labels": ["left", "right", "left"]},
+            response_spec,
+        )
         normalized_text = self.namespace["normalize_ordered_labels"]("left, right, left", response_spec)
         normalized_dict = self.namespace["normalize_ordered_labels"](
             {"probe_1": "left", "probe_2": "right", "probe_3": "left"},
             response_spec,
         )
+        self.assertEqual(normalized_structured, ("left", "right", "left"))
         self.assertEqual(normalized_text, ("left", "right", "left"))
         self.assertEqual(normalized_dict, ("left", "right", "left"))
+
+    def test_run_flexible_task_marks_wrong_label_count_as_format_failure(self) -> None:
+        row = self.rows[0]
+        llm = FakeLLM({"ordered_labels": ["only_one"]}, final_call_index=len(row["inference"]["turns"]))
+        result = self.namespace["run_flexible_task"](
+            llm,
+            row["inference"]["turns"],
+            row["inference"]["response_spec"],
+            tuple(row["scoring"]["final_probe_targets"]),
+        )
+        self.assertEqual(result["numerator"], 0)
+        self.assertEqual(result["score_status"], "wrong_label_count")
+        self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
+
+    def test_run_flexible_task_marks_unparseable_responses_as_schema_failures(self) -> None:
+        row = self.rows[0]
+        llm = FakeLLM({"unexpected": "shape"}, final_call_index=len(row["inference"]["turns"]))
+        result = self.namespace["run_flexible_task"](
+            llm,
+            row["inference"]["turns"],
+            row["inference"]["response_spec"],
+            tuple(row["scoring"]["final_probe_targets"]),
+        )
+        self.assertEqual(result["numerator"], 0)
+        self.assertEqual(result["score_status"], "schema_format_failure")
+        self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
+
+    def test_run_flexible_task_keeps_cognitive_mismatch_distinct_from_format_failure(self) -> None:
+        row = self.rows[0]
+        targets = tuple(row["scoring"]["final_probe_targets"])
+        alternate_label = next(
+            label
+            for label in row["inference"]["response_spec"]["label_vocab"]
+            if label != targets[0]
+        )
+        llm = FakeLLM(
+            {"ordered_labels": [alternate_label, *targets[1:]]},
+            final_call_index=len(row["inference"]["turns"]),
+        )
+        result = self.namespace["run_flexible_task"](
+            llm,
+            row["inference"]["turns"],
+            row["inference"]["response_spec"],
+            targets,
+        )
+        self.assertEqual(result["score_status"], "cognitive_mismatch")
+        self.assertEqual(result["numerator"], len(targets) - 1)
 
     def test_suite_summary_uses_macro_average_and_structure_breakdown(self) -> None:
         code_cells = _load_code_cells()
