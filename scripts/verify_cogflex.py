@@ -29,6 +29,8 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     PRIVATE_RELEASE_MANIFEST_FILENAME,
     PRIVATE_ROWS_FILENAME,
     PUBLIC_BUNDLE_VERSION,
+    PUBLIC_TRANSPARENT_CUE_PHRASES,
+    PUBLIC_TRANSPARENT_ROUTE_TERMS,
     PUBLIC_DIFFICULTY_CALIBRATION_PATH,
     PUBLIC_EPISODES_PER_TASK,
     PUBLIC_QUALITY_REPORT_PATH,
@@ -65,6 +67,7 @@ ATTACK_SUITE_DIMENSIONS: Final[tuple[str, ...]] = (
 )
 PUBLIC_AUDIT_CHECKS: Final[tuple[str, ...]] = (
     "schema",
+    "surface_constraints",
     "difficulty_calibration",
     "public_rows_reproducibility",
     "public_quality_report_reproducibility",
@@ -937,7 +940,10 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
 
         if split == "public":
             scoring = row.get("scoring")
-            if not isinstance(scoring, dict) or sorted(scoring.keys()) != ["final_probe_targets", "probe_annotations"]:
+            if not isinstance(scoring, dict):
+                raise RuntimeError(f"row {episode_id} has invalid scoring payload")
+            allowed_scoring_keys = {"final_probe_targets", "probe_annotations", "probe_metadata"}
+            if set(scoring) != {"final_probe_targets", "probe_annotations"} and set(scoring) != allowed_scoring_keys:
                 raise RuntimeError(f"row {episode_id} has invalid scoring payload")
             targets = normalize_labels(scoring["final_probe_targets"], label_vocab)
             if targets is None or len(targets) != probe_count:
@@ -947,6 +953,20 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
                 raise RuntimeError(f"row {episode_id} has invalid probe_annotations length")
             if not all(a in ("congruent", "incongruent") for a in annotations):
                 raise RuntimeError(f"row {episode_id} has invalid probe_annotations values")
+            if "probe_metadata" in scoring:
+                metadata = scoring["probe_metadata"]
+                if not isinstance(metadata, list) or len(metadata) != probe_count:
+                    raise RuntimeError(f"row {episode_id} has invalid probe_metadata length")
+                for index, item in enumerate(metadata, start=1):
+                    if not isinstance(item, dict):
+                        raise RuntimeError(f"row {episode_id} has invalid probe_metadata entry {index}")
+                    required = {"target_label", "obsolete_rule_label", "congruency", "requires_switch"}
+                    if not required.issubset(item):
+                        raise RuntimeError(f"row {episode_id} probe_metadata entry {index} is missing required fields")
+                    if str(item["target_label"]) != targets[index - 1]:
+                        raise RuntimeError(f"row {episode_id} probe_metadata target_label mismatch at probe {index}")
+                    if str(item["congruency"]) != annotations[index - 1]:
+                        raise RuntimeError(f"row {episode_id} probe_metadata congruency mismatch at probe {index}")
         elif "scoring" in row:
             raise RuntimeError(f"row {episode_id} leaks scoring fields in the private split")
 
@@ -966,6 +986,33 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
         "difficulty_bin_counts": dict(sorted(difficulty_counts.items())),
         "structure_family_counts": dict(sorted(structure_counts.items())),
     }
+
+
+def verify_public_surface_constraints(rows: list[dict[str, object]]) -> dict[str, object]:
+    """Reject transparent lexical shortcuts in the public split."""
+    route_terms: set[str] = set()
+    banned_term_hits: list[tuple[str, str, str]] = []
+    banned_phrase_hits: list[tuple[str, str]] = []
+    for row in rows:
+        episode_id = str(row["episode_id"])
+        for turn, spec in zip(row["inference"]["turns"], row["inference"]["turn_specs"], strict=True):
+            turn_text = str(turn).lower()
+            for phrase in PUBLIC_TRANSPARENT_CUE_PHRASES:
+                if phrase in turn_text:
+                    banned_phrase_hits.append((episode_id, phrase))
+            for item in parse_turn_items(str(turn), kind=str(spec["kind"])):
+                for key in ("cue", "context"):
+                    if key not in item:
+                        continue
+                    value = str(item[key]).strip().lower()
+                    route_terms.add(value)
+                    if value in PUBLIC_TRANSPARENT_ROUTE_TERMS:
+                        banned_term_hits.append((episode_id, key, value))
+    if banned_term_hits:
+        raise RuntimeError(f"public split contains banned transparent route terms: {banned_term_hits}")
+    if banned_phrase_hits:
+        raise RuntimeError(f"public split contains banned transparent cue phrases: {banned_phrase_hits}")
+    return {"distinct_route_term_count": len(route_terms)}
 
 
 def response_instruction_from_spec(spec: dict[str, object]) -> str:
@@ -1136,10 +1183,18 @@ def verify_public_report(payload: dict[str, object], rows: list[dict[str, object
     suite_task_structure_counts = payload.get("suite_task_structure_counts")
     if not isinstance(suite_task_structure_counts, dict):
         raise RuntimeError("public quality report must include suite_task_structure_counts")
+    if len(payload.get("structure_family_counts", {})) < 4:
+        raise RuntimeError("public split must expose at least four structure families")
+    if len(payload.get("turn_count_distribution", {})) < 3:
+        raise RuntimeError("public split must expose at least three turn-count shapes")
+    if len(payload.get("probe_count_distribution", {})) < 4:
+        raise RuntimeError("public split must expose at least four probe-count shapes")
+    if len(payload.get("label_vocab_size_distribution", {})) < 3:
+        raise RuntimeError("public split must expose at least three label-vocabulary sizes")
     for suite_task_id in SUITE_TASKS:
         per_task = suite_task_structure_counts.get(suite_task_id)
-        if not isinstance(per_task, dict) or len(per_task) < 2:
-            raise RuntimeError(f"public task {suite_task_id} must use at least two structure families")
+        if not isinstance(per_task, dict) or len(per_task) < 4:
+            raise RuntimeError(f"public task {suite_task_id} must use at least four structure families")
     return {
         "row_count": payload["row_count"],
         "structure_family_counts": payload["structure_family_counts"],
@@ -1164,6 +1219,7 @@ def verify_public_split(*, emit_audit_report: Path | None = None) -> None:
     """
     rows = load_rows(PUBLIC_ROWS_PATH)
     schema_summary = verify_schema(rows, "public")
+    surface_summary = verify_public_surface_constraints(rows)
     calibration_summary = verify_public_difficulty_calibration(rows)
     identifiability_summary = verify_identifiability(rows, split="public")
     expected_rows, _answers, report = build_public_artifacts()
@@ -1192,6 +1248,7 @@ def verify_public_split(*, emit_audit_report: Path | None = None) -> None:
                 "rows_path": str(PUBLIC_ROWS_PATH),
                 "quality_report_path": str(PUBLIC_QUALITY_REPORT_PATH),
                 **schema_summary,
+                **surface_summary,
                 **calibration_summary,
                 **report_summary,
                 **identifiability_summary,

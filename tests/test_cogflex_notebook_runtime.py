@@ -339,13 +339,87 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         result = self.namespace["score_episode"](
             ("orbit", "anchor", "orbit"),
             ("orbit", "orbit", "orbit"),
-            ("incongruent", "congruent", "incongruent"),
+            probe_metadata=(
+                {
+                    "probe_index": 1,
+                    "target_label": "orbit",
+                    "obsolete_rule_label": "anchor",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+                {
+                    "probe_index": 2,
+                    "target_label": "orbit",
+                    "obsolete_rule_label": "orbit",
+                    "congruency": "congruent",
+                    "requires_switch": True,
+                },
+                {
+                    "probe_index": 3,
+                    "target_label": "orbit",
+                    "obsolete_rule_label": "anchor",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+            ),
         )
         self.assertEqual(result["numerator"], 2)
         self.assertEqual(result["incongruent_numerator"], 2)
         self.assertEqual(result["incongruent_denominator"], 2)
         self.assertEqual(result["congruent_numerator"], 0)
         self.assertEqual(result["congruent_denominator"], 1)
+        self.assertEqual(result["first_probe_numerator"], 1)
+        self.assertEqual(result["first_probe_denominator"], 1)
+        self.assertEqual(result["obsolete_rule_error_numerator"], 0)
+        self.assertEqual(result["obsolete_rule_error_denominator"], 3)
+
+    def test_score_episode_detects_obsolete_rule_errors(self) -> None:
+        result = self.namespace["score_episode"](
+            ("left", "right"),
+            ("right", "right"),
+            probe_metadata=(
+                {
+                    "probe_index": 1,
+                    "target_label": "right",
+                    "obsolete_rule_label": "left",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+                {
+                    "probe_index": 2,
+                    "target_label": "right",
+                    "obsolete_rule_label": "left",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+            ),
+        )
+        self.assertEqual(result["obsolete_rule_error_numerator"], 1)
+        self.assertEqual(result["obsolete_rule_error_denominator"], 2)
+
+    def test_score_episode_tracks_first_probe_accuracy_after_shift(self) -> None:
+        result = self.namespace["score_episode"](
+            ("stay", "switch"),
+            ("switch", "switch"),
+            probe_metadata=(
+                {
+                    "probe_index": 1,
+                    "target_label": "switch",
+                    "obsolete_rule_label": "stay",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+                {
+                    "probe_index": 2,
+                    "target_label": "switch",
+                    "obsolete_rule_label": "stay",
+                    "congruency": "incongruent",
+                    "requires_switch": True,
+                },
+            ),
+        )
+        self.assertEqual(result["first_probe_numerator"], 0)
+        self.assertEqual(result["first_probe_denominator"], 1)
 
     def test_run_flexible_task_scores_invalid_labels_as_zero_instead_of_raising(self) -> None:
         row = self.rows[0]
@@ -449,10 +523,10 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         ]
         runs = FakeRuns(
             [
-                {"numerator": 5, "denominator": 5, "predictions": ["accept"] * 5, "incongruent_numerator": 3, "incongruent_denominator": 3, "congruent_numerator": 2, "congruent_denominator": 2},
-                {"numerator": 3, "denominator": 6, "predictions": ["north"] * 6, "incongruent_numerator": 1, "incongruent_denominator": 4, "congruent_numerator": 2, "congruent_denominator": 2},
-                {"numerator": 6, "denominator": 6, "predictions": ["amber"] * 6, "incongruent_numerator": 4, "incongruent_denominator": 4, "congruent_numerator": 2, "congruent_denominator": 2},
-                {"numerator": 0, "denominator": 5, "predictions": ["accept"] * 5, "incongruent_numerator": 0, "incongruent_denominator": 3, "congruent_numerator": 0, "congruent_denominator": 2},
+                {"numerator": 5, "denominator": 5, "predictions": ["accept"] * 5, "incongruent_numerator": 3, "incongruent_denominator": 3, "congruent_numerator": 2, "congruent_denominator": 2, "first_probe_numerator": 1, "first_probe_denominator": 1, "obsolete_rule_error_numerator": 0, "obsolete_rule_error_denominator": 5},
+                {"numerator": 3, "denominator": 6, "predictions": ["north"] * 6, "incongruent_numerator": 1, "incongruent_denominator": 4, "congruent_numerator": 2, "congruent_denominator": 2, "first_probe_numerator": 0, "first_probe_denominator": 1, "obsolete_rule_error_numerator": 2, "obsolete_rule_error_denominator": 6},
+                {"numerator": 6, "denominator": 6, "predictions": ["amber"] * 6, "incongruent_numerator": 4, "incongruent_denominator": 4, "congruent_numerator": 2, "congruent_denominator": 2, "first_probe_numerator": 1, "first_probe_denominator": 1, "obsolete_rule_error_numerator": 0, "obsolete_rule_error_denominator": 6},
+                {"numerator": 0, "denominator": 5, "predictions": ["accept"] * 5, "incongruent_numerator": 0, "incongruent_denominator": 3, "congruent_numerator": 0, "congruent_denominator": 2, "first_probe_numerator": 0, "first_probe_denominator": 1, "obsolete_rule_error_numerator": 4, "obsolete_rule_error_denominator": 5},
             ]
         )
         summary = namespace["summarize_suite_benchmark"](runs, rows)
@@ -461,5 +535,19 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(set(summary["structure_family_accuracy"]), {"three_step_bridge", "two_step_focus"})
         self.assertAlmostEqual(summary["incongruent_accuracy"], 8 / 14)
         self.assertAlmostEqual(summary["congruent_accuracy"], 6 / 8)
+        self.assertAlmostEqual(summary["first_probe_accuracy"], 2 / 4)
+        self.assertAlmostEqual(summary["obsolete_rule_error_rate"], 6 / 22)
+        self.assertAlmostEqual(summary["congruent_accuracy"], 6 / 8)
         self.assertAlmostEqual(summary["switch_cost"], 6 / 8 - 8 / 14)
-        self.assertAlmostEqual(summary["score"], summary["incongruent_accuracy"])
+        self.assertAlmostEqual(
+            summary["score"],
+            (
+                summary["macro_accuracy"]
+                + summary["incongruent_accuracy"]
+                + summary["first_probe_accuracy"]
+                + (1.0 - summary["obsolete_rule_error_rate"])
+            )
+            / 4.0,
+        )
+        self.assertIn("per_task_metrics", summary)
+        self.assertAlmostEqual(summary["per_task_metrics"]["explicit_rule_update"]["first_probe_accuracy"], 1.0)

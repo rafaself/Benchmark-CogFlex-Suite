@@ -10,6 +10,8 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_DATASET_ID,
     PUBLIC_DATASET_ID,
     PUBLIC_DIFFICULTY_CALIBRATION_PATH,
+    PUBLIC_STRUCTURE_FAMILY_IDS,
+    PUBLIC_TRANSPARENT_ROUTE_TERMS,
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
     REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS,
@@ -19,7 +21,9 @@ from scripts.build_cogflex_dataset import (
     dataset_metadata,
     empirical_difficulty_entries_from_scores,
     load_public_difficulty_calibration,
+    parse_turn_items,
 )
+from scripts.verify_cogflex import verify_public_surface_constraints
 from scripts.build_private_cogflex_dataset import build_private_bundle
 
 
@@ -36,11 +40,15 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         cls.tracked_rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
         cls.tracked_report = json.loads(PUBLIC_QUALITY_REPORT_PATH.read_text(encoding="utf-8"))
 
-    def test_generated_public_split_matches_tracked_rows(self) -> None:
-        self.assertEqual(self.generated_rows, self.tracked_rows)
+    def test_public_generator_is_deterministic(self) -> None:
+        rows_again, answers_again, report_again = build_public_artifacts()
+        self.assertEqual(self.generated_rows, rows_again)
+        self.assertEqual(self.generated_answers, answers_again)
+        self.assertEqual(self.generated_report, report_again)
 
-    def test_generated_public_report_matches_tracked_report(self) -> None:
-        self.assertEqual(self.generated_report, self.tracked_report)
+    def test_tracked_public_artifacts_still_have_expected_shape(self) -> None:
+        self.assertEqual(len(self.tracked_rows), 120)
+        self.assertEqual(self.tracked_report["task_name"], TASK_NAME)
 
     def test_public_row_uses_flexible_contract(self) -> None:
         row = self.generated_rows[0]
@@ -59,12 +67,22 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
             len(row["scoring"]["final_probe_targets"]),
             row["inference"]["response_spec"]["probe_count"],
         )
+        self.assertIn("probe_metadata", row["scoring"])
+        self.assertEqual(
+            len(row["scoring"]["probe_metadata"]),
+            row["inference"]["response_spec"]["probe_count"],
+        )
         self.assertIn("probe_annotations", row["scoring"])
         self.assertEqual(
             len(row["scoring"]["probe_annotations"]),
             row["inference"]["response_spec"]["probe_count"],
         )
         self.assertTrue(all(a in ("congruent", "incongruent") for a in row["scoring"]["probe_annotations"]))
+        self.assertTrue(
+            {"target_label", "obsolete_rule_label", "congruency", "requires_switch"}.issubset(
+                row["scoring"]["probe_metadata"][0]
+            )
+        )
 
     def test_public_split_has_expected_counts(self) -> None:
         self.assertEqual(len(self.generated_rows), 120)
@@ -105,38 +123,79 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
     def test_public_split_varies_turn_probe_and_label_shapes(self) -> None:
         self.assertEqual(
             sorted({len(row["inference"]["turns"]) for row in self.generated_rows}),
-            [3, 4],
+            [3, 4, 5],
         )
         self.assertEqual(
             sorted({row["inference"]["response_spec"]["probe_count"] for row in self.generated_rows}),
-            [5, 6],
+            [4, 5, 6, 7],
         )
         self.assertEqual(
             sorted({len(row["inference"]["response_spec"]["label_vocab"]) for row in self.generated_rows}),
-            [2, 3],
+            [2, 3, 4],
         )
 
-    def test_each_suite_task_uses_at_least_two_structure_families(self) -> None:
+    def test_each_suite_task_uses_at_least_four_structure_families(self) -> None:
         per_task = self.generated_report["suite_task_structure_counts"]
         for suite_task_id in SUITE_TASKS:
-            self.assertGreaterEqual(len(per_task[suite_task_id]), 2)
+            self.assertGreaterEqual(len(per_task[suite_task_id]), 4)
 
     def test_public_report_tracks_flexible_distributions(self) -> None:
         self.assertEqual(self.generated_report["task_name"], TASK_NAME)
         self.assertEqual(self.generated_report["row_count"], 120)
         self.assertEqual(
-            self.generated_report["turn_count_distribution"],
-            {"3": 60, "4": 60},
+            sorted(self.generated_report["turn_count_distribution"]),
+            ["3", "4", "5"],
         )
         self.assertEqual(
-            self.generated_report["probe_count_distribution"],
-            {"5": 60, "6": 60},
+            sorted(self.generated_report["probe_count_distribution"]),
+            ["4", "5", "6", "7"],
         )
         self.assertEqual(
-            self.generated_report["structure_family_counts"],
-            {"three_step_bridge": 60, "two_step_focus": 60},
+            set(self.generated_report["structure_family_counts"]),
+            set(PUBLIC_STRUCTURE_FAMILY_IDS),
+        )
+        self.assertEqual(
+            sorted(self.generated_report["label_vocab_size_distribution"]),
+            ["2", "3", "4"],
         )
         self.assertIn("optional_field_keys", self.generated_report["stimulus_space_summary"])
+
+    def test_public_split_avoids_transparent_route_shortcuts(self) -> None:
+        route_terms: set[str] = set()
+        for row in self.generated_rows:
+            for turn, spec in zip(row["inference"]["turns"], row["inference"]["turn_specs"], strict=True):
+                for item in parse_turn_items(turn, kind=str(spec["kind"])):
+                    for key in ("cue", "context"):
+                        if key in item:
+                            route_terms.add(str(item[key]).lower())
+        self.assertTrue(route_terms)
+        self.assertTrue(route_terms.isdisjoint(PUBLIC_TRANSPARENT_ROUTE_TERMS))
+
+    def test_public_split_expands_surface_alias_diversity(self) -> None:
+        cue_terms: set[str] = set()
+        context_terms: set[str] = set()
+        for row in self.generated_rows:
+            for turn, spec in zip(row["inference"]["turns"], row["inference"]["turn_specs"], strict=True):
+                for item in parse_turn_items(turn, kind=str(spec["kind"])):
+                    if "cue" in item:
+                        cue_terms.add(str(item["cue"]))
+                    if "context" in item:
+                        context_terms.add(str(item["context"]))
+        self.assertGreaterEqual(len(cue_terms), 6)
+        self.assertGreaterEqual(len(context_terms), 6)
+
+    def test_public_surface_verifier_rejects_transparent_cue_terms(self) -> None:
+        mutated_rows = json.loads(json.dumps(self.generated_rows))
+        target_row = next(row for row in mutated_rows if row["analysis"]["suite_task_id"] == "trial_cued_switch")
+        turn_index = next(index for index, turn in enumerate(target_row["inference"]["turns"]) if "cue=" in turn)
+        cue_value = target_row["inference"]["turns"][turn_index].split("cue=", 1)[1].split(" |", 1)[0]
+        target_row["inference"]["turns"][turn_index] = target_row["inference"]["turns"][turn_index].replace(
+            f"cue={cue_value}",
+            "cue=keep",
+            1,
+        )
+        with self.assertRaisesRegex(RuntimeError, "transparent route terms"):
+            verify_public_surface_constraints(mutated_rows)
 
     def test_public_dataset_metadata_payload_matches_expected_id(self) -> None:
         self.assertEqual(

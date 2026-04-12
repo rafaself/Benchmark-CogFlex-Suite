@@ -71,7 +71,43 @@ PUBLIC_GENERATOR_OPERATOR_CLASS_BY_TASK: Final[dict[str, str]] = {
 PUBLIC_STRUCTURE_FAMILY_IDS: Final[tuple[str, ...]] = (
     "two_step_focus",
     "three_step_bridge",
+    "wide_then_narrow",
+    "staggered_refresh",
+    "four_step_ladder",
+    "cue_dense_compact",
+    "cue_dense_balanced",
+    "cue_dense_wide",
 )
+
+PUBLIC_STRUCTURE_FAMILY_IDS_BY_TASK: Final[dict[str, tuple[str, ...]]] = {
+    "explicit_rule_update": (
+        "two_step_focus",
+        "three_step_bridge",
+        "wide_then_narrow",
+        "staggered_refresh",
+        "four_step_ladder",
+    ),
+    "latent_rule_update": (
+        "two_step_focus",
+        "three_step_bridge",
+        "wide_then_narrow",
+        "staggered_refresh",
+        "four_step_ladder",
+    ),
+    "context_binding": (
+        "two_step_focus",
+        "three_step_bridge",
+        "wide_then_narrow",
+        "staggered_refresh",
+        "four_step_ladder",
+    ),
+    "trial_cued_switch": (
+        "two_step_focus",
+        "cue_dense_compact",
+        "cue_dense_balanced",
+        "cue_dense_wide",
+    ),
+}
 
 REQUIRED_PRIVATE_STRUCTURE_FAMILY_IDS: Final[tuple[str, ...]] = (
     "delayed_reversal",
@@ -124,19 +160,120 @@ IDENTIFIABILITY_RETRY_BUDGET: Final[int] = 32
 
 PUBLIC_CONTEXT_TERMS: Final[tuple[tuple[str, str], ...]] = (
     ("alpha", "beta"),
-    ("north", "south"),
     ("cedar", "harbor"),
+    ("mosaic", "saffron"),
+    ("lumen", "drift"),
+    ("opal", "brass"),
+    ("thicket", "quarry"),
+    ("meridian", "signal"),
+    ("rivet", "canopy"),
 )
 
 PUBLIC_CUE_TERMS: Final[tuple[tuple[str, str], ...]] = (
-    ("keep", "switch"),
     ("stone", "ripple"),
     ("torch", "glint"),
+    ("marble", "feather"),
+    ("copper", "linen"),
+    ("sprig", "quartz"),
+    ("ember", "tide"),
+    ("cinder", "petal"),
+    ("flint", "harbor"),
+)
+
+PUBLIC_TRANSPARENT_ROUTE_TERMS: Final[frozenset[str]] = frozenset(
+    {
+        "keep",
+        "switch",
+        "stay",
+        "flip",
+        "same",
+        "change",
+        "repeat",
+        "alternate",
+    }
+)
+
+PUBLIC_TRANSPARENT_CUE_PHRASES: Final[tuple[str, ...]] = (
+    "keeps the base rule",
+    "selects the alternate rule",
+    "keep the base rule",
+    "switch to the alternate rule",
+)
+
+EXPLICIT_EVIDENCE_PROMPTS: Final[tuple[str, ...]] = (
+    "Infer the current rule from these labeled examples.",
+    "Use these examples to identify the rule now in force.",
+    "Study these labeled cases and infer the active rule.",
+)
+EXPLICIT_SHIFT_PROMPTS: Final[tuple[str, ...]] = (
+    "The task rule has changed. Learn the replacement behavior from these examples.",
+    "A new rule is now active. Infer it from the labeled examples below.",
+    "The earlier rule no longer applies. Use these examples to recover the new one.",
+)
+EXPLICIT_HOLD_PROMPTS: Final[tuple[str, ...]] = (
+    "Continue collecting evidence before the upcoming update.",
+    "Gather a little more evidence before the rule refresh arrives.",
+    "Use these extra examples to stabilize the current hypothesis before the update.",
+)
+EXPLICIT_DECISION_PROMPTS: Final[tuple[str, ...]] = (
+    "Apply the active rule to every probe.",
+    "Use the current rule to label each probe in order.",
+    "Answer each probe using the most recent active rule.",
+)
+LATENT_START_PROMPTS: Final[tuple[str, ...]] = (
+    "Infer the live routing rule from these examples.",
+    "Recover the active labeling pattern from the observed examples.",
+    "Use the labeled cases to infer the current latent rule.",
+)
+LATENT_BRIDGE_PROMPTS: Final[tuple[str, ...]] = (
+    "Continue using the most recent labeled evidence.",
+    "Update your hypothesis from the latest labeled examples.",
+    "Track the active behavior from the newest evidence only.",
+)
+LATENT_DECISION_PROMPTS: Final[tuple[str, ...]] = (
+    "Classify each probe using the latest behavior implied by the sequence.",
+    "Use the newest evidence to label every probe.",
+    "Infer the current latent rule and apply it to each probe.",
+)
+CONTEXT_START_PROMPTS: Final[tuple[str, ...]] = (
+    "Learn the rule bound to context={route}.",
+    "Infer the labeling rule associated with context={route}.",
+    "Use these examples to learn what context={route} means.",
+)
+CONTEXT_ROUTE_PROMPTS: Final[tuple[str, ...]] = (
+    "Use the context tag to keep the active rule aligned.",
+    "The context field now determines which learned rule applies.",
+    "Track the context alias and route each case through the matching rule.",
+)
+CONTEXT_DECISION_PROMPTS: Final[tuple[str, ...]] = (
+    "For each probe, use its context to select the right rule before labeling it.",
+    "Apply the context-conditioned rule to every probe.",
+    "Infer which learned rule each context calls for, then label every probe.",
+)
+CUE_BASE_PROMPTS: Final[tuple[str, ...]] = (
+    "Learn the uncued rule from these examples.",
+    "Start by inferring the default rule without using any cue field.",
+    "Use these examples to recover the baseline rule before cue routing appears.",
+)
+CUE_COMPARE_PROMPTS: Final[tuple[str, ...]] = (
+    "Now study examples from a second rule before cue routing begins.",
+    "Learn a contrasting rule from these examples before cues are introduced.",
+    "Use these labeled cases to infer an alternate rule before the cue field is added.",
+)
+CUE_ROUTE_PROMPTS: Final[tuple[str, ...]] = (
+    "Cue labels now matter. Infer from the examples how each cue routes the labeling rule.",
+    "The cue field now changes which learned rule applies. Recover the mapping from the labeled examples.",
+    "Treat the cue as a routing signal and infer its mapping from these examples.",
+)
+CUE_DECISION_PROMPTS: Final[tuple[str, ...]] = (
+    "For each probe, infer the cue-conditioned rule before labeling it.",
+    "Use the inferred cue mapping to label every probe.",
+    "Apply the rule selected by each probe cue and then answer in order.",
 )
 
 PUBLIC_VALUES: Final[tuple[int, ...]] = tuple(range(-5, 6))
-PUBLIC_SHAPES: Final[tuple[str, ...]] = ("circle", "triangle", "square", "hex")
-PUBLIC_TONES: Final[tuple[str, ...]] = ("warm", "cool", "neutral")
+PUBLIC_SHAPES: Final[tuple[str, ...]] = ("circle", "triangle", "square", "hex", "star", "diamond")
+PUBLIC_TONES: Final[tuple[str, ...]] = ("warm", "cool", "neutral", "bright", "muted")
 
 
 Stimulus = dict[str, object]
@@ -552,6 +689,23 @@ def make_three_label_rule(
     )
 
 
+def make_four_label_rule(
+    rule_id: str,
+    family_id: str,
+    labels: tuple[str, str, str, str],
+    description: str,
+    resolver: Callable[[Stimulus], str],
+) -> RuleSpec:
+    """Build a four-label rule specification from a resolver."""
+    return RuleSpec(
+        rule_id=rule_id,
+        family_id=family_id,
+        label_vocab=labels,
+        description=description,
+        resolver=resolver,
+    )
+
+
 PUBLIC_RULES: Final[dict[str, RuleSpec]] = {
     "accept_r1_nonnegative": make_two_label_rule(
         "accept_r1_nonnegative",
@@ -581,6 +735,20 @@ PUBLIC_RULES: Final[dict[str, RuleSpec]] = {
         "accept when r1 and r2 share parity",
         lambda stimulus: int(stimulus["r1"]) % 2 == int(stimulus["r2"]) % 2,
     ),
+    "accept_tone_bright_or_r2_negative": make_two_label_rule(
+        "accept_tone_bright_or_r2_negative",
+        "symbolic_gate",
+        ("accept", "reject"),
+        "accept when tone is bright or r2 is negative",
+        lambda stimulus: str(stimulus["tone"]) == "bright" or int(stimulus["r2"]) < 0,
+    ),
+    "accept_diagonal_pull": make_two_label_rule(
+        "accept_diagonal_pull",
+        "magnitude_gate",
+        ("accept", "reject"),
+        "accept when |r1-r2| is at least 4",
+        lambda stimulus: abs(int(stimulus["r1"]) - int(stimulus["r2"])) >= 4,
+    ),
     "north_r1_ge_r2": make_two_label_rule(
         "north_r1_ge_r2",
         "relational_gate",
@@ -594,6 +762,34 @@ PUBLIC_RULES: Final[dict[str, RuleSpec]] = {
         ("north", "south"),
         "north when tone is warm or r2 is positive",
         lambda stimulus: str(stimulus["tone"]) == "warm" or int(stimulus["r2"]) > 0,
+    ),
+    "north_shape_pointed": make_two_label_rule(
+        "north_shape_pointed",
+        "symbolic_gate",
+        ("north", "south"),
+        "north when the shape is triangle or star",
+        lambda stimulus: str(stimulus["shape"]) in {"triangle", "star"},
+    ),
+    "north_sum_nonnegative": make_two_label_rule(
+        "north_sum_nonnegative",
+        "numeric_threshold",
+        ("north", "south"),
+        "north when r1+r2 is non-negative",
+        lambda stimulus: int(stimulus["r1"]) + int(stimulus["r2"]) >= 0,
+    ),
+    "valid_cool_or_left": make_two_label_rule(
+        "valid_cool_or_left",
+        "symbolic_gate",
+        ("valid", "void"),
+        "valid when tone is cool or r1 is negative",
+        lambda stimulus: str(stimulus["tone"]) == "cool" or int(stimulus["r1"]) < 0,
+    ),
+    "valid_axis_balance": make_two_label_rule(
+        "valid_axis_balance",
+        "relational_gate",
+        ("valid", "void"),
+        "valid when |r1| is at least |r2|",
+        lambda stimulus: abs(int(stimulus["r1"])) >= abs(int(stimulus["r2"])),
     ),
     "amber_cobalt_jade_sum_band": make_three_label_rule(
         "amber_cobalt_jade_sum_band",
@@ -621,12 +817,74 @@ PUBLIC_RULES: Final[dict[str, RuleSpec]] = {
             else "cobalt"
         ),
     ),
+    "amber_cobalt_jade_r1_band": make_three_label_rule(
+        "amber_cobalt_jade_r1_band",
+        "tri_band",
+        ("amber", "cobalt", "jade"),
+        "r1 band over the first coordinate",
+        lambda stimulus: (
+            "amber"
+            if int(stimulus["r1"]) <= -2
+            else "jade"
+            if int(stimulus["r1"]) >= 2
+            else "cobalt"
+        ),
+    ),
+    "amber_cobalt_jade_tone_shape": make_three_label_rule(
+        "amber_cobalt_jade_tone_shape",
+        "symbolic_router",
+        ("amber", "cobalt", "jade"),
+        "tone/shape router",
+        lambda stimulus: (
+            "amber"
+            if str(stimulus["tone"]) in {"warm", "bright"}
+            else "jade"
+            if str(stimulus["shape"]) in {"square", "diamond"}
+            else "cobalt"
+        ),
+    ),
+    "ember_frost_glade_noir_quadrant": make_four_label_rule(
+        "ember_frost_glade_noir_quadrant",
+        "quad_router",
+        ("ember", "frost", "glade", "noir"),
+        "quadrant rule over the signs of r1 and r2",
+        lambda stimulus: (
+            "ember"
+            if int(stimulus["r1"]) >= 0 and int(stimulus["r2"]) >= 0
+            else "frost"
+            if int(stimulus["r1"]) < 0 <= int(stimulus["r2"])
+            else "glade"
+            if int(stimulus["r1"]) >= 0 > int(stimulus["r2"])
+            else "noir"
+        ),
+    ),
+    "ember_frost_glade_noir_surface": make_four_label_rule(
+        "ember_frost_glade_noir_surface",
+        "quad_router",
+        ("ember", "frost", "glade", "noir"),
+        "shape/tone surface router",
+        lambda stimulus: (
+            "ember"
+            if str(stimulus["shape"]) in {"circle", "star"}
+            else "frost"
+            if str(stimulus["tone"]) in {"cool", "muted"}
+            else "glade"
+            if str(stimulus["shape"]) in {"triangle", "diamond"}
+            else "noir"
+        ),
+    ),
 }
 
 
 PUBLIC_STRUCTURES: Final[dict[str, EpisodeStructure]] = {
     "two_step_focus": EpisodeStructure("two_step_focus", (4, 4), 5),
     "three_step_bridge": EpisodeStructure("three_step_bridge", (3, 2, 3), 6),
+    "wide_then_narrow": EpisodeStructure("wide_then_narrow", (5, 3), 4),
+    "staggered_refresh": EpisodeStructure("staggered_refresh", (2, 4, 2), 5),
+    "four_step_ladder": EpisodeStructure("four_step_ladder", (2, 2, 2, 3), 7),
+    "cue_dense_compact": EpisodeStructure("cue_dense_compact", (3, 4), 5),
+    "cue_dense_balanced": EpisodeStructure("cue_dense_balanced", (4, 4), 6),
+    "cue_dense_wide": EpisodeStructure("cue_dense_wide", (4, 5), 4),
 }
 
 
@@ -634,18 +892,30 @@ TASK_RULE_PAIRS: Final[dict[str, tuple[tuple[str, str], ...]]] = {
     "explicit_rule_update": (
         ("accept_r1_nonnegative", "accept_abs_sum_large"),
         ("accept_shape_round", "accept_parity_match"),
+        ("accept_tone_bright_or_r2_negative", "accept_diagonal_pull"),
+        ("amber_cobalt_jade_sum_band", "amber_cobalt_jade_shape_tone"),
+        ("ember_frost_glade_noir_quadrant", "ember_frost_glade_noir_surface"),
     ),
     "latent_rule_update": (
         ("north_r1_ge_r2", "north_warm_or_positive"),
         ("accept_r1_nonnegative", "accept_shape_round"),
+        ("north_shape_pointed", "north_sum_nonnegative"),
+        ("valid_cool_or_left", "valid_axis_balance"),
+        ("amber_cobalt_jade_r1_band", "amber_cobalt_jade_tone_shape"),
     ),
     "context_binding": (
         ("amber_cobalt_jade_sum_band", "amber_cobalt_jade_shape_tone"),
         ("accept_shape_round", "accept_abs_sum_large"),
+        ("north_r1_ge_r2", "north_warm_or_positive"),
+        ("valid_cool_or_left", "valid_axis_balance"),
+        ("ember_frost_glade_noir_quadrant", "ember_frost_glade_noir_surface"),
     ),
     "trial_cued_switch": (
         ("accept_shape_round", "accept_parity_match"),
         ("north_r1_ge_r2", "north_warm_or_positive"),
+        ("north_shape_pointed", "north_sum_nonnegative"),
+        ("amber_cobalt_jade_r1_band", "amber_cobalt_jade_tone_shape"),
+        ("ember_frost_glade_noir_quadrant", "ember_frost_glade_noir_surface"),
     ),
 }
 
@@ -696,6 +966,12 @@ def public_generator_reference() -> dict[str, tuple[str, ...]]:
         "template_ids": tuple(sorted(template_ids)),
         "operator_classes": tuple(sorted(operator_classes)),
     }
+
+
+def _rotating_prompt(options: tuple[str, ...], *, variant: int, offset: int = 0, **kwargs: str) -> str:
+    """Pick a deterministic prompt variant and format any placeholders."""
+    template = options[(variant + offset) % len(options)]
+    return template.format(**kwargs)
 
 
 def stimulus_signature(stimulus: Stimulus) -> tuple[object, ...]:
@@ -1155,27 +1431,70 @@ def sample_mixed_route_examples(
     return items
 
 
-def compute_probe_annotations(
-    probes: list[Stimulus],
-    active_rule: RuleSpec,
-    contrast_rule: RuleSpec,
-) -> list[str]:
-    """Tag each probe as incongruent or congruent across two rules.
+def compute_probe_metadata(
+    probe_items: list[dict[str, object]],
+    *,
+    active_rules_by_id: dict[str, RuleSpec],
+    obsolete_rules_by_id: dict[str, RuleSpec | None],
+    requires_switch_rule_ids: frozenset[str] = frozenset(),
+) -> list[dict[str, object]]:
+    """Build richer per-probe metadata for benchmark scoring.
 
     Args:
-        probes: Probe stimuli to annotate.
-        active_rule: Rule used to label the probes.
-        contrast_rule: Rule representing the alternative hypothesis.
+        probe_items: Serialized decision-turn items.
+        active_rules_by_id: Rule definitions keyed by active ``rule_id``.
+        obsolete_rules_by_id: Obsolete or contrast rules keyed by active ``rule_id``.
+        requires_switch_rule_ids: Active rule IDs that should count as requiring
+            a switch away from the default or obsolete routing path.
 
     Returns:
-        A list of ``"incongruent"`` or ``"congruent"`` annotations parallel
-        to the probe list.
+        Rich per-probe metadata parallel to the final decision probes.
 
     """
-    return [
-        "incongruent" if active_rule.label(stimulus) != contrast_rule.label(stimulus) else "congruent"
-        for stimulus in probes
-    ]
+    metadata: list[dict[str, object]] = []
+    for probe_index, item in enumerate(probe_items, start=1):
+        active_rule_id = str(item["rule_id"])
+        active_rule = active_rules_by_id[active_rule_id]
+        obsolete_rule = obsolete_rules_by_id.get(active_rule_id)
+        stimulus = _stimulus_from_parsed_item(item)
+        target_label = str(active_rule.label(stimulus))
+        obsolete_rule_label = str(obsolete_rule.label(stimulus)) if obsolete_rule is not None else None
+        probe_metadata = {
+            "probe_index": probe_index,
+            "target_label": target_label,
+            "obsolete_rule_label": obsolete_rule_label,
+            "congruency": "incongruent" if obsolete_rule_label is not None and obsolete_rule_label != target_label else "congruent",
+            "requires_switch": active_rule_id in requires_switch_rule_ids,
+            "active_rule_id": active_rule_id,
+        }
+        route_metadata = {
+            key: str(item[key])
+            for key in ("context", "cue")
+            if key in item
+        }
+        if route_metadata:
+            route_metadata["route_rule_id"] = active_rule_id
+            probe_metadata["route_metadata"] = route_metadata
+        metadata.append(probe_metadata)
+    return metadata
+
+
+def compute_probe_annotations(
+    probes_or_metadata: list[dict[str, object]] | list[Stimulus],
+    active_rule: RuleSpec | None = None,
+    contrast_rule: RuleSpec | None = None,
+) -> list[str]:
+    """Project rich probe metadata or raw probes to legacy congruency labels.
+
+    This keeps older callers working while the benchmark migrates to richer
+    per-probe metadata.
+    """
+    if active_rule is not None and contrast_rule is not None:
+        return [
+            "incongruent" if active_rule.label(stimulus) != contrast_rule.label(stimulus) else "congruent"
+            for stimulus in probes_or_metadata
+        ]
+    return [str(item["congruency"]) for item in probes_or_metadata]
 
 
 def build_episode_payload(
@@ -1186,6 +1505,7 @@ def build_episode_payload(
     label_vocab: tuple[str, ...],
     turn_prompts: list[str],
     turn_items: list[list[dict[str, object]]],
+    probe_metadata: list[dict[str, object]] | None = None,
     probe_annotations: list[str] | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
     """Assemble the row and answer payloads for one episode.
@@ -1197,7 +1517,9 @@ def build_episode_payload(
         label_vocab: Allowed output labels for the decision turn.
         turn_prompts: Prompt text for each turn.
         turn_items: Serialized items for each turn.
-        probe_annotations: Optional per-probe congruency annotations.
+        probe_metadata: Optional rich per-probe scoring metadata.
+        probe_annotations: Optional legacy congruency annotations used by
+            older callers that have not been migrated to ``probe_metadata``.
 
     Returns:
         The public row payload and the answer payload.
@@ -1227,9 +1549,21 @@ def build_episode_payload(
     }
     inference = {"turns": turns, "turn_specs": specs, "response_spec": spec}
     targets = [str(item["label"]) for item in turn_items[-1]]
+    if probe_metadata is None and probe_annotations is not None:
+        probe_metadata = [
+            {
+                "probe_index": index,
+                "target_label": target,
+                "obsolete_rule_label": None,
+                "congruency": annotation,
+                "requires_switch": annotation == "incongruent",
+            }
+            for index, (target, annotation) in enumerate(zip(targets, probe_annotations), start=1)
+        ]
     scoring: dict[str, object] = {"final_probe_targets": targets}
-    if probe_annotations is not None:
-        scoring["probe_annotations"] = probe_annotations
+    if probe_metadata is not None:
+        scoring["probe_metadata"] = probe_metadata
+        scoring["probe_annotations"] = compute_probe_annotations(probe_metadata)
     row = {
         "episode_id": episode_id,
         "inference": inference,
@@ -1242,8 +1576,9 @@ def build_episode_payload(
         "inference": inference,
         "final_probe_targets": targets,
     }
-    if probe_annotations is not None:
-        answer["probe_annotations"] = probe_annotations
+    if probe_metadata is not None:
+        answer["probe_metadata"] = probe_metadata
+        answer["probe_annotations"] = compute_probe_annotations(probe_metadata)
     return row, answer
 
 
@@ -1509,20 +1844,21 @@ def build_explicit_episode(episode_id: str, *, structure: EpisodeStructure, vari
         seed_parts = (*seed_parts, "retry", attempt)
     seed = derive_seed(*seed_parts)
     rng = random.Random(seed)
-    initial_rule = PUBLIC_RULES[TASK_RULE_PAIRS["explicit_rule_update"][variant % 2][0]]
-    shift_rule = PUBLIC_RULES[TASK_RULE_PAIRS["explicit_rule_update"][variant % 2][1]]
+    pair = TASK_RULE_PAIRS["explicit_rule_update"][variant % len(TASK_RULE_PAIRS["explicit_rule_update"])]
+    initial_rule = PUBLIC_RULES[pair[0]]
+    shift_rule = PUBLIC_RULES[pair[1]]
     used: set[tuple[object, ...]] = set()
     turn_items: list[list[dict[str, object]]] = []
-    prompts = ["Infer the current rule from these labeled examples."]
+    prompts = [_rotating_prompt(EXPLICIT_EVIDENCE_PROMPTS, variant=variant)]
     first = sample_for_rule(rng, PUBLIC_DOMAIN, initial_rule, structure.evidence_counts[0], exclude=used, rotation=variant)
     used.update(stimulus_signature(stimulus) for stimulus in first)
     turn_items.append(enumerate_items(first, initial_rule))
     for bridge_index, count in enumerate(structure.evidence_counts[1:], start=1):
         rule = shift_rule if bridge_index == len(structure.evidence_counts) - 1 else initial_rule
         prompts.append(
-            "The task rule has changed. Learn the replacement behavior from these examples."
+            _rotating_prompt(EXPLICIT_SHIFT_PROMPTS, variant=variant, offset=bridge_index)
             if rule is shift_rule
-            else "Continue collecting evidence before the upcoming update."
+            else _rotating_prompt(EXPLICIT_HOLD_PROMPTS, variant=variant, offset=bridge_index)
         )
         sampled = sample_for_rule(
             rng,
@@ -1547,8 +1883,13 @@ def build_explicit_episode(episode_id: str, *, structure: EpisodeStructure, vari
         min_mismatch=max(1, structure.probe_count // 2),
     )
     turn_items.append(enumerate_items(probes, shift_rule))
-    prompts.append("Apply the active rule to every probe.")
-    annotations = compute_probe_annotations(probes, shift_rule, initial_rule)
+    prompts.append(_rotating_prompt(EXPLICIT_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
+    probe_metadata = compute_probe_metadata(
+        turn_items[-1],
+        active_rules_by_id={shift_rule.rule_id: shift_rule},
+        obsolete_rules_by_id={shift_rule.rule_id: initial_rule},
+        requires_switch_rule_ids=frozenset({shift_rule.rule_id}),
+    )
     return build_episode_payload(
         episode_id,
         suite_task_id="explicit_rule_update",
@@ -1556,7 +1897,7 @@ def build_explicit_episode(episode_id: str, *, structure: EpisodeStructure, vari
         label_vocab=shift_rule.label_vocab,
         turn_prompts=prompts,
         turn_items=turn_items,
-        probe_annotations=annotations,
+        probe_metadata=probe_metadata,
     )
 
 
@@ -1577,17 +1918,18 @@ def build_latent_episode(episode_id: str, *, structure: EpisodeStructure, varian
         seed_parts = (*seed_parts, "retry", attempt)
     seed = derive_seed(*seed_parts)
     rng = random.Random(seed)
-    initial_rule = PUBLIC_RULES[TASK_RULE_PAIRS["latent_rule_update"][variant % 2][0]]
-    shift_rule = PUBLIC_RULES[TASK_RULE_PAIRS["latent_rule_update"][variant % 2][1]]
+    pair = TASK_RULE_PAIRS["latent_rule_update"][variant % len(TASK_RULE_PAIRS["latent_rule_update"])]
+    initial_rule = PUBLIC_RULES[pair[0]]
+    shift_rule = PUBLIC_RULES[pair[1]]
     used: set[tuple[object, ...]] = set()
-    prompts = ["Infer the live routing rule from these examples."]
+    prompts = [_rotating_prompt(LATENT_START_PROMPTS, variant=variant)]
     turn_items: list[list[dict[str, object]]] = []
     sampled = sample_for_rule(rng, PUBLIC_DOMAIN, initial_rule, structure.evidence_counts[0], exclude=used, rotation=variant)
     used.update(stimulus_signature(stimulus) for stimulus in sampled)
     turn_items.append(enumerate_items(sampled, initial_rule))
     for bridge_index, count in enumerate(structure.evidence_counts[1:], start=1):
         current_rule = shift_rule if bridge_index == len(structure.evidence_counts) - 1 else initial_rule
-        prompts.append("Continue using the most recent labeled evidence.")
+        prompts.append(_rotating_prompt(LATENT_BRIDGE_PROMPTS, variant=variant, offset=bridge_index))
         sampled = sample_for_rule(
             rng,
             PUBLIC_DOMAIN,
@@ -1611,8 +1953,13 @@ def build_latent_episode(episode_id: str, *, structure: EpisodeStructure, varian
         min_mismatch=max(1, structure.probe_count // 2),
     )
     turn_items.append(enumerate_items(probes, shift_rule))
-    prompts.append("Classify each probe using the latest behavior implied by the sequence.")
-    annotations = compute_probe_annotations(probes, shift_rule, initial_rule)
+    prompts.append(_rotating_prompt(LATENT_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
+    probe_metadata = compute_probe_metadata(
+        turn_items[-1],
+        active_rules_by_id={shift_rule.rule_id: shift_rule},
+        obsolete_rules_by_id={shift_rule.rule_id: initial_rule},
+        requires_switch_rule_ids=frozenset({shift_rule.rule_id}),
+    )
     return build_episode_payload(
         episode_id,
         suite_task_id="latent_rule_update",
@@ -1620,7 +1967,7 @@ def build_latent_episode(episode_id: str, *, structure: EpisodeStructure, varian
         label_vocab=shift_rule.label_vocab,
         turn_prompts=prompts,
         turn_items=turn_items,
-        probe_annotations=annotations,
+        probe_metadata=probe_metadata,
     )
 
 
@@ -1642,17 +1989,18 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
     seed = derive_seed(*seed_parts)
     rng = random.Random(seed)
     context_terms = PUBLIC_CONTEXT_TERMS[variant % len(PUBLIC_CONTEXT_TERMS)]
-    primary_rule = PUBLIC_RULES[TASK_RULE_PAIRS["context_binding"][variant % 2][0]]
-    secondary_rule = PUBLIC_RULES[TASK_RULE_PAIRS["context_binding"][variant % 2][1]]
+    pair = TASK_RULE_PAIRS["context_binding"][variant % len(TASK_RULE_PAIRS["context_binding"])]
+    primary_rule = PUBLIC_RULES[pair[0]]
+    secondary_rule = PUBLIC_RULES[pair[1]]
     label_vocab = primary_rule.label_vocab
     used: set[tuple[object, ...]] = set()
-    prompts = [f"Learn the rule bound to context={context_terms[0]}."]
+    prompts = [_rotating_prompt(CONTEXT_START_PROMPTS, variant=variant, route=context_terms[0])]
     turn_items: list[list[dict[str, object]]] = []
     sampled = sample_for_rule(rng, PUBLIC_DOMAIN, primary_rule, structure.evidence_counts[0], exclude=used, rotation=variant)
     used.update(stimulus_signature(stimulus) for stimulus in sampled)
     turn_items.append(enumerate_items(sampled, primary_rule, context=context_terms[0]))
     if len(structure.evidence_counts) > 1:
-        prompts.append(f"Now learn the rule bound to context={context_terms[1]}.")
+        prompts.append(_rotating_prompt(CONTEXT_START_PROMPTS, variant=variant, offset=1, route=context_terms[1]))
         sampled = sample_for_rule(
             rng,
             PUBLIC_DOMAIN,
@@ -1664,7 +2012,7 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
         used.update(stimulus_signature(stimulus) for stimulus in sampled)
         turn_items.append(enumerate_items(sampled, secondary_rule, context=context_terms[1]))
     for extra_index, count in enumerate(structure.evidence_counts[2:], start=2):
-        prompts.append("Use the context tag to keep the active rule aligned.")
+        prompts.append(_rotating_prompt(CONTEXT_ROUTE_PROMPTS, variant=variant, offset=extra_index))
         mixed = sample_mixed_route_examples(
             rng,
             PUBLIC_DOMAIN,
@@ -1678,7 +2026,7 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
         )
         used.update(stimulus_signature({key: item[key] for key in item if key not in {"index", "label", "context", "rule_id"}}) for item in mixed)
         turn_items.append(mixed)
-    prompts.append("For each probe, use its context to select the right rule before labeling it.")
+    prompts.append(_rotating_prompt(CONTEXT_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
     probes = sample_mixed_route_examples(
         rng,
         PUBLIC_DOMAIN,
@@ -1691,11 +2039,18 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
         exclude=used,
     )
     turn_items.append(probes)
-    probe_stimuli = [
-        {key: item[key] for key in item if key not in {"index", "label", "context", "rule_id"}}
-        for item in probes
-    ]
-    annotations = compute_probe_annotations(probe_stimuli, primary_rule, secondary_rule)
+    probe_metadata = compute_probe_metadata(
+        turn_items[-1],
+        active_rules_by_id={
+            primary_rule.rule_id: primary_rule,
+            secondary_rule.rule_id: secondary_rule,
+        },
+        obsolete_rules_by_id={
+            primary_rule.rule_id: secondary_rule,
+            secondary_rule.rule_id: primary_rule,
+        },
+        requires_switch_rule_ids=frozenset({secondary_rule.rule_id}),
+    )
     return build_episode_payload(
         episode_id,
         suite_task_id="context_binding",
@@ -1703,7 +2058,7 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
         label_vocab=label_vocab,
         turn_prompts=prompts,
         turn_items=turn_items,
-        probe_annotations=annotations,
+        probe_metadata=probe_metadata,
     )
 
 
@@ -1725,17 +2080,19 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
     seed = derive_seed(*seed_parts)
     rng = random.Random(seed)
     cue_terms = PUBLIC_CUE_TERMS[variant % len(PUBLIC_CUE_TERMS)]
-    keep_rule = PUBLIC_RULES[TASK_RULE_PAIRS["trial_cued_switch"][variant % 2][0]]
-    switch_rule = PUBLIC_RULES[TASK_RULE_PAIRS["trial_cued_switch"][variant % 2][1]]
+    pair = TASK_RULE_PAIRS["trial_cued_switch"][variant % len(TASK_RULE_PAIRS["trial_cued_switch"])]
+    keep_rule = PUBLIC_RULES[pair[0]]
+    switch_rule = PUBLIC_RULES[pair[1]]
     label_vocab = keep_rule.label_vocab
     used: set[tuple[object, ...]] = set()
-    prompts = ["Learn the base rule before any cue is introduced."]
+    prompts = [_rotating_prompt(CUE_BASE_PROMPTS, variant=variant)]
     turn_items: list[list[dict[str, object]]] = []
     sampled = sample_for_rule(rng, PUBLIC_DOMAIN, keep_rule, structure.evidence_counts[0], exclude=used, rotation=variant)
     used.update(stimulus_signature(stimulus) for stimulus in sampled)
     turn_items.append(enumerate_items(sampled, keep_rule))
-    if len(structure.evidence_counts) == 3:
-        prompts.append("Now study examples from the alternate rule before cue routing begins.")
+    mixed_counts: list[int]
+    if len(structure.evidence_counts) >= 3:
+        prompts.append(_rotating_prompt(CUE_COMPARE_PROMPTS, variant=variant, offset=1))
         sampled = sample_for_rule(
             rng,
             PUBLIC_DOMAIN,
@@ -1748,27 +2105,26 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
         )
         used.update(stimulus_signature(stimulus) for stimulus in sampled)
         turn_items.append(enumerate_items(sampled, switch_rule))
-        mixed_count = structure.evidence_counts[2]
+        mixed_counts = list(structure.evidence_counts[2:])
     else:
-        mixed_count = structure.evidence_counts[1]
-    prompts.append(
-        f"Each item now has a cue. cue={cue_terms[0]} keeps the base rule and cue={cue_terms[1]} selects the alternate rule."
-    )
-    mixed = sample_mixed_route_examples(
-        rng,
-        PUBLIC_DOMAIN,
-        [
-            (cue_terms[0], keep_rule, "keep"),
-            (cue_terms[1], switch_rule, "alternate"),
-        ],
-        mixed_count,
-        route_key="cue",
-        exclude=used,
-        disagreement_rule=(keep_rule, switch_rule),
-    )
-    used.update(stimulus_signature({key: item[key] for key in item if key not in {"index", "label", "cue", "rule_id"}}) for item in mixed)
-    turn_items.append(mixed)
-    prompts.append("Use each probe cue to choose the active rule before labeling it.")
+        mixed_counts = [structure.evidence_counts[1]]
+    for mixed_index, mixed_count in enumerate(mixed_counts, start=1):
+        prompts.append(_rotating_prompt(CUE_ROUTE_PROMPTS, variant=variant, offset=mixed_index))
+        mixed = sample_mixed_route_examples(
+            rng,
+            PUBLIC_DOMAIN,
+            [
+                (cue_terms[0], keep_rule, "keep"),
+                (cue_terms[1], switch_rule, "alternate"),
+            ],
+            mixed_count,
+            route_key="cue",
+            exclude=used,
+            disagreement_rule=(keep_rule, switch_rule),
+        )
+        used.update(stimulus_signature({key: item[key] for key in item if key not in {"index", "label", "cue", "rule_id"}}) for item in mixed)
+        turn_items.append(mixed)
+    prompts.append(_rotating_prompt(CUE_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
     probes = sample_mixed_route_examples(
         rng,
         PUBLIC_DOMAIN,
@@ -1782,11 +2138,18 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
         disagreement_rule=(keep_rule, switch_rule),
     )
     turn_items.append(probes)
-    probe_stimuli = [
-        {key: item[key] for key in item if key not in {"index", "label", "cue", "rule_id"}}
-        for item in probes
-    ]
-    annotations = compute_probe_annotations(probe_stimuli, keep_rule, switch_rule)
+    probe_metadata = compute_probe_metadata(
+        turn_items[-1],
+        active_rules_by_id={
+            keep_rule.rule_id: keep_rule,
+            switch_rule.rule_id: switch_rule,
+        },
+        obsolete_rules_by_id={
+            keep_rule.rule_id: switch_rule,
+            switch_rule.rule_id: keep_rule,
+        },
+        requires_switch_rule_ids=frozenset({switch_rule.rule_id}),
+    )
     return build_episode_payload(
         episode_id,
         suite_task_id="trial_cued_switch",
@@ -1794,7 +2157,7 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
         label_vocab=label_vocab,
         turn_prompts=prompts,
         turn_items=turn_items,
-        probe_annotations=annotations,
+        probe_metadata=probe_metadata,
     )
 
 
@@ -1866,8 +2229,9 @@ def build_public_artifacts() -> tuple[list[dict[str, object]], list[dict[str, ob
     answers: list[dict[str, object]] = []
     episode_number = 1
     for suite_task_id in SUITE_TASKS:
+        structure_ids = PUBLIC_STRUCTURE_FAMILY_IDS_BY_TASK[suite_task_id]
         for variant in range(PUBLIC_EPISODES_PER_TASK):
-            structure = PUBLIC_STRUCTURES[PUBLIC_STRUCTURE_FAMILY_IDS[variant % len(PUBLIC_STRUCTURE_FAMILY_IDS)]]
+            structure = PUBLIC_STRUCTURES[structure_ids[variant % len(structure_ids)]]
             episode_id = f"{episode_number:04d}"
             row, answer, _report = build_identifiable_public_episode(
                 suite_task_id,
