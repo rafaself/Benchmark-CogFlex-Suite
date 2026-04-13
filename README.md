@@ -1,6 +1,6 @@
 # CogFlex Suite Benchmark
 
-Kaggle-oriented benchmark for rule-switching within cognitive flexibility, a sub-domain of executive functions:
+Kaggle-oriented benchmark for rule-switching within cognitive flexibility within executive functions:
 
 - faculty: `executive_functions/cognitive_flexibility`
 - benchmark form: multi-turn suite evaluation
