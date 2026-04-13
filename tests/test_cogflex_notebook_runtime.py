@@ -464,6 +464,54 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(normalized_text, ("left", "right", "left"))
         self.assertEqual(normalized_dict, ("left", "right", "left"))
 
+    def test_extract_handles_json_string_response(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        result = self.namespace["normalize_ordered_labels"](
+            '{"ordered_labels": ["left", "right", "left"]}',
+            response_spec,
+        )
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_handles_json_array_string_response(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        result = self.namespace["normalize_ordered_labels"](
+            '["left", "right", "left"]',
+            response_spec,
+        )
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_handles_markdown_fenced_json_response(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        fenced = '```json\n{"ordered_labels": ["left", "right", "left"]}\n```'
+        result = self.namespace["normalize_ordered_labels"](fenced, response_spec)
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_strips_numbered_list_prefixes(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        result = self.namespace["normalize_ordered_labels"]("1. left\n2. right\n3. left", response_spec)
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_strips_surrounding_quotes_from_text(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        result = self.namespace["normalize_ordered_labels"]('"left", "right", "left"', response_spec)
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_handles_pydantic_style_object(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 2, "label_vocab": ["left", "right"]}
+
+        class PydanticLike:
+            def __init__(self):
+                self.ordered_labels = ["left", "right"]
+
+        result = self.namespace["normalize_ordered_labels"](PydanticLike(), response_spec)
+        self.assertEqual(result, ("left", "right"))
+
+    def test_extract_handles_bare_code_fences(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 2, "label_vocab": ["left", "right"]}
+        fenced = '```\n["left", "right"]\n```'
+        result = self.namespace["normalize_ordered_labels"](fenced, response_spec)
+        self.assertEqual(result, ("left", "right"))
+
     def test_run_flexible_task_marks_wrong_label_count_as_format_failure(self) -> None:
         row = self.rows[0]
         llm = FakeLLM({"ordered_labels": ["only_one"]}, final_call_index=len(row["inference"]["turns"]))
