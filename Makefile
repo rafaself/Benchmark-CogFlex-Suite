@@ -1,5 +1,7 @@
-PYTHON ?= python3
-JUPYTER ?= jupyter
+VENV_BIN := .venv/bin
+
+PYTHON ?= $(if $(wildcard $(VENV_BIN)/python),$(VENV_BIN)/python,python3)
+JUPYTER ?= $(if $(wildcard $(VENV_BIN)/jupyter),$(VENV_BIN)/jupyter,jupyter)
 
 .PHONY: notelab test build-private verify-public verify-private \
         release-check \
