@@ -78,7 +78,7 @@ Public rows also include a `scoring` block with `final_probe_targets`, `probe_an
 - `probe_count`: number of probes in the decision turn
 - `label_vocab`: allowed output labels for this episode
 - `suite_task_id`: the suite task identifier for the episode
-- `output_schema`: a strict JSON Schema object retained in the dataset contract for validation and documentation. The notebook runtime rebuilds it locally, then derives a prompt-compatible Pydantic model from the same fields for the final `llm.prompt(..., schema=...)` call.
+- `output_schema`: a strict JSON Schema object retained in the dataset contract for validation and documentation. The notebook runtime rebuilds it locally before normalizing final responses for scoring.
 
 ### `scoring` block (public split only)
 
@@ -137,8 +137,8 @@ Each public suite task appears in at least two structural formats so the runtime
 The notebook (`kaggle/notebook/cogflex_notebook_task.ipynb`) drives the benchmark evaluation. Key behaviors:
 
 - **Default dataset**: the notebook defaults to the full 120-episode public runtime dataset (`raptorengineer/cogflex-suite-runtime`). For faster smoke tests, override it with `COGFLEX_DATASET_ROOT=/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-test` and `COGFLEX_EXPECTED_PUBLIC_EPISODE_COUNT=10`.
-- **Schema-based final prompt**: the final decision turn is constructed from `response_spec`. The notebook rebuilds the stored `output_schema` via `build_strict_output_schema`, derives a prompt-compatible Pydantic model via `build_prompt_schema_model`, and passes that model as structured output to the LLM adapter.
-- **Response normalization**: the benchmark expects `ordered_labels` format. The `_normalize_response_spec` function re-derives both `output_schema` and the runtime-only prompt schema from `response_spec` fields, while legacy comma-delimited text and `probe_1`-style mappings remain supported as compatibility fallbacks.
+- **Schema-based final prompt**: the final decision turn is constructed from `response_spec`. The notebook rebuilds the stored `output_schema` via `build_strict_output_schema` and uses the same contract during response normalization and scoring.
+- **Response normalization**: the benchmark expects `ordered_labels` format. The `_normalize_response_spec` function re-derives `output_schema` from `response_spec` fields, while legacy comma-delimited text and `probe_1`-style mappings remain supported as compatibility fallbacks.
 - **Episode scoring**: `score_episode(targets, predictions, probe_metadata)` returns per-episode numerator/denominator counts and diagnostic breakdowns: `incongruent_numerator/denominator`, `congruent_numerator/denominator`, `first_probe_numerator/denominator`, `obsolete_rule_error_numerator/denominator`.
 - **Suite summary**: `summarize_suite_benchmark(runs, rows, *, include_debug=False)` aggregates episode results. The default compact summary returns exactly these keys:
   - `score`: composite `(macro_accuracy + incongruent_accuracy + first_probe_accuracy + (1 − obsolete_rule_error_rate)) / 4`

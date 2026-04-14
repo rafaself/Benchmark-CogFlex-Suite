@@ -2,7 +2,6 @@ import contextlib
 import io
 import json
 import os
-import pydantic
 import sys
 import tempfile
 import types
@@ -78,7 +77,6 @@ def load_bootstrap_namespace() -> dict[str, object]:
                 "COGFLEX_DATASET_ROOT": str(dataset_root),
                 "COGFLEX_PRIVATE_DATASET_ROOT": "",
                 "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
-                "COGFLEX_FINAL_STRUCTURED_OUTPUT_EXPERIMENT": "0",
             },
             clear=False,
         ):
@@ -106,7 +104,6 @@ def load_notebook_namespace() -> dict[str, object]:
             "COGFLEX_EXPECTED_PUBLIC_EPISODE_COUNT": "120",
             "COGFLEX_PRIVATE_DATASET_ROOT": "",
             "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
-            "COGFLEX_FINAL_STRUCTURED_OUTPUT_EXPERIMENT": "0",
         },
         clear=False,
     ):
@@ -195,7 +192,6 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
             Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-private"),
         )
         self.assertEqual(self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"], 120)
-        self.assertFalse(self.bootstrap_namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"])
 
     def test_notebook_selects_main_task_with_choose_cell(self) -> None:
         code_cells = _load_code_cells()
@@ -333,48 +329,16 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertIn("No markdown, no code fences, no explanations, no extra keys.", final_prompt)
         self.assertIsNone(final_schema)
 
-    def test_run_flexible_task_can_opt_into_structured_output_for_final_call(self) -> None:
-        row = self.rows[0]
-        llm = FakeLLM(
-            {"ordered_labels": list(row["scoring"]["final_probe_targets"])},
-            final_call_index=len(row["inference"]["turns"]),
-        )
-        self.namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"] = True
-        try:
-            with contextlib.redirect_stderr(io.StringIO()) as stderr:
-                result = self.namespace["run_flexible_task"](
-                    llm,
-                    row["inference"]["turns"],
-                    row["inference"]["response_spec"],
-                    tuple(row["scoring"]["final_probe_targets"]),
-                )
-        finally:
-            self.namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"] = False
-        self.assertEqual(result["denominator"], row["inference"]["response_spec"]["probe_count"])
-        final_prompt, final_schema = llm.calls[-1]
-        self.assertTrue(final_prompt.startswith(row["inference"]["turns"][-1]))
-        self.assertIn('Return only a JSON object of the form {"ordered_labels":[...]}.', final_prompt)
-        self.assertIsNotNone(final_schema)
-        self.assertTrue(isinstance(final_schema, type))
-        self.assertTrue(issubclass(final_schema, self.namespace["pydantic"].BaseModel))
-        self.assertEqual(final_schema.model_config.get("extra"), "forbid")
-        self.assertIn("Experimental final structured output succeeded", stderr.getvalue())
-
-    def test_normalize_response_spec_builds_runtime_prompt_schema_without_changing_output_schema(self) -> None:
+    def test_normalize_response_spec_rebuilds_output_schema(self) -> None:
         row = self.rows[0]
         normalized = self.namespace["_normalize_response_spec"](row["inference"]["response_spec"])
         self.assertEqual(normalized["output_schema"]["type"], "object")
         self.assertEqual(normalized["output_schema"]["required"], ["ordered_labels"])
-        prompt_schema = normalized["prompt_schema"]
-        self.assertTrue(issubclass(prompt_schema, self.namespace["pydantic"].BaseModel))
-        self.assertEqual(prompt_schema.model_config.get("extra"), "forbid")
-        valid_payload = {"ordered_labels": list(row["scoring"]["final_probe_targets"])}
-        validated = prompt_schema.model_validate(valid_payload)
-        self.assertEqual(validated.ordered_labels, valid_payload["ordered_labels"])
-        with self.assertRaises(self.namespace["pydantic"].ValidationError):
-            prompt_schema.model_validate({"ordered_labels": ["not_in_vocab"] * normalized["probe_count"]})
-        with self.assertRaises(self.namespace["pydantic"].ValidationError):
-            prompt_schema.model_validate({"ordered_labels": valid_payload["ordered_labels"][:-1]})
+        self.assertNotIn("prompt_schema", normalized)
+        ordered_labels = normalized["output_schema"]["properties"]["ordered_labels"]
+        self.assertEqual(ordered_labels["minItems"], normalized["probe_count"])
+        self.assertEqual(ordered_labels["maxItems"], normalized["probe_count"])
+        self.assertEqual(ordered_labels["items"]["enum"], row["inference"]["response_spec"]["label_vocab"])
 
     def test_score_episode_uses_dynamic_denominator(self) -> None:
         result = self.namespace["score_episode"](("orbit", "anchor"), ("orbit", "orbit"))
@@ -497,26 +461,6 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
         self.assertEqual(result["score_status"], "prompt_failure")
         self.assertIn("Final prompt failed: RuntimeError('prompt failed')", stderr.getvalue())
-
-    def test_experimental_structured_output_failures_remain_isolated(self) -> None:
-        row = self.rows[0]
-        llm = FailingLLM(fail_on_call=len(row["inference"]["turns"]))
-        self.namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"] = True
-        try:
-            with contextlib.redirect_stderr(io.StringIO()) as stderr:
-                result = self.namespace["run_flexible_task"](
-                    llm,
-                    row["inference"]["turns"],
-                    row["inference"]["response_spec"],
-                    tuple(row["scoring"]["final_probe_targets"]),
-                )
-        finally:
-            self.namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"] = False
-        self.assertEqual(result["numerator"], 0)
-        self.assertEqual(result["denominator"], len(row["scoring"]["final_probe_targets"]))
-        self.assertEqual(result["predictions"], [""] * len(row["scoring"]["final_probe_targets"]))
-        self.assertEqual(result["score_status"], "prompt_failure")
-        self.assertIn("Experimental final structured output failed: RuntimeError('prompt failed')", stderr.getvalue())
 
     def test_normalize_ordered_labels_accepts_structured_and_legacy_shapes(self) -> None:
         response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
