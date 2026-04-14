@@ -506,6 +506,24 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         result = self.namespace["normalize_ordered_labels"](PydanticLike(), response_spec)
         self.assertEqual(result, ("left", "right"))
 
+    def test_extract_handles_text_attribute_wrapper(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+
+        class TextWrapper:
+            def __init__(self):
+                self.text = '{"ordered_labels": ["left", "right", "left"]}'
+
+        result = self.namespace["normalize_ordered_labels"](TextWrapper(), response_spec)
+        self.assertEqual(result, ("left", "right", "left"))
+
+    def test_extract_handles_text_key_wrapper_dict(self) -> None:
+        response_spec = {"format": "ordered_labels", "probe_count": 3, "label_vocab": ["left", "right"]}
+        result = self.namespace["normalize_ordered_labels"](
+            {"text": '{"ordered_labels": ["left", "right", "left"]}'},
+            response_spec,
+        )
+        self.assertEqual(result, ("left", "right", "left"))
+
     def test_extract_handles_bare_code_fences(self) -> None:
         response_spec = {"format": "ordered_labels", "probe_count": 2, "label_vocab": ["left", "right"]}
         fenced = '```\n["left", "right"]\n```'
