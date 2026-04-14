@@ -188,13 +188,13 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def test_bootstrap_uses_expected_kaggle_dataset_roots(self) -> None:
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_DATASET_ROOT"],
-            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-test"),
+            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime"),
         )
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
             Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-private"),
         )
-        self.assertEqual(self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"], 10)
+        self.assertEqual(self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"], 120)
         self.assertFalse(self.bootstrap_namespace["FINAL_STRUCTURED_OUTPUT_EXPERIMENT"])
 
     def test_notebook_selects_main_task_with_choose_cell(self) -> None:
