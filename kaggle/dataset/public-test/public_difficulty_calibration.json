@@ -1,0 +1,67 @@
+{
+  "version": "cogflex_public_difficulty",
+  "policy": "median_split",
+  "score_kind": "mean_panel_episode_accuracy",
+  "episodes": [
+    {
+      "episode_id": "0001",
+      "panel_mean_accuracy": 0.733333,
+      "difficulty_bin": "hard",
+      "rank": 1
+    },
+    {
+      "episode_id": "0061",
+      "panel_mean_accuracy": 0.733333,
+      "difficulty_bin": "hard",
+      "rank": 2
+    },
+    {
+      "episode_id": "0091",
+      "panel_mean_accuracy": 0.733333,
+      "difficulty_bin": "hard",
+      "rank": 3
+    },
+    {
+      "episode_id": "0032",
+      "panel_mean_accuracy": 0.777778,
+      "difficulty_bin": "hard",
+      "rank": 4
+    },
+    {
+      "episode_id": "0062",
+      "panel_mean_accuracy": 0.777778,
+      "difficulty_bin": "hard",
+      "rank": 5
+    },
+    {
+      "episode_id": "0094",
+      "panel_mean_accuracy": 0.777778,
+      "difficulty_bin": "medium",
+      "rank": 6
+    },
+    {
+      "episode_id": "0005",
+      "panel_mean_accuracy": 0.8,
+      "difficulty_bin": "medium",
+      "rank": 7
+    },
+    {
+      "episode_id": "0031",
+      "panel_mean_accuracy": 0.8,
+      "difficulty_bin": "medium",
+      "rank": 8
+    },
+    {
+      "episode_id": "0035",
+      "panel_mean_accuracy": 0.8,
+      "difficulty_bin": "medium",
+      "rank": 9
+    },
+    {
+      "episode_id": "0002",
+      "panel_mean_accuracy": 0.833333,
+      "difficulty_bin": "medium",
+      "rank": 10
+    }
+  ]
+}

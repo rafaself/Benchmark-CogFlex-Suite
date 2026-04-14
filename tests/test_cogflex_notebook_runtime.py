@@ -101,6 +101,7 @@ def load_notebook_namespace() -> dict[str, object]:
         {
             "COGFLEX_EVAL_SPLIT": "public",
             "COGFLEX_DATASET_ROOT": str(ROOT / "kaggle/dataset/public"),
+            "COGFLEX_EXPECTED_PUBLIC_EPISODE_COUNT": "120",
             "COGFLEX_PRIVATE_DATASET_ROOT": "",
             "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
         },
@@ -184,12 +185,13 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def test_bootstrap_uses_expected_kaggle_dataset_roots(self) -> None:
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_DATASET_ROOT"],
-            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime"),
+            Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-test"),
         )
         self.assertEqual(
             self.bootstrap_namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
             Path("/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-private"),
         )
+        self.assertEqual(self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"], 10)
 
     def test_notebook_selects_main_task_with_choose_cell(self) -> None:
         code_cells = _load_code_cells()

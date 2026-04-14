@@ -10,6 +10,12 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_DATASET_ID,
     PUBLIC_DATASET_ID,
     PUBLIC_DIFFICULTY_CALIBRATION_PATH,
+    PUBLIC_TEST_DATASET_ID,
+    PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH,
+    PUBLIC_TEST_EPISODE_IDS,
+    PUBLIC_TEST_METADATA_PATH,
+    PUBLIC_TEST_QUALITY_REPORT_PATH,
+    PUBLIC_TEST_ROWS_PATH,
     PUBLIC_STRUCTURE_FAMILY_IDS,
     PUBLIC_TRANSPARENT_ROUTE_TERMS,
     PUBLIC_QUALITY_REPORT_PATH,
@@ -18,6 +24,7 @@ from scripts.build_cogflex_dataset import (
     SUITE_TASKS,
     TASK_NAME,
     build_public_artifacts,
+    build_public_test_artifacts,
     dataset_metadata,
     empirical_difficulty_entries_from_scores,
     load_public_difficulty_calibration,
@@ -37,8 +44,14 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.generated_rows, cls.generated_answers, cls.generated_report = build_public_artifacts()
+        cls.generated_test_rows, cls.generated_test_answers, cls.generated_test_report, cls.generated_test_calibration = (
+            build_public_test_artifacts()
+        )
         cls.tracked_rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
         cls.tracked_report = json.loads(PUBLIC_QUALITY_REPORT_PATH.read_text(encoding="utf-8"))
+        cls.tracked_test_rows = json.loads(PUBLIC_TEST_ROWS_PATH.read_text(encoding="utf-8"))
+        cls.tracked_test_report = json.loads(PUBLIC_TEST_QUALITY_REPORT_PATH.read_text(encoding="utf-8"))
+        cls.tracked_test_calibration = json.loads(PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH.read_text(encoding="utf-8"))
 
     def test_public_generator_is_deterministic(self) -> None:
         rows_again, answers_again, report_again = build_public_artifacts()
@@ -49,6 +62,11 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
     def test_tracked_public_artifacts_still_have_expected_shape(self) -> None:
         self.assertEqual(len(self.tracked_rows), 120)
         self.assertEqual(self.tracked_report["task_name"], TASK_NAME)
+
+    def test_tracked_public_test_artifacts_still_have_expected_shape(self) -> None:
+        self.assertEqual(len(self.tracked_test_rows), len(PUBLIC_TEST_EPISODE_IDS))
+        self.assertEqual(self.tracked_test_report["task_name"], TASK_NAME)
+        self.assertEqual(len(self.tracked_test_calibration["episodes"]), len(PUBLIC_TEST_EPISODE_IDS))
 
     def test_public_row_uses_flexible_contract(self) -> None:
         row = self.generated_rows[0]
@@ -96,6 +114,27 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertEqual(
             {row["episode_id"]: row["analysis"]["difficulty_bin"] for row in self.generated_rows},
             {episode_id: entry["difficulty_bin"] for episode_id, entry in entries_by_episode.items()},
+        )
+
+    def test_public_test_split_uses_expected_subset(self) -> None:
+        self.assertEqual(
+            [row["episode_id"] for row in self.generated_test_rows],
+            list(PUBLIC_TEST_EPISODE_IDS),
+        )
+        self.assertEqual(
+            Counter(row["analysis"]["suite_task_id"] for row in self.generated_test_rows),
+            Counter(
+                {
+                    "explicit_rule_update": 3,
+                    "latent_rule_update": 3,
+                    "context_binding": 2,
+                    "trial_cued_switch": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(row["analysis"]["difficulty_bin"] for row in self.generated_test_rows),
+            Counter({"hard": 5, "medium": 5}),
         )
 
     def test_empirical_difficulty_tie_breaks_by_episode_id(self) -> None:
@@ -160,6 +199,19 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         )
         self.assertIn("optional_field_keys", self.generated_report["stimulus_space_summary"])
 
+    def test_public_test_report_tracks_subset_distributions(self) -> None:
+        self.assertEqual(self.generated_test_report["task_name"], TASK_NAME)
+        self.assertEqual(self.generated_test_report["row_count"], len(PUBLIC_TEST_EPISODE_IDS))
+        self.assertEqual(
+            sorted(self.generated_test_report["turn_count_distribution"]),
+            ["3", "4", "5"],
+        )
+        self.assertEqual(
+            sorted(self.generated_test_report["probe_count_distribution"]),
+            ["4", "5", "6", "7"],
+        )
+        self.assertIn("optional_field_keys", self.generated_test_report["stimulus_space_summary"])
+
     def test_public_split_avoids_transparent_route_shortcuts(self) -> None:
         route_terms: set[str] = set()
         for row in self.generated_rows:
@@ -207,6 +259,16 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
             },
         )
 
+    def test_public_test_dataset_metadata_payload_matches_expected_id(self) -> None:
+        self.assertEqual(
+            dataset_metadata(PUBLIC_TEST_DATASET_ID, "CogFlex Cognitive Flexibility Runtime Test"),
+            {
+                "id": "raptorengineer/cogflex-suite-runtime-test",
+                "title": "CogFlex Cognitive Flexibility Runtime Test",
+                "licenses": [{"name": "CC0-1.0"}],
+            },
+        )
+
     def test_build_private_bundle_materializes_required_files(self) -> None:
         with TemporaryDirectory() as tmpdir:
             bundle_paths = build_private_bundle(Path(tmpdir))
@@ -236,6 +298,14 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         metadata = json.loads(KERNEL_METADATA_PATH.read_text(encoding="utf-8"))
         self.assertEqual(metadata["id"], NOTEBOOK_ID)
         self.assertEqual(metadata["code_file"], "cogflex_notebook_task.ipynb")
+        self.assertEqual(
+            metadata["dataset_sources"],
+            [
+                PUBLIC_TEST_DATASET_ID,
+                PUBLIC_DATASET_ID,
+                PRIVATE_DATASET_ID,
+            ],
+        )
 
     def test_readme_references_flexible_contract(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")

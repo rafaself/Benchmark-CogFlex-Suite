@@ -1,0 +1,1397 @@
+[
+  {
+    "episode_id": "0001",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0001. Turn 1 of 3.\n\nInfer the current rule from these labeled examples.\n\nExamples:\n1. shape=star | tone=warm | r1=-2, r2=+3 -> reject\n2. tone=cool | r1=-4, r2=-4 | shape=triangle -> reject\n3. r1=+1, r2=-4 | shape=triangle | tone=warm -> accept\n4. shape=circle | tone=bright | r1=+1, r2=+1 -> accept",
+        "CogFlex suite task. Episode 0001. Turn 2 of 3.\n\nA new rule is now active. Infer it from the labeled examples below.\n\nExamples:\n1. tone=warm | r1=-1, r2=-5 | shape=triangle -> accept\n2. r1=+1, r2=-3 | shape=square | tone=muted -> reject\n3. shape=diamond | tone=bright | r1=+3, r2=+5 -> accept\n4. tone=bright | r1=+0, r2=+4 | shape=circle -> reject",
+        "CogFlex suite task. Episode 0001. Turn 3 of 3.\n\nAnswer each probe using the most recent active rule.\n\nProbes:\n1. r1=+0, r2=+5 | shape=triangle | tone=bright -> ?\n2. shape=triangle | tone=muted | r1=-5, r2=-3 -> ?\n3. tone=neutral | r1=+2, r2=-1 | shape=square -> ?\n4. r1=+2, r2=+0 | shape=star | tone=cool -> ?\n5. shape=triangle | tone=bright | r1=-4, r2=+3 -> ?\n\nReturn exactly 5 outputs in order, one per probe. Use only labels from: accept, reject."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "decision",
+          "item_count": 5
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 5,
+        "label_vocab": [
+          "accept",
+          "reject"
+        ],
+        "suite_task_id": "explicit_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_explicit_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "minItems": 5,
+              "maxItems": 5
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "explicit_rule_update",
+      "shift_mode": "explicit_instruction",
+      "difficulty_bin": "hard",
+      "structure_family_id": "two_step_focus"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "reject",
+        "accept",
+        "reject",
+        "reject",
+        "accept"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large"
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0002",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0002. Turn 1 of 4.\n\nUse these examples to identify the rule now in force.\n\nExamples:\n1. shape=square | tone=bright | r1=-4, r2=+4 -> reject\n2. tone=cool | r1=-5, r2=-1 | shape=circle -> accept\n3. r1=+4, r2=-3 | shape=square | tone=bright -> reject",
+        "CogFlex suite task. Episode 0002. Turn 2 of 4.\n\nUse these extra examples to stabilize the current hypothesis before the update.\n\nExamples:\n1. tone=neutral | r1=-2, r2=-5 | shape=star -> reject\n2. r1=-1, r2=-5 | shape=hex | tone=neutral -> accept",
+        "CogFlex suite task. Episode 0002. Turn 3 of 4.\n\nThe task rule has changed. Learn the replacement behavior from these examples.\n\nExamples:\n1. r1=-5, r2=-4 | shape=star | tone=muted -> reject\n2. shape=triangle | tone=neutral | r1=+3, r2=-1 -> accept\n3. tone=warm | r1=+2, r2=-5 | shape=diamond -> reject",
+        "CogFlex suite task. Episode 0002. Turn 4 of 4.\n\nUse the current rule to label each probe in order.\n\nProbes:\n1. shape=circle | tone=warm | r1=-2, r2=-5 -> ?\n2. tone=neutral | r1=+4, r2=-4 | shape=square -> ?\n3. r1=-1, r2=-5 | shape=triangle | tone=neutral -> ?\n4. shape=circle | tone=muted | r1=+2, r2=-5 -> ?\n5. tone=bright | r1=-2, r2=-4 | shape=square -> ?\n6. r1=-1, r2=+2 | shape=circle | tone=bright -> ?\n\nReturn exactly 6 outputs in order, one per probe. Use only labels from: accept, reject."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "decision",
+          "item_count": 6
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 6,
+        "label_vocab": [
+          "accept",
+          "reject"
+        ],
+        "suite_task_id": "explicit_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_explicit_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "minItems": 6,
+              "maxItems": 6
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "explicit_rule_update",
+      "shift_mode": "explicit_instruction",
+      "difficulty_bin": "medium",
+      "structure_family_id": "three_step_bridge"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "reject",
+        "accept",
+        "accept",
+        "reject",
+        "accept",
+        "reject"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        },
+        {
+          "probe_index": 6,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match"
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0005",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0005. Turn 1 of 5.\n\nUse these examples to identify the rule now in force.\n\nExamples:\n1. shape=triangle | tone=cool | r1=+0, r2=+1 -> ember\n2. tone=muted | r1=-4, r2=+5 | shape=star -> frost",
+        "CogFlex suite task. Episode 0005. Turn 2 of 5.\n\nUse these extra examples to stabilize the current hypothesis before the update.\n\nExamples:\n1. tone=bright | r1=-3, r2=+1 | shape=square -> frost\n2. r1=+0, r2=-3 | shape=hex | tone=muted -> glade",
+        "CogFlex suite task. Episode 0005. Turn 3 of 5.\n\nContinue collecting evidence before the upcoming update.\n\nExamples:\n1. r1=+2, r2=-2 | shape=diamond | tone=neutral -> glade\n2. shape=triangle | tone=muted | r1=-2, r2=-5 -> noir",
+        "CogFlex suite task. Episode 0005. Turn 4 of 5.\n\nA new rule is now active. Infer it from the labeled examples below.\n\nExamples:\n1. shape=star | tone=bright | r1=+2, r2=+2 -> ember\n2. tone=warm | r1=+0, r2=-1 | shape=square -> noir\n3. r1=+4, r2=+0 | shape=diamond | tone=muted -> frost",
+        "CogFlex suite task. Episode 0005. Turn 5 of 5.\n\nAnswer each probe using the most recent active rule.\n\nProbes:\n1. tone=cool | r1=-4, r2=-4 | shape=hex -> ?\n2. r1=+4, r2=-4 | shape=diamond | tone=bright -> ?\n3. shape=diamond | tone=muted | r1=-3, r2=-4 -> ?\n4. tone=neutral | r1=-4, r2=+2 | shape=diamond -> ?\n5. r1=-3, r2=+4 | shape=square | tone=neutral -> ?\n6. shape=square | tone=warm | r1=-3, r2=-5 -> ?\n7. tone=warm | r1=-5, r2=-3 | shape=circle -> ?\n\nReturn exactly 7 outputs in order, one per probe. Use only labels from: ember, frost, glade, noir."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "decision",
+          "item_count": 7
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 7,
+        "label_vocab": [
+          "ember",
+          "frost",
+          "glade",
+          "noir"
+        ],
+        "suite_task_id": "explicit_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_explicit_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ember",
+                  "frost",
+                  "glade",
+                  "noir"
+                ]
+              },
+              "minItems": 7,
+              "maxItems": 7
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "explicit_rule_update",
+      "shift_mode": "explicit_instruction",
+      "difficulty_bin": "medium",
+      "structure_family_id": "four_step_ladder"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "frost",
+        "glade",
+        "frost",
+        "glade",
+        "noir",
+        "noir",
+        "ember"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "frost",
+          "obsolete_rule_label": "noir",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "glade",
+          "obsolete_rule_label": "glade",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "frost",
+          "obsolete_rule_label": "noir",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "glade",
+          "obsolete_rule_label": "frost",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "noir",
+          "obsolete_rule_label": "frost",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 6,
+          "target_label": "noir",
+          "obsolete_rule_label": "noir",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        },
+        {
+          "probe_index": 7,
+          "target_label": "ember",
+          "obsolete_rule_label": "noir",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "ember_frost_glade_noir_surface"
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "congruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "congruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0031",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0031. Turn 1 of 3.\n\nInfer the live routing rule from these examples.\n\nExamples:\n1. shape=triangle | tone=muted | r1=-3, r2=+1 -> south\n2. tone=muted | r1=-5, r2=+1 | shape=star -> south\n3. r1=+2, r2=+0 | shape=circle | tone=bright -> north\n4. shape=star | tone=cool | r1=+1, r2=+0 -> north",
+        "CogFlex suite task. Episode 0031. Turn 2 of 3.\n\nUpdate your hypothesis from the latest labeled examples.\n\nExamples:\n1. tone=muted | r1=+4, r2=+0 | shape=hex -> south\n2. r1=+0, r2=+3 | shape=hex | tone=neutral -> north\n3. shape=star | tone=muted | r1=-2, r2=+1 -> north\n4. tone=muted | r1=-2, r2=+0 | shape=diamond -> south",
+        "CogFlex suite task. Episode 0031. Turn 3 of 3.\n\nInfer the current latent rule and apply it to each probe.\n\nProbes:\n1. r1=+5, r2=-3 | shape=triangle | tone=bright -> ?\n2. shape=circle | tone=muted | r1=+4, r2=+1 -> ?\n3. tone=neutral | r1=-1, r2=+4 | shape=hex -> ?\n4. r1=+1, r2=+5 | shape=hex | tone=muted -> ?\n5. shape=star | tone=bright | r1=+3, r2=+0 -> ?\n\nReturn exactly 5 outputs in order, one per probe. Use only labels from: north, south."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "decision",
+          "item_count": 5
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 5,
+        "label_vocab": [
+          "north",
+          "south"
+        ],
+        "suite_task_id": "latent_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_latent_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "north",
+                  "south"
+                ]
+              },
+              "minItems": 5,
+              "maxItems": 5
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "latent_rule_update",
+      "shift_mode": "latent_example_change",
+      "difficulty_bin": "medium",
+      "structure_family_id": "two_step_focus"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "south",
+        "north",
+        "north",
+        "north",
+        "south"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "south",
+          "obsolete_rule_label": "north",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "north_warm_or_positive"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "north",
+          "obsolete_rule_label": "north",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "north_warm_or_positive"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "north",
+          "obsolete_rule_label": "south",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "north_warm_or_positive"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "north",
+          "obsolete_rule_label": "south",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "north_warm_or_positive"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "south",
+          "obsolete_rule_label": "north",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "north_warm_or_positive"
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "congruent",
+        "incongruent",
+        "incongruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0032",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0032. Turn 1 of 4.\n\nRecover the active labeling pattern from the observed examples.\n\nExamples:\n1. shape=star | tone=cool | r1=-1, r2=-1 -> reject\n2. tone=cool | r1=+1, r2=-2 | shape=circle -> accept\n3. r1=-2, r2=-4 | shape=circle | tone=bright -> reject",
+        "CogFlex suite task. Episode 0032. Turn 2 of 4.\n\nTrack the active behavior from the newest evidence only.\n\nExamples:\n1. tone=bright | r1=-5, r2=+4 | shape=square -> reject\n2. r1=+0, r2=+3 | shape=hex | tone=cool -> accept",
+        "CogFlex suite task. Episode 0032. Turn 3 of 4.\n\nContinue using the most recent labeled evidence.\n\nExamples:\n1. r1=+2, r2=+5 | shape=circle | tone=bright -> accept\n2. shape=square | tone=bright | r1=-4, r2=-5 -> reject\n3. tone=cool | r1=+2, r2=-4 | shape=star -> reject",
+        "CogFlex suite task. Episode 0032. Turn 4 of 4.\n\nUse the newest evidence to label every probe.\n\nProbes:\n1. shape=hex | tone=bright | r1=+5, r2=+5 -> ?\n2. tone=neutral | r1=+5, r2=-5 | shape=triangle -> ?\n3. r1=+1, r2=-3 | shape=triangle | tone=neutral -> ?\n4. shape=hex | tone=bright | r1=+2, r2=+2 -> ?\n5. tone=neutral | r1=+0, r2=-1 | shape=hex -> ?\n6. r1=+2, r2=+2 | shape=square | tone=bright -> ?\n\nReturn exactly 6 outputs in order, one per probe. Use only labels from: accept, reject."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "decision",
+          "item_count": 6
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 6,
+        "label_vocab": [
+          "accept",
+          "reject"
+        ],
+        "suite_task_id": "latent_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_latent_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "minItems": 6,
+              "maxItems": 6
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "latent_rule_update",
+      "shift_mode": "latent_example_change",
+      "difficulty_bin": "hard",
+      "structure_family_id": "three_step_bridge"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "accept",
+        "reject",
+        "reject",
+        "accept",
+        "accept",
+        "reject"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "accept",
+          "obsolete_rule_label": "accept",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "accept",
+          "obsolete_rule_label": "accept",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "accept",
+          "obsolete_rule_label": "accept",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        },
+        {
+          "probe_index": 6,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_shape_round"
+        }
+      ],
+      "probe_annotations": [
+        "congruent",
+        "incongruent",
+        "incongruent",
+        "congruent",
+        "congruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0035",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0035. Turn 1 of 5.\n\nRecover the active labeling pattern from the observed examples.\n\nExamples:\n1. shape=circle | tone=warm | r1=+0, r2=-5 -> cobalt\n2. tone=cool | r1=+2, r2=+5 | shape=hex -> jade",
+        "CogFlex suite task. Episode 0035. Turn 2 of 5.\n\nTrack the active behavior from the newest evidence only.\n\nExamples:\n1. tone=bright | r1=+5, r2=-2 | shape=hex -> jade\n2. r1=-4, r2=+3 | shape=hex | tone=bright -> amber",
+        "CogFlex suite task. Episode 0035. Turn 3 of 5.\n\nContinue using the most recent labeled evidence.\n\nExamples:\n1. r1=-1, r2=+2 | shape=circle | tone=cool -> cobalt\n2. shape=hex | tone=warm | r1=-2, r2=-2 -> amber",
+        "CogFlex suite task. Episode 0035. Turn 4 of 5.\n\nUpdate your hypothesis from the latest labeled examples.\n\nExamples:\n1. shape=triangle | tone=muted | r1=+3, r2=-2 -> cobalt\n2. tone=neutral | r1=+4, r2=-2 | shape=square -> jade\n3. r1=+1, r2=+3 | shape=square | tone=warm -> amber",
+        "CogFlex suite task. Episode 0035. Turn 5 of 5.\n\nInfer the current latent rule and apply it to each probe.\n\nProbes:\n1. tone=muted | r1=+0, r2=-1 | shape=square -> ?\n2. r1=-4, r2=+3 | shape=triangle | tone=muted -> ?\n3. shape=circle | tone=bright | r1=-2, r2=-5 -> ?\n4. tone=neutral | r1=-4, r2=+2 | shape=square -> ?\n5. r1=+5, r2=+0 | shape=star | tone=neutral -> ?\n6. shape=hex | tone=bright | r1=-3, r2=-5 -> ?\n7. tone=bright | r1=+2, r2=+3 | shape=hex -> ?\n\nReturn exactly 7 outputs in order, one per probe. Use only labels from: amber, cobalt, jade."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "decision",
+          "item_count": 7
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 7,
+        "label_vocab": [
+          "amber",
+          "cobalt",
+          "jade"
+        ],
+        "suite_task_id": "latent_rule_update",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_latent_rule_update_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "amber",
+                  "cobalt",
+                  "jade"
+                ]
+              },
+              "minItems": 7,
+              "maxItems": 7
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "latent_rule_update",
+      "shift_mode": "latent_example_change",
+      "difficulty_bin": "medium",
+      "structure_family_id": "four_step_ladder"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "jade",
+        "cobalt",
+        "amber",
+        "jade",
+        "cobalt",
+        "amber",
+        "amber"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "jade",
+          "obsolete_rule_label": "cobalt",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 2,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "amber",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 3,
+          "target_label": "amber",
+          "obsolete_rule_label": "amber",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 4,
+          "target_label": "jade",
+          "obsolete_rule_label": "amber",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 5,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "jade",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 6,
+          "target_label": "amber",
+          "obsolete_rule_label": "amber",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        },
+        {
+          "probe_index": 7,
+          "target_label": "amber",
+          "obsolete_rule_label": "jade",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape"
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "incongruent",
+        "congruent",
+        "incongruent",
+        "incongruent",
+        "congruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0061",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0061. Turn 1 of 3.\n\nLearn the rule bound to context=alpha.\n\nExamples:\n1. shape=diamond | tone=cool | context=alpha | r1=-3, r2=+3 -> cobalt\n2. tone=neutral | context=alpha | r1=+0, r2=-4 | shape=square -> amber\n3. context=alpha | r1=+5, r2=+1 | shape=square | tone=cool -> jade\n4. r1=-1, r2=-3 | shape=triangle | tone=bright | context=alpha -> amber",
+        "CogFlex suite task. Episode 0061. Turn 2 of 3.\n\nInfer the labeling rule associated with context=beta.\n\nExamples:\n1. tone=cool | context=beta | r1=-5, r2=+5 | shape=hex -> amber\n2. context=beta | r1=+4, r2=-2 | shape=star | tone=warm -> jade\n3. r1=+4, r2=+4 | shape=diamond | tone=warm | context=beta -> jade\n4. shape=star | tone=cool | context=beta | r1=+4, r2=+1 -> cobalt",
+        "CogFlex suite task. Episode 0061. Turn 3 of 3.\n\nInfer which learned rule each context calls for, then label every probe.\n\nProbes:\n1. context=beta | r1=+3, r2=+1 | shape=triangle | tone=bright -> ?\n2. r1=+2, r2=+2 | shape=diamond | tone=cool | context=alpha -> ?\n3. shape=triangle | tone=bright | context=alpha | r1=-5, r2=+0 -> ?\n4. tone=bright | context=alpha | r1=+4, r2=-2 | shape=circle -> ?\n5. context=beta | r1=-4, r2=+1 | shape=triangle | tone=warm -> ?\n\nReturn exactly 5 outputs in order, one per probe. Use only labels from: amber, cobalt, jade."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "decision",
+          "item_count": 5
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 5,
+        "label_vocab": [
+          "amber",
+          "cobalt",
+          "jade"
+        ],
+        "suite_task_id": "context_binding",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_context_binding_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "amber",
+                  "cobalt",
+                  "jade"
+                ]
+              },
+              "minItems": 5,
+              "maxItems": 5
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "context_binding",
+      "shift_mode": "context_gate",
+      "difficulty_bin": "hard",
+      "structure_family_id": "two_step_focus"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "cobalt",
+        "jade",
+        "amber",
+        "cobalt",
+        "jade"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "jade",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_shape_tone",
+          "route_metadata": {
+            "context": "beta",
+            "route_rule_id": "amber_cobalt_jade_shape_tone"
+          }
+        },
+        {
+          "probe_index": 2,
+          "target_label": "jade",
+          "obsolete_rule_label": "cobalt",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "amber_cobalt_jade_sum_band",
+          "route_metadata": {
+            "context": "alpha",
+            "route_rule_id": "amber_cobalt_jade_sum_band"
+          }
+        },
+        {
+          "probe_index": 3,
+          "target_label": "amber",
+          "obsolete_rule_label": "cobalt",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "amber_cobalt_jade_sum_band",
+          "route_metadata": {
+            "context": "alpha",
+            "route_rule_id": "amber_cobalt_jade_sum_band"
+          }
+        },
+        {
+          "probe_index": 4,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "amber",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "amber_cobalt_jade_sum_band",
+          "route_metadata": {
+            "context": "alpha",
+            "route_rule_id": "amber_cobalt_jade_sum_band"
+          }
+        },
+        {
+          "probe_index": 5,
+          "target_label": "jade",
+          "obsolete_rule_label": "amber",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_shape_tone",
+          "route_metadata": {
+            "context": "beta",
+            "route_rule_id": "amber_cobalt_jade_shape_tone"
+          }
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0062",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0062. Turn 1 of 4.\n\nInfer the labeling rule associated with context=cedar.\n\nExamples:\n1. shape=square | tone=neutral | context=cedar | r1=-4, r2=+3 -> reject\n2. tone=bright | context=cedar | r1=+1, r2=+2 | shape=triangle -> reject\n3. context=cedar | r1=-5, r2=-1 | shape=circle | tone=warm -> accept",
+        "CogFlex suite task. Episode 0062. Turn 2 of 4.\n\nUse these examples to learn what context=harbor means.\n\nExamples:\n1. tone=cool | context=harbor | r1=+1, r2=-5 | shape=square -> accept\n2. context=harbor | r1=+3, r2=-1 | shape=diamond | tone=bright -> reject",
+        "CogFlex suite task. Episode 0062. Turn 3 of 4.\n\nUse the context tag to keep the active rule aligned.\n\nExamples:\n1. context=cedar | r1=+2, r2=-3 | shape=hex | tone=bright -> accept\n2. r1=+0, r2=+0 | shape=star | tone=warm | context=harbor -> reject\n3. shape=star | tone=bright | context=cedar | r1=+4, r2=+4 -> reject",
+        "CogFlex suite task. Episode 0062. Turn 4 of 4.\n\nApply the context-conditioned rule to every probe.\n\nProbes:\n1. r1=-1, r2=-5 | shape=hex | tone=neutral | context=cedar -> ?\n2. shape=star | tone=bright | context=cedar | r1=-5, r2=-3 -> ?\n3. tone=warm | context=cedar | r1=+2, r2=+1 | shape=hex -> ?\n4. context=harbor | r1=-3, r2=+4 | shape=star | tone=muted -> ?\n5. r1=+0, r2=-4 | shape=hex | tone=cool | context=harbor -> ?\n6. shape=hex | tone=cool | context=harbor | r1=+1, r2=+0 -> ?\n\nReturn exactly 6 outputs in order, one per probe. Use only labels from: accept, reject."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "evidence",
+          "item_count": 2
+        },
+        {
+          "kind": "evidence",
+          "item_count": 3
+        },
+        {
+          "kind": "decision",
+          "item_count": 6
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 6,
+        "label_vocab": [
+          "accept",
+          "reject"
+        ],
+        "suite_task_id": "context_binding",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_context_binding_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "minItems": 6,
+              "maxItems": 6
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "context_binding",
+      "shift_mode": "context_gate",
+      "difficulty_bin": "hard",
+      "structure_family_id": "three_step_bridge"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "accept",
+        "reject",
+        "accept",
+        "accept",
+        "reject",
+        "reject"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "accept",
+          "obsolete_rule_label": "accept",
+          "congruency": "congruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "context": "cedar",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 2,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "context": "cedar",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 3,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "context": "cedar",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 4,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large",
+          "route_metadata": {
+            "context": "harbor",
+            "route_rule_id": "accept_abs_sum_large"
+          }
+        },
+        {
+          "probe_index": 5,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large",
+          "route_metadata": {
+            "context": "harbor",
+            "route_rule_id": "accept_abs_sum_large"
+          }
+        },
+        {
+          "probe_index": 6,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_abs_sum_large",
+          "route_metadata": {
+            "context": "harbor",
+            "route_rule_id": "accept_abs_sum_large"
+          }
+        }
+      ],
+      "probe_annotations": [
+        "congruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0091",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0091. Turn 1 of 3.\n\nLearn the uncued rule from these examples.\n\nExamples:\n1. shape=square | tone=warm | r1=-3, r2=+0 -> reject\n2. tone=bright | r1=-4, r2=-3 | shape=diamond -> reject\n3. r1=-1, r2=+3 | shape=circle | tone=muted -> accept\n4. shape=hex | tone=warm | r1=+1, r2=+2 -> accept",
+        "CogFlex suite task. Episode 0091. Turn 2 of 3.\n\nThe cue field now changes which learned rule applies. Recover the mapping from the labeled examples.\n\nExamples:\n1. tone=bright | cue=ripple | r1=-2, r2=-2 | shape=hex -> accept\n2. cue=stone | r1=+5, r2=+5 | shape=triangle | tone=bright -> reject\n3. r1=+3, r2=-2 | shape=circle | tone=warm | cue=ripple -> reject\n4. shape=hex | tone=cool | cue=stone | r1=-1, r2=+2 -> accept",
+        "CogFlex suite task. Episode 0091. Turn 3 of 3.\n\nApply the rule selected by each probe cue and then answer in order.\n\nProbes:\n1. cue=stone | r1=-3, r2=-2 | shape=circle | tone=cool -> ?\n2. r1=-2, r2=-3 | shape=star | tone=warm | cue=stone -> ?\n3. shape=circle | tone=muted | cue=stone | r1=-4, r2=+5 -> ?\n4. tone=warm | cue=ripple | r1=-1, r2=+1 | shape=circle -> ?\n5. cue=ripple | r1=-2, r2=+5 | shape=circle | tone=neutral -> ?\n\nReturn exactly 5 outputs in order, one per probe. Use only labels from: accept, reject."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "decision",
+          "item_count": 5
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 5,
+        "label_vocab": [
+          "accept",
+          "reject"
+        ],
+        "suite_task_id": "trial_cued_switch",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_trial_cued_switch_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "minItems": 5,
+              "maxItems": 5
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "trial_cued_switch",
+      "shift_mode": "cue_switching",
+      "difficulty_bin": "hard",
+      "structure_family_id": "two_step_focus"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "accept",
+        "reject",
+        "accept",
+        "accept",
+        "reject"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "cue": "stone",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 2,
+          "target_label": "reject",
+          "obsolete_rule_label": "reject",
+          "congruency": "congruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "cue": "stone",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 3,
+          "target_label": "accept",
+          "obsolete_rule_label": "reject",
+          "congruency": "incongruent",
+          "requires_switch": false,
+          "active_rule_id": "accept_shape_round",
+          "route_metadata": {
+            "cue": "stone",
+            "route_rule_id": "accept_shape_round"
+          }
+        },
+        {
+          "probe_index": 4,
+          "target_label": "accept",
+          "obsolete_rule_label": "accept",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match",
+          "route_metadata": {
+            "cue": "ripple",
+            "route_rule_id": "accept_parity_match"
+          }
+        },
+        {
+          "probe_index": 5,
+          "target_label": "reject",
+          "obsolete_rule_label": "accept",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "accept_parity_match",
+          "route_metadata": {
+            "cue": "ripple",
+            "route_rule_id": "accept_parity_match"
+          }
+        }
+      ],
+      "probe_annotations": [
+        "incongruent",
+        "congruent",
+        "incongruent",
+        "congruent",
+        "incongruent"
+      ]
+    }
+  },
+  {
+    "episode_id": "0094",
+    "inference": {
+      "turns": [
+        "CogFlex suite task. Episode 0094. Turn 1 of 3.\n\nLearn the uncued rule from these examples.\n\nExamples:\n1. shape=square | tone=neutral | r1=-5, r2=+5 -> amber\n2. tone=cool | r1=+1, r2=-1 | shape=square -> cobalt\n3. r1=-3, r2=-4 | shape=triangle | tone=neutral -> amber\n4. shape=square | tone=muted | r1=+5, r2=-2 -> jade",
+        "CogFlex suite task. Episode 0094. Turn 2 of 3.\n\nThe cue field now changes which learned rule applies. Recover the mapping from the labeled examples.\n\nExamples:\n1. tone=neutral | cue=linen | r1=-5, r2=-1 | shape=hex -> cobalt\n2. cue=copper | r1=+5, r2=-1 | shape=diamond | tone=muted -> jade\n3. r1=-1, r2=-5 | shape=star | tone=neutral | cue=copper -> cobalt\n4. shape=diamond | tone=neutral | cue=linen | r1=+4, r2=+0 -> jade\n5. tone=bright | cue=copper | r1=-2, r2=+0 | shape=circle -> amber",
+        "CogFlex suite task. Episode 0094. Turn 3 of 3.\n\nApply the rule selected by each probe cue and then answer in order.\n\nProbes:\n1. cue=copper | r1=-1, r2=+2 | shape=star | tone=neutral -> ?\n2. r1=+4, r2=-3 | shape=diamond | tone=neutral | cue=linen -> ?\n3. shape=star | tone=warm | cue=copper | r1=-2, r2=+4 -> ?\n4. tone=muted | cue=linen | r1=+2, r2=-5 | shape=triangle -> ?\n\nReturn exactly 4 outputs in order, one per probe. Use only labels from: amber, cobalt, jade."
+      ],
+      "turn_specs": [
+        {
+          "kind": "evidence",
+          "item_count": 4
+        },
+        {
+          "kind": "evidence",
+          "item_count": 5
+        },
+        {
+          "kind": "decision",
+          "item_count": 4
+        }
+      ],
+      "response_spec": {
+        "schema_version": "cogflex.v2",
+        "format": "ordered_labels",
+        "probe_count": 4,
+        "label_vocab": [
+          "amber",
+          "cobalt",
+          "jade"
+        ],
+        "suite_task_id": "trial_cued_switch",
+        "output_schema": {
+          "type": "object",
+          "title": "cogflex_trial_cued_switch_response",
+          "additionalProperties": false,
+          "required": [
+            "ordered_labels"
+          ],
+          "properties": {
+            "ordered_labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "amber",
+                  "cobalt",
+                  "jade"
+                ]
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "faculty_id": "executive_functions/cognitive_flexibility",
+      "suite_task_id": "trial_cued_switch",
+      "shift_mode": "cue_switching",
+      "difficulty_bin": "medium",
+      "structure_family_id": "cue_dense_wide"
+    },
+    "scoring": {
+      "final_probe_targets": [
+        "cobalt",
+        "jade",
+        "amber",
+        "cobalt"
+      ],
+      "probe_metadata": [
+        {
+          "probe_index": 1,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "cobalt",
+          "congruency": "congruent",
+          "requires_switch": false,
+          "active_rule_id": "amber_cobalt_jade_r1_band",
+          "route_metadata": {
+            "cue": "copper",
+            "route_rule_id": "amber_cobalt_jade_r1_band"
+          }
+        },
+        {
+          "probe_index": 2,
+          "target_label": "jade",
+          "obsolete_rule_label": "jade",
+          "congruency": "congruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape",
+          "route_metadata": {
+            "cue": "linen",
+            "route_rule_id": "amber_cobalt_jade_tone_shape"
+          }
+        },
+        {
+          "probe_index": 3,
+          "target_label": "amber",
+          "obsolete_rule_label": "amber",
+          "congruency": "congruent",
+          "requires_switch": false,
+          "active_rule_id": "amber_cobalt_jade_r1_band",
+          "route_metadata": {
+            "cue": "copper",
+            "route_rule_id": "amber_cobalt_jade_r1_band"
+          }
+        },
+        {
+          "probe_index": 4,
+          "target_label": "cobalt",
+          "obsolete_rule_label": "jade",
+          "congruency": "incongruent",
+          "requires_switch": true,
+          "active_rule_id": "amber_cobalt_jade_tone_shape",
+          "route_metadata": {
+            "cue": "linen",
+            "route_rule_id": "amber_cobalt_jade_tone_shape"
+          }
+        }
+      ],
+      "probe_annotations": [
+        "congruent",
+        "congruent",
+        "congruent",
+        "incongruent"
+      ]
+    }
+  }
+]

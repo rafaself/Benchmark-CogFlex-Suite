@@ -20,12 +20,18 @@ kaggle/
       public_difficulty_calibration.json
       public_leaderboard_rows.json
       public_quality_report.json
+    public-test/
+      dataset-metadata.json
+      public_difficulty_calibration.json
+      public_leaderboard_rows.json
+      public_quality_report.json
   notebook/
     cogflex_notebook_task.ipynb
     kernel-metadata.json
 scripts/
   build_cogflex_dataset.py
   deploy_dataset.sh
+  deploy_test_dataset.sh
   deploy_private_dataset.sh
   deploy_notebook.sh
   verify_cogflex.py
@@ -130,6 +136,7 @@ Each public suite task appears in at least two structural formats so the runtime
 
 The notebook (`kaggle/notebook/cogflex_notebook_task.ipynb`) drives the benchmark evaluation. Key behaviors:
 
+- **Default dataset**: the notebook defaults to the 10-episode public test runtime dataset (`raptorengineer/cogflex-suite-runtime-test`) for faster smoke tests. To run the full 120-episode public runtime instead, set `COGFLEX_DATASET_ROOT=/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime` and `COGFLEX_EXPECTED_PUBLIC_EPISODE_COUNT=120`.
 - **Schema-based final prompt**: the final decision turn is constructed with the `output_schema` from `response_spec`. The notebook rebuilds this schema locally via `build_strict_output_schema` and passes it as structured output to the model.
 - **Response normalization**: the benchmark expects `ordered_labels` format. The `_normalize_response_spec` function re-derives `output_schema` from `response_spec` fields at runtime and validates the response against it. Legacy comma-delimited text and `probe_1`-style mappings are supported as compatibility fallbacks.
 - **Episode scoring**: `score_episode(targets, predictions, probe_metadata)` returns per-episode numerator/denominator counts and diagnostic breakdowns: `incongruent_numerator/denominator`, `congruent_numerator/denominator`, `first_probe_numerator/denominator`, `obsolete_rule_error_numerator/denominator`.
@@ -143,6 +150,8 @@ The notebook (`kaggle/notebook/cogflex_notebook_task.ipynb`) drives the benchmar
   - Pass `include_debug=True` for the full diagnostic summary including `switch_cost`, `congruent_accuracy`, `micro_accuracy`, `structure_family_accuracy`, `per_task_metrics`, per-slice breakdowns, and raw numerator/denominator counts.
 
 `score` is the single leaderboard-facing metric.
+
+The full public runtime remains the source of truth for public verification and release checks. The test runtime is a deterministic 10-episode subset intended only for faster notebook iteration.
 
 ## Public Split Verification
 
