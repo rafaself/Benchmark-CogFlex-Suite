@@ -6,6 +6,7 @@ __pycache__/
 .ipynb_checkpoints/
 .claude/
 .codex
+notes/private/
 scripts/private_local/
 kaggle/dataset/audit_key.json
 kaggle/dataset/private/
