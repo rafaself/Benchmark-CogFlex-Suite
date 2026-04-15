@@ -51,6 +51,34 @@ def _load_notebook() -> dict[str, object]:
     return json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
 
 
+def _apply_runtime_overrides(
+    namespace: dict[str, object],
+    *,
+    eval_split: str,
+    dataset_root: Path,
+    private_dataset_root: Path,
+    private_answer_key_path: Path | None,
+    expected_public_episode_count: int,
+) -> None:
+    """Apply explicit runtime globals used by the notebook bootstrap."""
+
+    rows_path = (
+        dataset_root / "public_leaderboard_rows.json"
+        if eval_split == "public"
+        else private_dataset_root / "private_leaderboard_rows.json"
+    )
+    namespace.update(
+        {
+            "EVAL_SPLIT": eval_split,
+            "DATASET_ROOT": dataset_root,
+            "PRIVATE_DATASET_ROOT": private_dataset_root,
+            "ROWS_PATH": rows_path,
+            "PRIVATE_ANSWER_KEY_PATH": private_answer_key_path,
+            "EXPECTED_PUBLIC_EPISODE_COUNT": expected_public_episode_count,
+        }
+    )
+
+
 def load_bootstrap_namespace() -> dict[str, object]:
     """Execute the notebook bootstrap cell inside a controlled test namespace.
 
@@ -69,23 +97,13 @@ def load_bootstrap_namespace() -> dict[str, object]:
         namespace: dict[str, object] = {}
         with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}):
             exec(code_cells["cell-bootstrap"], namespace)
-        runtime_config = namespace["RuntimeConfig"](
+        _apply_runtime_overrides(
+            namespace,
             eval_split="public",
             dataset_root=dataset_root,
             private_dataset_root=namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
             private_answer_key_path=None,
             expected_public_episode_count=namespace["EPISODE_COUNT_BY_SPLIT"]["public"],
-        )
-        namespace.update(
-            {
-                "CONFIG": runtime_config,
-                "EVAL_SPLIT": runtime_config.eval_split,
-                "DATASET_ROOT": runtime_config.dataset_root,
-                "PRIVATE_DATASET_ROOT": runtime_config.private_dataset_root,
-                "ROWS_PATH": runtime_config.rows_path,
-                "PRIVATE_ANSWER_KEY_PATH": runtime_config.private_answer_key_path,
-                "EXPECTED_PUBLIC_EPISODE_COUNT": runtime_config.expected_public_episode_count,
-            }
         )
     return namespace
 
@@ -104,23 +122,13 @@ def load_notebook_namespace() -> dict[str, object]:
     namespace: dict[str, object] = {"Path": Path}
     with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}):
         exec(code_cells["cell-bootstrap"], namespace)
-        runtime_config = namespace["RuntimeConfig"](
+        _apply_runtime_overrides(
+            namespace,
             eval_split="public",
             dataset_root=ROOT / "kaggle/dataset/public",
             private_dataset_root=namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
             private_answer_key_path=None,
             expected_public_episode_count=namespace["EPISODE_COUNT_BY_SPLIT"]["public"],
-        )
-        namespace.update(
-            {
-                "CONFIG": runtime_config,
-                "EVAL_SPLIT": runtime_config.eval_split,
-                "DATASET_ROOT": runtime_config.dataset_root,
-                "PRIVATE_DATASET_ROOT": runtime_config.private_dataset_root,
-                "ROWS_PATH": runtime_config.rows_path,
-                "PRIVATE_ANSWER_KEY_PATH": runtime_config.private_answer_key_path,
-                "EXPECTED_PUBLIC_EPISODE_COUNT": runtime_config.expected_public_episode_count,
-            }
         )
         exec(code_cells["cell-runtime-types"], namespace)
         exec(code_cells["cell-runtime-normalize"], namespace)
@@ -243,24 +251,18 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         )
         self.assertIsNone(namespace["PRIVATE_ANSWER_KEY_PATH"])
 
-    def test_bootstrap_exposes_runtime_config_and_compatibility_aliases(self) -> None:
-        config = self.bootstrap_namespace["CONFIG"]
-        self.assertTrue(self.bootstrap_namespace["is_dataclass"](config))
-        self.assertEqual(config.eval_split, self.bootstrap_namespace["EVAL_SPLIT"])
-        self.assertEqual(config.dataset_root, self.bootstrap_namespace["DATASET_ROOT"])
+    def test_bootstrap_exposes_compatibility_aliases(self) -> None:
+        self.assertEqual(self.bootstrap_namespace["EVAL_SPLIT"], "public")
         self.assertEqual(
-            config.private_dataset_root,
+            self.bootstrap_namespace["DATASET_ROOT"],
+            self.bootstrap_namespace["ROWS_PATH"].parent,
+        )
+        self.assertEqual(
             self.bootstrap_namespace["PRIVATE_DATASET_ROOT"],
+            self.bootstrap_namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
         )
-        self.assertEqual(config.rows_path, self.bootstrap_namespace["ROWS_PATH"])
-        self.assertEqual(
-            config.private_answer_key_path,
-            self.bootstrap_namespace["PRIVATE_ANSWER_KEY_PATH"],
-        )
-        self.assertEqual(
-            config.expected_public_episode_count,
-            self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"],
-        )
+        self.assertIsNone(self.bootstrap_namespace["PRIVATE_ANSWER_KEY_PATH"])
+        self.assertEqual(self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"], 120)
 
     def test_notebook_selects_main_task_with_choose_cell(self) -> None:
         code_cells = _load_code_cells()
