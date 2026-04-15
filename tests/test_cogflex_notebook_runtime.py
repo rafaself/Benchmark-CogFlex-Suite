@@ -402,6 +402,27 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected a final decision turn"):
             self.namespace["_validate_row"](row)
 
+    def test_validate_row_rejects_missing_public_scoring(self) -> None:
+        row = json.loads(json.dumps(self.rows[0]))
+        row.pop("scoring", None)
+        with self.assertRaisesRegex(ValueError, "public rows must include scoring"):
+            self.namespace["_validate_row"](row)
+
+    def test_validate_row_rejects_missing_probe_annotations(self) -> None:
+        row = json.loads(json.dumps(self.rows[0]))
+        row["scoring"].pop("probe_annotations", None)
+        with self.assertRaisesRegex(ValueError, "scoring must include probe_annotations"):
+            self.namespace["_validate_row"](row)
+
+    def test_validate_row_rejects_private_scoring_payloads(self) -> None:
+        row = json.loads(json.dumps(self.rows[0]))
+        self.namespace["EVAL_SPLIT"] = "private"
+        try:
+            with self.assertRaisesRegex(ValueError, "private rows must not include scoring"):
+                self.namespace["_validate_row"](row)
+        finally:
+            self.namespace["EVAL_SPLIT"] = "public"
+
     def test_run_flexible_task_sends_evidence_turns_before_scored_turn(self) -> None:
         row = self.rows[0]
         llm = FakeLLM(
@@ -906,6 +927,22 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         for status in ("prompt_failure", "schema_format_failure", "wrong_label_count", "invalid_label_vocab"):
             result = self.namespace["score_episode"](None, ("orbit",), score_status=status)
             self.assertFalse(result["scorable"], msg=f"expected scorable=False for {status}")
+
+    def test_score_episode_rejects_non_boolean_requires_switch(self) -> None:
+        with self.assertRaisesRegex(ValueError, "probe_metadata\\.requires_switch must be a boolean"):
+            self.namespace["score_episode"](
+                ("orbit",),
+                ("orbit",),
+                probe_metadata=(
+                    {
+                        "probe_index": 1,
+                        "target_label": "orbit",
+                        "obsolete_rule_label": None,
+                        "congruency": "congruent",
+                        "requires_switch": "false",
+                    },
+                ),
+            )
 
     def test_all_protocol_failures_produce_zero_score_not_025(self) -> None:
         """Regression: fully invalid runs must not receive 0.25 via the obsolete-rule term."""
