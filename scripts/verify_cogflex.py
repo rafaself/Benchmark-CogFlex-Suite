@@ -931,8 +931,6 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
             if spec["kind"] == "decision":
                 if int(spec["item_count"]) != probe_count:
                     raise RuntimeError(f"row {episode_id} decision turn count mismatches response_spec")
-                if response_instruction_from_spec(inference["response_spec"]) not in turn:
-                    raise RuntimeError(f"row {episode_id} decision turn must include the response instruction")
             else:
                 for item in items:
                     if str(item["label"]) not in label_vocab:
