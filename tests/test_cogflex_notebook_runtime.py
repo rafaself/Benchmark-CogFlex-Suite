@@ -1,7 +1,6 @@
 import contextlib
 import io
 import json
-import os
 import sys
 import tempfile
 import types
@@ -68,20 +67,26 @@ def load_bootstrap_namespace() -> dict[str, object]:
         dataset_root = Path(tmpdir)
         (dataset_root / "public_leaderboard_rows.json").write_text("[]", encoding="utf-8")
         namespace: dict[str, object] = {}
-        with patch.dict(
-            sys.modules,
-            {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd},
-        ), patch.dict(
-            os.environ,
-            {
-                "COGFLEX_EVAL_SPLIT": "public",
-                "COGFLEX_DATASET_ROOT": str(dataset_root),
-                "COGFLEX_PRIVATE_DATASET_ROOT": "",
-                "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
-            },
-            clear=False,
-        ):
+        with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}):
             exec(code_cells["cell-bootstrap"], namespace)
+        runtime_config = namespace["RuntimeConfig"](
+            eval_split="public",
+            dataset_root=dataset_root,
+            private_dataset_root=namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
+            private_answer_key_path=None,
+            expected_public_episode_count=namespace["EPISODE_COUNT_BY_SPLIT"]["public"],
+        )
+        namespace.update(
+            {
+                "CONFIG": runtime_config,
+                "EVAL_SPLIT": runtime_config.eval_split,
+                "DATASET_ROOT": runtime_config.dataset_root,
+                "PRIVATE_DATASET_ROOT": runtime_config.private_dataset_root,
+                "ROWS_PATH": runtime_config.rows_path,
+                "PRIVATE_ANSWER_KEY_PATH": runtime_config.private_answer_key_path,
+                "EXPECTED_PUBLIC_EPISODE_COUNT": runtime_config.expected_public_episode_count,
+            }
+        )
     return namespace
 
 
@@ -97,18 +102,26 @@ def load_notebook_namespace() -> dict[str, object]:
     fake_kbench.task = _BenchStub.task
     fake_pd = types.ModuleType("pandas")
     namespace: dict[str, object] = {"Path": Path}
-    with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}), patch.dict(
-        os.environ,
-        {
-            "COGFLEX_EVAL_SPLIT": "public",
-            "COGFLEX_DATASET_ROOT": str(ROOT / "kaggle/dataset/public"),
-            "COGFLEX_EXPECTED_PUBLIC_EPISODE_COUNT": "120",
-            "COGFLEX_PRIVATE_DATASET_ROOT": "",
-            "COGFLEX_PRIVATE_ANSWER_KEY_PATH": "",
-        },
-        clear=False,
-    ):
+    with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}):
         exec(code_cells["cell-bootstrap"], namespace)
+        runtime_config = namespace["RuntimeConfig"](
+            eval_split="public",
+            dataset_root=ROOT / "kaggle/dataset/public",
+            private_dataset_root=namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
+            private_answer_key_path=None,
+            expected_public_episode_count=namespace["EPISODE_COUNT_BY_SPLIT"]["public"],
+        )
+        namespace.update(
+            {
+                "CONFIG": runtime_config,
+                "EVAL_SPLIT": runtime_config.eval_split,
+                "DATASET_ROOT": runtime_config.dataset_root,
+                "PRIVATE_DATASET_ROOT": runtime_config.private_dataset_root,
+                "ROWS_PATH": runtime_config.rows_path,
+                "PRIVATE_ANSWER_KEY_PATH": runtime_config.private_answer_key_path,
+                "EXPECTED_PUBLIC_EPISODE_COUNT": runtime_config.expected_public_episode_count,
+            }
+        )
         exec(code_cells["cell-runtime-types"], namespace)
         exec(code_cells["cell-runtime-normalize"], namespace)
         exec(code_cells["cell-runtime-parse"], namespace)
@@ -116,7 +129,6 @@ def load_notebook_namespace() -> dict[str, object]:
         exec(code_cells["cell-runtime-score"], namespace)
         runtime_load_prefix = code_cells["cell-runtime-load"].split("leaderboard_rows = load_selected_rows()", 1)[0]
         exec(runtime_load_prefix, namespace)
-    namespace.update({"EVAL_SPLIT": "public", "ROWS_PATH": PUBLIC_ROWS_PATH, "PRIVATE_ANSWER_KEY_PATH": None})
     return namespace
 
 
@@ -214,6 +226,23 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
             self.bootstrap_namespace["DEFAULT_PRIVATE_DATASET_ROOT"],
         )
 
+    def test_bootstrap_defaults_to_static_private_runtime(self) -> None:
+        code_cells = _load_code_cells()
+        fake_kbench = types.ModuleType("kaggle_benchmarks")
+        fake_kbench.task = _BenchStub.task
+        fake_pd = types.ModuleType("pandas")
+        namespace: dict[str, object] = {}
+        with patch.dict(sys.modules, {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd}):
+            exec(code_cells["cell-bootstrap"], namespace)
+        self.assertEqual(namespace["EVAL_SPLIT"], "private")
+        self.assertEqual(namespace["DATASET_ROOT"], namespace["DEFAULT_DATASET_ROOT"])
+        self.assertEqual(namespace["PRIVATE_DATASET_ROOT"], namespace["DEFAULT_PRIVATE_DATASET_ROOT"])
+        self.assertEqual(
+            namespace["ROWS_PATH"],
+            namespace["DEFAULT_PRIVATE_DATASET_ROOT"] / "private_leaderboard_rows.json",
+        )
+        self.assertIsNone(namespace["PRIVATE_ANSWER_KEY_PATH"])
+
     def test_bootstrap_exposes_runtime_config_and_compatibility_aliases(self) -> None:
         config = self.bootstrap_namespace["CONFIG"]
         self.assertTrue(self.bootstrap_namespace["is_dataclass"](config))
@@ -232,23 +261,6 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
             config.expected_public_episode_count,
             self.bootstrap_namespace["EXPECTED_PUBLIC_EPISODE_COUNT"],
         )
-
-    def test_bootstrap_rejects_unsupported_eval_split(self) -> None:
-        code_cells = _load_code_cells()
-        fake_kbench = types.ModuleType("kaggle_benchmarks")
-        fake_kbench.task = _BenchStub.task
-        fake_pd = types.ModuleType("pandas")
-        namespace: dict[str, object] = {}
-        with patch.dict(
-            sys.modules,
-            {"kaggle_benchmarks": fake_kbench, "pandas": fake_pd},
-        ), patch.dict(
-            os.environ,
-            {"COGFLEX_EVAL_SPLIT": "invalid-split"},
-            clear=False,
-        ):
-            with self.assertRaisesRegex(ValueError, "unsupported COGFLEX_EVAL_SPLIT"):
-                exec(code_cells["cell-bootstrap"], namespace)
 
     def test_notebook_selects_main_task_with_choose_cell(self) -> None:
         code_cells = _load_code_cells()
