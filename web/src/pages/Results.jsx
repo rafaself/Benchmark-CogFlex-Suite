@@ -151,7 +151,7 @@ export function Results() {
                       <div className="mb-8 flex flex-col items-center gap-3">
                         {probeItems[i] ? <Card data={probeItems[i].data} showLabel={false} /> : null}
                         <div className={`px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${
-                          res.isCorrect 
+                          ['accept', 'anchor', 'valid', 'north', 'amber', 'ember'].includes(res.userLabel) 
                           ? 'bg-green-500 text-white border-green-400' 
                           : 'bg-red-500 text-white border-red-400'
                         }`}>
