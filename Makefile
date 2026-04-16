@@ -4,11 +4,14 @@ PYTHON ?= $(if $(wildcard $(VENV_BIN)/python),$(VENV_BIN)/python,python3)
 JUPYTER ?= $(if $(wildcard $(VENV_BIN)/jupyter),$(VENV_BIN)/jupyter,jupyter)
 
 .PHONY: notelab test build-private verify-public verify-private \
-        release-check \
+        release-check web \
         deploy-dataset deploy-test-dataset deploy-private-dataset deploy-notebook deploy-all
 
 notelab:
 	$(JUPYTER) lab --no-browser kaggle/notebook/cogflex_notebook_task.ipynb
+
+web:
+	cd web && npm run dev
 
 test:
 	$(PYTHON) -m unittest discover -s tests -q
