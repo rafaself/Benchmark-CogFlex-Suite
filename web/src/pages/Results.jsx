@@ -4,7 +4,7 @@ import { Check, ChevronDown, Star, Timer, Zap } from 'lucide-react';
 import data from '../data.json';
 import { Card } from '../components/Card';
 import { MetricCard } from '../components/MetricCard';
-import { getEpisodeExampleGroups, getEpisodeProbes, getProbeCount, getTotalProbeCount, shuffleArray } from '../utils/logic';
+import { getEpisodeExampleGroups, getEpisodeProbes, getLabelStyle, getProbeCount, getTotalProbeCount, shuffleArray } from '../utils/logic';
 
 function RuleHint({ description }) {
   if (!description) return null;
@@ -150,11 +150,7 @@ export function Results() {
                     <div key={i} className={`p-8 rounded-[2.5rem] border-2 ${res.isCorrect ? 'border-green-500/20 bg-green-500/[0.02]' : 'border-red-500/20 bg-red-500/[0.02]'}`}>
                       <div className="mb-8 flex flex-col items-center gap-3">
                         {probeItems[i] ? <Card data={probeItems[i].data} showLabel={false} /> : null}
-                        <div className={`px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${
-                          ['accept', 'anchor', 'valid', 'north', 'amber', 'ember'].includes(res.userLabel) 
-                          ? 'bg-green-500 text-white border-green-400' 
-                          : 'bg-red-500 text-white border-red-400'
-                        }`}>
+                        <div className={`px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${getLabelStyle(res.userLabel)}`}>
                           {res.userLabel}
                         </div>
                         <RuleHint description={probeItems[i]?.ruleDescription} />

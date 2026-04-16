@@ -200,6 +200,28 @@ export function getEpisodeProbes(episode) {
   });
 }
 
+export function getLabelStyle(label) {
+  const l = label?.toLowerCase();
+  
+  if (['accept', 'valid', 'north', 'anchor', 'jade', 'glade'].includes(l)) {
+    return 'bg-green-500 text-white border-green-400';
+  }
+  if (['reject', 'invalid', 'south', 'pull'].includes(l)) {
+    return 'bg-red-500 text-white border-red-400';
+  }
+  if (['amber', 'ember'].includes(l)) {
+    return 'bg-orange-500 text-white border-orange-400';
+  }
+  if (['cobalt', 'frost'].includes(l)) {
+    return 'bg-blue-500 text-white border-blue-400';
+  }
+  if (['noir'].includes(l)) {
+    return 'bg-zinc-800 text-white border-zinc-700';
+  }
+  
+  return 'bg-zinc-500 text-white border-zinc-400';
+}
+
 export function getProbeCount(episode) {
   return episode?.inference?.response_spec?.probe_count ?? 0;
 }

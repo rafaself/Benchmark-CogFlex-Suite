@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star, Triangle, Circle, Square, Diamond, Pentagon, Hexagon, Octagon, Box } from 'lucide-react';
+import { getLabelStyle } from '../utils/logic';
 
 export const Card = ({ data, showLabel = true }) => {
   const getToneColor = (tone) => {
@@ -58,11 +59,7 @@ export const Card = ({ data, showLabel = true }) => {
         </div>
       </div>
       {showLabel && data.label && (
-        <div className={`mt-4 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${
-          ['accept', 'anchor', 'valid', 'north', 'amber', 'ember'].includes(data.label) 
-          ? 'bg-green-500 text-white border-green-400' 
-          : 'bg-red-500 text-white border-red-400'
-        }`}>
+        <div className={`mt-4 px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${getLabelStyle(data.label)}`}>
           {data.label}
         </div>
       )}
