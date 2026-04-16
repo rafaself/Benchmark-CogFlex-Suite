@@ -147,7 +147,7 @@ export function Results() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
                   {epResults.map((res, i) => (
-                    <div key={i} className={`p-8 rounded-[2.5rem] border-2 ${res.isCorrect ? 'border-green-500/20 bg-green-500/[0.02]' : 'border-red-500/20 bg-red-500/[0.02]'}`}>
+                    <div key={i} className="p-8 rounded-[2.5rem] border-2 border-zinc-800 bg-zinc-900/30">
                       <div className="mb-8 flex flex-col items-center gap-3">
                         {probeItems[i] ? <Card data={probeItems[i].data} showLabel={false} /> : null}
                         <div className={`px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${
@@ -159,7 +159,9 @@ export function Results() {
                         </div>
                         <RuleHint description={probeItems[i]?.ruleDescription} />
                       </div>
-                      <div className="text-center text-xs font-black uppercase text-zinc-500">{res.isCorrect ? 'Correct' : 'Incorrect'}</div>
+                      <div className={`text-center text-xs font-black uppercase ${res.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
+                        {res.isCorrect ? 'Correct' : 'Incorrect'}
+                      </div>
                       <div className="mt-2 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white/[0.03] rounded-full border border-white/5 mx-auto w-fit">
                         <Timer size={14} className="text-zinc-500" />
                         <span className="text-[13px] font-mono text-zinc-400 font-bold">{(res.responseTime / 1000).toFixed(2)}s</span>
