@@ -13,7 +13,7 @@ export function RenderStudy({ turns, turnIndex, onNext }) {
       <div className="flex flex-wrap justify-center gap-8 mb-12">
         {examples.map((ex, i) => <Card key={i} data={ex} />)}
       </div>
-      <button onClick={onNext} className="bg-white text-black px-12 py-4 rounded-xl font-black text-lg hover:bg-zinc-200 transition-all">{turnIndex === turns.length - 2 ? "Ready?" : "Next Evidence"}</button>
+      <button onClick={onNext} className="bg-white text-black px-12 py-4 rounded-xl font-black text-lg hover:bg-zinc-200 transition-all cursor-pointer">{turnIndex === turns.length - 2 ? "Ready?" : "Next Evidence"}</button>
     </div>
   );
 }

@@ -37,10 +37,10 @@ export function Results() {
   return (
     <div className="flex flex-col items-center w-full max-w-7xl py-12 px-4 mt-20">
       <div className="fixed top-0 left-0 w-full bg-black/80 backdrop-blur-md border-b border-zinc-800 z-50 px-8 py-4 flex items-center justify-between">
-        <Link to="/" className="hover:opacity-80 transition-opacity">
+        <Link to="/" className="hover:opacity-80 transition-opacity cursor-pointer">
           <h1 className="text-2xl font-black tracking-tighter">CogFlex <span className="text-indigo-500">Human</span></h1>
         </Link>
-        <button onClick={handleNewSession} className="px-6 py-2 rounded-xl bg-white text-black font-black text-xs uppercase hover:bg-zinc-200 transition-all flex items-center gap-2">
+        <button onClick={handleNewSession} className="px-6 py-2 rounded-xl bg-white text-black font-black text-xs uppercase hover:bg-zinc-200 transition-all flex items-center gap-2 cursor-pointer">
           <Zap size={14} className="fill-black" /> New Session
         </button>
       </div>

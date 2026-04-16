@@ -183,7 +183,7 @@ export function Challenge() {
 
         <button 
           onClick={resetGame}
-          className="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-400 font-black text-[10px] uppercase hover:bg-zinc-900 transition-all"
+          className="px-4 py-2 rounded-xl border border-zinc-800 text-zinc-400 font-black text-[10px] uppercase hover:bg-zinc-900 transition-all cursor-pointer"
         >
           Abort Session
         </button>

@@ -21,7 +21,7 @@ export function RenderDecision({ currentEpisode, probeIndex, results, onDecision
       <Card data={currentProbe} showLabel={false} />
       <div className="flex gap-6 mt-12">
         {possibleLabels.map(label => (
-          <button key={label} onClick={() => onDecision(label)} className="px-12 py-5 rounded-2xl border-4 border-indigo-600 text-indigo-400 font-black text-2xl hover:bg-indigo-600 hover:text-white transition-all capitalize">{label}</button>
+          <button key={label} onClick={() => onDecision(label)} className="px-12 py-5 rounded-2xl border-4 border-indigo-600 text-indigo-400 font-black text-2xl hover:bg-indigo-600 hover:text-white transition-all capitalize cursor-pointer">{label}</button>
         ))}
       </div>
     </div>

@@ -152,13 +152,13 @@ export function Home() {
             <div className="flex gap-4">
               <button 
                 onClick={() => setIsModalOpen(false)}
-                className="flex-1 px-6 py-3 rounded-xl border border-zinc-800 text-zinc-400 font-black text-xs uppercase hover:bg-zinc-800 transition-all"
+                className="flex-1 px-6 py-3 rounded-xl border border-zinc-800 text-zinc-400 font-black text-xs uppercase hover:bg-zinc-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleClearHistory}
-                className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-black text-xs uppercase hover:bg-red-500 transition-all"
+                className="flex-1 px-6 py-3 rounded-xl bg-red-600 text-white font-black text-xs uppercase hover:bg-red-500 transition-all cursor-pointer"
               >
                 Clear All
               </button>
