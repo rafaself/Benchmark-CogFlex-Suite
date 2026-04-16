@@ -12,3 +12,4 @@ kaggle/dataset/audit_key.json
 kaggle/dataset/private/
 kaggle/dataset/private-scoring/
 .release_ok
+WRITE_UP.md
