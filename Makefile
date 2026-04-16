@@ -13,6 +13,12 @@ notelab:
 web:
 	cd web && npm run dev
 
+web-test:
+	cd web && npm run test
+
+web-coverage:
+	cd web && npm run coverage
+
 test:
 	$(PYTHON) -m unittest discover -s tests -q
 
