@@ -142,6 +142,8 @@ The notebook at `kaggle/notebook/cogflex_notebook_task.ipynb` currently:
 
 The registered notebook task is a held-out model evaluation of rule switching / rule induction within cognitive flexibility. Its summary is model-relative and dataset-relative; no human baselines or human-relative normalization are included.
 
+Detailed evaluation cycle: see [docs/evaluation-cycle.mmd](docs/evaluation-cycle.mmd).
+
 The leaderboard-facing score is:
 
 ```text

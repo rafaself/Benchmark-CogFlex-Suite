@@ -1,0 +1,71 @@
+flowchart TD
+    subgraph Setup [Split Resolution and Input Preparation]
+        direction TD
+        A[Select EVAL_SPLIT<br/>public / test / private]
+        A --> B[Resolve runtime config<br/>dataset roots, rows path, expected row count]
+        B --> C[Load rows JSON from disk]
+        C --> D[Validate row batch]
+        D --> E{Row count matches<br/>expected split size?}
+        E -- No --> X1[Raise runtime error]
+        E -- Yes --> F{Split uses embedded scoring?}
+        F -- Yes --> G[Keep public/test rows as scored rows]
+        F -- No --> H[Load private_answer_key.json]
+        H --> I[Validate answer key<br/>split, schema, episode coverage]
+        I --> J[Attach normalized scoring payload<br/>to each private row]
+        G --> K[Materialize scored_rows]
+        J --> K
+        K --> L[Build evaluation dataframe view]
+    end
+
+    L --> M{Embedded scoring path?}
+
+    M -- Yes --> N[Run tabular evaluation path<br/>through Kaggle evaluate]
+    M -- No --> O[Run in memory evaluation path<br/>over scored rows]
+
+    subgraph EpisodeLoop [Per-Episode Execution]
+        direction TD
+        P[Start one episode]
+        P --> Q{At least two turns?}
+        Q -- No --> X2[Raise execution error]
+        Q -- Yes --> R[Initialize evidence-turn loop]
+        R --> S{More evidence turns<br/>before final decision turn?}
+        S -- Yes --> T[Send current evidence turn<br/>via model prompt call]
+        T --> U{Prompt succeeded?}
+        U -- No --> V[Return episode result<br/>with prompt failure status]
+        U -- Yes --> W[Advance to next turn]
+        W --> S
+        S -- No --> Y[Render final decision prompt<br/>with ordered_labels instruction]
+        Y --> Z[Send final decision turn<br/>via model prompt call]
+        Z --> AA{Prompt succeeded?}
+        AA -- No --> V
+        AA -- Yes --> AB[Normalize model response<br/>JSON string / list / tuple / dict / object]
+        AB --> AC{Valid ordered_labels output?}
+        AC -- No --> AD[Map to protocol failure<br/>schema format failure or invalid labels]
+        AC -- Yes --> AE[Compare predictions with final_probe_targets]
+        AD --> AF[Build per-episode result counts]
+        AE --> AF
+        V --> AF
+    end
+
+    N --> P
+    O --> P
+
+    AF --> AG[Collect run results]
+    AG --> AH[Convert runs to dataframe]
+    AH --> AI{Completed results ==<br/>number of scored rows?}
+    AI -- No --> X3[Raise runtime error]
+    AI -- Yes --> AJ[Accumulate overall and per task counts<br/>including congruent incongruent first probe shift window obsolete rule and requires switch]
+    AJ --> AK[Compute macro_accuracy<br/>from per-task accuracies]
+    AK --> AL[Compute protocol_valid_rate<br/>from scorable episode count]
+    AL --> AM[Compute composite score<br/>from macro accuracy incongruent accuracy first probe accuracy and protocol validity adjusted by obsolete rule error]
+    AM --> AN[Emit compact summary<br/>and return benchmark score]
+
+    classDef process fill:#111827,stroke:#60a5fa,color:#eff6ff,stroke-width:1px;
+    classDef decision fill:#1f2937,stroke:#f59e0b,color:#fffbeb,stroke-width:1px;
+    classDef result fill:#14532d,stroke:#22c55e,color:#f0fdf4,stroke-width:1px;
+    classDef error fill:#3f1d1d,stroke:#ef4444,color:#fee2e2,stroke-width:1px;
+
+    class A,B,C,D,G,H,I,J,K,L,N,O,P,R,T,V,W,Y,Z,AB,AD,AE,AF,AG,AH,AJ,AK,AL,AM,AN process;
+    class E,F,M,Q,S,U,AA,AC,AI decision;
+    class AN result;
+    class X1,X2,X3 error;
