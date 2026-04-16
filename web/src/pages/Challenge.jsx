@@ -22,12 +22,14 @@ export function Challenge() {
   if (!currentEpisode) return null;
 
   return (
-    <ChallengeSession
-      key={episodeId}
-      activeEpisodes={activeEpisodes}
-      currentEpisode={currentEpisode}
-      episodeIndex={episodeIndex}
-    />
+    <div className="animate-fade-in w-full h-full flex flex-col items-center">
+      <ChallengeSession
+        key={episodeId}
+        activeEpisodes={activeEpisodes}
+        currentEpisode={currentEpisode}
+        episodeIndex={episodeIndex}
+      />
+    </div>
   );
 }
 
@@ -40,6 +42,7 @@ function ChallengeSession({ activeEpisodes, currentEpisode, episodeIndex }) {
   const [stage, setStage] = useState(savedProgress?.stage ?? STAGES.STUDY);
   const [turnIndex, setTurnIndex] = useState(savedProgress?.turn ?? 0);
   const [probeIndex, setProbeIndex] = useState(savedProgress?.probe ?? 0);
+  const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     if (results.length > 0) {
@@ -76,10 +79,14 @@ function ChallengeSession({ activeEpisodes, currentEpisode, episodeIndex }) {
   };
 
   const handleDecision = (label) => {
+    if (feedback) return; // Prevent double clicks during feedback
+
     const endTime = Date.now();
     const targetLabel = currentEpisode.scoring.final_probe_targets[probeIndex];
     const isCorrect = label === targetLabel;
     
+    setFeedback(isCorrect ? 'correct' : 'incorrect');
+
     const newResult = {
       episodeId: currentEpisode.episode_id,
       task: currentEpisode.analysis.suite_task_id,
@@ -91,47 +98,51 @@ function ChallengeSession({ activeEpisodes, currentEpisode, episodeIndex }) {
     };
 
     const updatedResults = [...results, newResult];
-    setResults(updatedResults);
+    
+    setTimeout(() => {
+      setFeedback(null);
+      setResults(updatedResults);
 
-    if (probeIndex < currentProbeCount - 1) {
-      setProbeIndex(prev => prev + 1);
-      setStartTime(Date.now());
-    } else {
-      // Clear progress for finished episode
-      sessionStorage.removeItem(`cogflex_progress_${episodeId}`);
-      
-      if (episodeIndex < activeEpisodes.length - 1) {
-        const nextEpId = activeEpisodes[episodeIndex + 1].episode_id;
-        navigate(`/challenge/${nextEpId}`);
+      if (probeIndex < currentProbeCount - 1) {
+        setProbeIndex(prev => prev + 1);
+        setStartTime(Date.now());
       } else {
-        const savedHistory = JSON.parse(localStorage.getItem('cogflex_history') || '[]');
-        const sessionReport = {
-          id: Date.now(),
-          date: new Date().toISOString(),
-          totalCorrect: updatedResults.filter(r => r.isCorrect).length,
-          avgTime: updatedResults.reduce((acc, r) => acc + r.responseTime, 0) / updatedResults.length,
-          totalProbes: totalProbeCount,
-          episodesCount: activeEpisodes.length,
-          results: updatedResults,
-          episodes: activeEpisodes
-        };
-        localStorage.setItem('cogflex_history', JSON.stringify([sessionReport, ...savedHistory].slice(0, 10)));
+        // Clear progress for finished episode
+        sessionStorage.removeItem(`cogflex_progress_${episodeId}`);
         
-        sessionStorage.setItem('cogflex_last_session', JSON.stringify({
-          results: updatedResults,
-          episodes: activeEpisodes
-        }));
-        sessionStorage.removeItem('cogflex_active_episodes');
-        sessionStorage.removeItem('cogflex_current_results');
-        
-        // Clear all episode progresses
-        activeEpisodes.forEach(ep => {
-          sessionStorage.removeItem(`cogflex_progress_${ep.episode_id}`);
-        });
+        if (episodeIndex < activeEpisodes.length - 1) {
+          const nextEpId = activeEpisodes[episodeIndex + 1].episode_id;
+          navigate(`/challenge/${nextEpId}`);
+        } else {
+          const savedHistory = JSON.parse(localStorage.getItem('cogflex_history') || '[]');
+          const sessionReport = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            totalCorrect: updatedResults.filter(r => r.isCorrect).length,
+            avgTime: updatedResults.reduce((acc, r) => acc + r.responseTime, 0) / updatedResults.length,
+            totalProbes: totalProbeCount,
+            episodesCount: activeEpisodes.length,
+            results: updatedResults,
+            episodes: activeEpisodes
+          };
+          localStorage.setItem('cogflex_history', JSON.stringify([sessionReport, ...savedHistory].slice(0, 10)));
+          
+          sessionStorage.setItem('cogflex_last_session', JSON.stringify({
+            results: updatedResults,
+            episodes: activeEpisodes
+          }));
+          sessionStorage.removeItem('cogflex_active_episodes');
+          sessionStorage.removeItem('cogflex_current_results');
+          
+          // Clear all episode progresses
+          activeEpisodes.forEach(ep => {
+            sessionStorage.removeItem(`cogflex_progress_${ep.episode_id}`);
+          });
 
-        navigate('/results');
+          navigate('/results');
+        }
       }
-    }
+    }, 400);
   };
 
   const resetGame = () => {
@@ -156,7 +167,7 @@ function ChallengeSession({ activeEpisodes, currentEpisode, episodeIndex }) {
         ></div>
       </div>
 
-      <div className="fixed top-0 left-0 w-full bg-black/80 backdrop-blur-md border-b border-zinc-800 z-50 px-8 py-4 flex items-center justify-between">
+      <div className="fixed top-0 left-0 w-full bg-black/80 backdrop-blur-md border-b border-zinc-800 z-50 px-12 py-4 flex items-center justify-between">
         <button 
           onClick={resetGame}
           className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer text-left"
@@ -178,16 +189,22 @@ function ChallengeSession({ activeEpisodes, currentEpisode, episodeIndex }) {
         </button>
       </div>
 
-      <div className="mt-20 flex flex-col items-center w-full">
+      <div className="pt-28 flex flex-col items-center w-full pb-12">
         {stage === STAGES.STUDY && <RenderStudy turns={turns} turnIndex={turnIndex} onNext={handleNextTurn} />}
-        {stage === STAGES.SHIFT && <RenderShift onStart={handleStartDecision} />}
+        {stage === STAGES.SHIFT && (
+          <RenderShift 
+            onStart={handleStartDecision} 
+            isExplicitShift={currentEpisode.analysis.shift_mode === 'explicit_instruction'}
+          />
+        )}
         {stage === STAGES.DECISION && (
           <RenderDecision 
             currentEpisode={currentEpisode} 
             probeIndex={probeIndex} 
             results={results} 
             onDecision={handleDecision} 
-            possibleLabels={getPossibleLabels(turns)} 
+            possibleLabels={getPossibleLabels(turns)}
+            feedback={feedback}
           />
         )}
       </div>

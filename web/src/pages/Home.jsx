@@ -29,8 +29,8 @@ export function Home() {
   };
 
   return (
-    <div className="w-full max-w-5xl flex flex-col items-center py-12 px-6">
-      <div className="text-center mb-20">
+    <div className="w-full min-h-screen flex flex-col items-center justify-center py-12 px-6 animate-fade-in">
+      <div className="w-full max-w-5xl flex flex-col items-center">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mb-8 animate-fade-in">
           <Activity size={12} />
           Human-Playable Public Samples
@@ -172,6 +172,7 @@ export function Home() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

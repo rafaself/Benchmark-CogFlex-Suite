@@ -8,7 +8,7 @@ import { Results } from './pages/Results';
 // Main App Component with Routing
 export default function App() {
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-8 font-sans transition-all duration-300">
+    <div className="min-h-screen bg-black text-white font-sans transition-all duration-300">
       <div className="lg:hidden fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-10 text-center">
         <Box size={64} className="text-indigo-500 mb-6" />
         <h1 className="text-3xl font-black mb-4">Desktop Only</h1>
