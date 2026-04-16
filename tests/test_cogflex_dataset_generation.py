@@ -12,13 +12,7 @@ from scripts.build_cogflex_dataset import (
     PRIVATE_SCORING_DATASET_ID,
     PUBLIC_DATASET_ID,
     PUBLIC_DIFFICULTY_CALIBRATION_PATH,
-    PUBLIC_TEST_DATASET_ID,
-    PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH,
-    PUBLIC_TEST_EPISODE_IDS,
-    PUBLIC_TEST_METADATA_PATH,
-    PUBLIC_TEST_QUALITY_REPORT_PATH,
-    PUBLIC_TEST_ROWS_PATH,
-    PUBLIC_STRUCTURE_FAMILY_IDS,
+    PUBLIC_EPISODES_PER_TASK,
     PUBLIC_TRANSPARENT_ROUTE_TERMS,
     PUBLIC_QUALITY_REPORT_PATH,
     PUBLIC_ROWS_PATH,
@@ -26,7 +20,6 @@ from scripts.build_cogflex_dataset import (
     SUITE_TASKS,
     TASK_NAME,
     build_public_artifacts,
-    build_public_test_artifacts,
     dataset_metadata,
     empirical_difficulty_entries_from_scores,
     load_public_difficulty_calibration,
@@ -48,14 +41,8 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.generated_rows, cls.generated_answers, cls.generated_report = build_public_artifacts()
-        cls.generated_test_rows, cls.generated_test_answers, cls.generated_test_report, cls.generated_test_calibration = (
-            build_public_test_artifacts()
-        )
         cls.tracked_rows = json.loads(PUBLIC_ROWS_PATH.read_text(encoding="utf-8"))
         cls.tracked_report = json.loads(PUBLIC_QUALITY_REPORT_PATH.read_text(encoding="utf-8"))
-        cls.tracked_test_rows = json.loads(PUBLIC_TEST_ROWS_PATH.read_text(encoding="utf-8"))
-        cls.tracked_test_report = json.loads(PUBLIC_TEST_QUALITY_REPORT_PATH.read_text(encoding="utf-8"))
-        cls.tracked_test_calibration = json.loads(PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH.read_text(encoding="utf-8"))
 
     def test_public_generator_is_deterministic(self) -> None:
         rows_again, answers_again, report_again = build_public_artifacts()
@@ -64,13 +51,8 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertEqual(self.generated_report, report_again)
 
     def test_tracked_public_artifacts_still_have_expected_shape(self) -> None:
-        self.assertEqual(len(self.tracked_rows), 120)
+        self.assertEqual(len(self.tracked_rows), len(SUITE_TASKS) * PUBLIC_EPISODES_PER_TASK)
         self.assertEqual(self.tracked_report["task_name"], TASK_NAME)
-
-    def test_tracked_public_test_artifacts_still_have_expected_shape(self) -> None:
-        self.assertEqual(len(self.tracked_test_rows), len(PUBLIC_TEST_EPISODE_IDS))
-        self.assertEqual(self.tracked_test_report["task_name"], TASK_NAME)
-        self.assertEqual(len(self.tracked_test_calibration["episodes"]), len(PUBLIC_TEST_EPISODE_IDS))
 
     def test_public_row_uses_flexible_contract(self) -> None:
         row = self.generated_rows[0]
@@ -107,38 +89,17 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         )
 
     def test_public_split_has_expected_counts(self) -> None:
-        self.assertEqual(len(self.generated_rows), 120)
+        self.assertEqual(len(self.generated_rows), len(SUITE_TASKS) * PUBLIC_EPISODES_PER_TASK)
         task_counts = Counter(row["analysis"]["suite_task_id"] for row in self.generated_rows)
-        self.assertEqual(task_counts, Counter({suite_task_id: 30 for suite_task_id in SUITE_TASKS}))
+        self.assertEqual(task_counts, Counter({suite_task_id: PUBLIC_EPISODES_PER_TASK for suite_task_id in SUITE_TASKS}))
         difficulty_counts = Counter(row["analysis"]["difficulty_bin"] for row in self.generated_rows)
-        self.assertEqual(difficulty_counts, Counter({"hard": 60, "medium": 60}))
+        self.assertEqual(difficulty_counts, Counter({"hard": 10, "medium": 10}))
 
     def test_public_split_uses_tracked_difficulty_calibration_snapshot(self) -> None:
         _payload, entries_by_episode = load_public_difficulty_calibration()
         self.assertEqual(
             {row["episode_id"]: row["analysis"]["difficulty_bin"] for row in self.generated_rows},
             {episode_id: entry["difficulty_bin"] for episode_id, entry in entries_by_episode.items()},
-        )
-
-    def test_public_test_split_uses_expected_subset(self) -> None:
-        self.assertEqual(
-            [row["episode_id"] for row in self.generated_test_rows],
-            list(PUBLIC_TEST_EPISODE_IDS),
-        )
-        self.assertEqual(
-            Counter(row["analysis"]["suite_task_id"] for row in self.generated_test_rows),
-            Counter(
-                {
-                    "explicit_rule_update": 3,
-                    "latent_rule_update": 3,
-                    "context_binding": 2,
-                    "trial_cued_switch": 2,
-                }
-            ),
-        )
-        self.assertEqual(
-            Counter(row["analysis"]["difficulty_bin"] for row in self.generated_test_rows),
-            Counter({"hard": 5, "medium": 5}),
         )
 
     def test_empirical_difficulty_tie_breaks_by_episode_id(self) -> None:
@@ -184,7 +145,7 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
 
     def test_public_report_tracks_flexible_distributions(self) -> None:
         self.assertEqual(self.generated_report["task_name"], TASK_NAME)
-        self.assertEqual(self.generated_report["row_count"], 120)
+        self.assertEqual(self.generated_report["row_count"], len(SUITE_TASKS) * PUBLIC_EPISODES_PER_TASK)
         self.assertEqual(
             sorted(self.generated_report["turn_count_distribution"]),
             ["3", "4", "5"],
@@ -195,26 +156,22 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         )
         self.assertEqual(
             set(self.generated_report["structure_family_counts"]),
-            set(PUBLIC_STRUCTURE_FAMILY_IDS),
+            {
+                "cue_dense_balanced",
+                "cue_dense_compact",
+                "cue_dense_wide",
+                "four_step_ladder",
+                "staggered_refresh",
+                "three_step_bridge",
+                "two_step_focus",
+                "wide_then_narrow",
+            },
         )
         self.assertEqual(
             sorted(self.generated_report["label_vocab_size_distribution"]),
             ["2", "3", "4"],
         )
         self.assertIn("optional_field_keys", self.generated_report["stimulus_space_summary"])
-
-    def test_public_test_report_tracks_subset_distributions(self) -> None:
-        self.assertEqual(self.generated_test_report["task_name"], TASK_NAME)
-        self.assertEqual(self.generated_test_report["row_count"], len(PUBLIC_TEST_EPISODE_IDS))
-        self.assertEqual(
-            sorted(self.generated_test_report["turn_count_distribution"]),
-            ["3", "4", "5"],
-        )
-        self.assertEqual(
-            sorted(self.generated_test_report["probe_count_distribution"]),
-            ["4", "5", "6", "7"],
-        )
-        self.assertIn("optional_field_keys", self.generated_test_report["stimulus_space_summary"])
 
     def test_public_split_avoids_transparent_route_shortcuts(self) -> None:
         route_terms: set[str] = set()
@@ -237,8 +194,8 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
                         cue_terms.add(str(item["cue"]))
                     if "context" in item:
                         context_terms.add(str(item["context"]))
-        self.assertGreaterEqual(len(cue_terms), 6)
-        self.assertGreaterEqual(len(context_terms), 6)
+        self.assertGreaterEqual(len(cue_terms), 2)
+        self.assertGreaterEqual(len(context_terms), 2)
 
     def test_public_surface_verifier_rejects_transparent_cue_terms(self) -> None:
         mutated_rows = json.loads(json.dumps(self.generated_rows))
@@ -259,16 +216,6 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
             {
                 "id": "raptorengineer/cogflex-suite-runtime",
                 "title": "CogFlex Cognitive Flexibility Runtime",
-                "licenses": [{"name": "CC0-1.0"}],
-            },
-        )
-
-    def test_public_test_dataset_metadata_payload_matches_expected_id(self) -> None:
-        self.assertEqual(
-            dataset_metadata(PUBLIC_TEST_DATASET_ID, "CogFlex Cognitive Flexibility Runtime Test"),
-            {
-                "id": "raptorengineer/cogflex-suite-runtime-test",
-                "title": "CogFlex Cognitive Flexibility Runtime Test",
                 "licenses": [{"name": "CC0-1.0"}],
             },
         )
@@ -349,7 +296,6 @@ class CogflexDatasetGenerationTests(unittest.TestCase):
         self.assertEqual(
             metadata["dataset_sources"],
             [
-                PUBLIC_TEST_DATASET_ID,
                 PUBLIC_DATASET_ID,
                 PRIVATE_DATASET_ID,
                 PRIVATE_SCORING_DATASET_ID,

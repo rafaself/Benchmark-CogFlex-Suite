@@ -20,7 +20,6 @@ This repository contains:
 kaggle/
   dataset/
     public/
-    public-test/
   notebook/
 scripts/
 tests/
@@ -82,8 +81,7 @@ Runtime note: the notebook scoring path only uses `format`, `probe_count`, `labe
 
 ## Shipped Artifacts
 
-- `kaggle/dataset/public`: 120 public rows, 30 per suite task
-- `kaggle/dataset/public-test`: deterministic 10-row public subset
+- `kaggle/dataset/public`: 20 public rows, 5 per suite task
 - `kaggle/dataset/public/public_difficulty_calibration.json`: tracked public difficulty calibration snapshot
 - `kaggle/notebook/cogflex_notebook_task.ipynb`: Kaggle runtime notebook
 
@@ -249,7 +247,6 @@ Deploy artifacts:
 
 ```bash
 make deploy-dataset
-make deploy-test-dataset
 make deploy-private-dataset
 make deploy-notebook
 ```

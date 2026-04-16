@@ -53,6 +53,39 @@ class FakeRuns:
         return _FakeResultsFrame(self._results)
 
 
+class RecordingTaskRunner:
+    def __init__(self, results: list[dict[str, object]]) -> None:
+        self._results = results
+        self.call_args: list[dict[str, object]] = []
+        self.evaluate_calls: list[dict[str, object]] = []
+
+    def __call__(
+        self,
+        llm: object,
+        turns: list[str],
+        response_spec: dict[str, object],
+        final_probe_targets: tuple[str, ...],
+        probe_metadata: tuple[dict[str, object], ...] | None = None,
+        probe_annotations: tuple[str, ...] | None = None,
+    ) -> dict[str, object]:
+        result = self._results[len(self.call_args)]
+        self.call_args.append(
+            {
+                "llm": llm,
+                "turns": turns,
+                "response_spec": response_spec,
+                "final_probe_targets": final_probe_targets,
+                "probe_metadata": probe_metadata,
+                "probe_annotations": probe_annotations,
+            }
+        )
+        return result
+
+    def evaluate(self, llm: list[object], evaluation_data: object) -> FakeRuns:
+        self.evaluate_calls.append({"llm": llm, "evaluation_data": evaluation_data})
+        return FakeRuns(self._results)
+
+
 def _load_code_cells() -> dict[str, str]:
     notebook = json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
     return {
@@ -88,6 +121,45 @@ def load_notebook_namespace() -> dict[str, object]:
 class CogflexNotebookRuntimeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.namespace = load_notebook_namespace()
+
+    @staticmethod
+    def _sample_results() -> list[dict[str, object]]:
+        return [
+            {
+                "numerator": 5,
+                "denominator": 5,
+                "incongruent_numerator": 2,
+                "incongruent_denominator": 2,
+                "congruent_numerator": 3,
+                "congruent_denominator": 3,
+                "first_probe_numerator": 1,
+                "first_probe_denominator": 1,
+                "shift_window_numerator": 2,
+                "shift_window_denominator": 2,
+                "obsolete_rule_error_numerator": 0,
+                "obsolete_rule_error_denominator": 5,
+                "requires_switch_numerator": 2,
+                "requires_switch_denominator": 2,
+                "scorable": True,
+            },
+            {
+                "numerator": 3,
+                "denominator": 5,
+                "incongruent_numerator": 1,
+                "incongruent_denominator": 2,
+                "congruent_numerator": 2,
+                "congruent_denominator": 3,
+                "first_probe_numerator": 0,
+                "first_probe_denominator": 1,
+                "shift_window_numerator": 1,
+                "shift_window_denominator": 2,
+                "obsolete_rule_error_numerator": 1,
+                "obsolete_rule_error_denominator": 5,
+                "requires_switch_numerator": 1,
+                "requires_switch_denominator": 2,
+                "scorable": True,
+            },
+        ]
 
     def _public_rows(self) -> list[dict[str, object]]:
         return self.namespace["_load_rows"](PUBLIC_ROWS_PATH)
@@ -168,13 +240,13 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
             self.namespace["EVAL_SPLIT"] = "public"
             self.namespace["ROWS_PATH"] = rows_path
 
-            with self.assertRaisesRegex(RuntimeError, "public split row count mismatch: expected 120, found 119"):
+            with self.assertRaisesRegex(RuntimeError, "public split row count mismatch: expected 20, found 19"):
                 self.namespace["load_selected_rows"]()
 
             rows_path.write_text(json.dumps(rows, indent=2) + "\n", encoding="utf-8")
             loaded_rows = self.namespace["load_selected_rows"]()
 
-        self.assertEqual(len(loaded_rows), 120)
+        self.assertEqual(len(loaded_rows), 20)
 
     def test_load_selected_rows_enforces_private_row_count(self) -> None:
         self.namespace["EVAL_SPLIT"] = "private"
@@ -201,42 +273,7 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
     def test_summarize_suite_benchmark_compact_summary_matches_debug_score(self) -> None:
         rows = self._public_rows()
         selected_rows = [rows[0], next(row for row in rows if row["analysis"]["suite_task_id"] != rows[0]["analysis"]["suite_task_id"])]
-        results = [
-            {
-                "numerator": 5,
-                "denominator": 5,
-                "incongruent_numerator": 2,
-                "incongruent_denominator": 2,
-                "congruent_numerator": 3,
-                "congruent_denominator": 3,
-                "first_probe_numerator": 1,
-                "first_probe_denominator": 1,
-                "shift_window_numerator": 2,
-                "shift_window_denominator": 2,
-                "obsolete_rule_error_numerator": 0,
-                "obsolete_rule_error_denominator": 5,
-                "requires_switch_numerator": 2,
-                "requires_switch_denominator": 2,
-                "scorable": True,
-            },
-            {
-                "numerator": 3,
-                "denominator": 5,
-                "incongruent_numerator": 1,
-                "incongruent_denominator": 2,
-                "congruent_numerator": 2,
-                "congruent_denominator": 3,
-                "first_probe_numerator": 0,
-                "first_probe_denominator": 1,
-                "shift_window_numerator": 1,
-                "shift_window_denominator": 2,
-                "obsolete_rule_error_numerator": 1,
-                "obsolete_rule_error_denominator": 5,
-                "requires_switch_numerator": 1,
-                "requires_switch_denominator": 2,
-                "scorable": True,
-            },
-        ]
+        results = self._sample_results()
 
         compact_summary = self.namespace["summarize_suite_benchmark"](FakeRuns(results), selected_rows)
         debug_summary = self.namespace["summarize_suite_benchmark"](FakeRuns(results), selected_rows, include_debug=True)
@@ -249,9 +286,40 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
         self.assertNotIn("difficulty_bin_accuracy", compact_summary)
         self.assertIn("per_task_accuracy", debug_summary)
 
-    def test_registered_task_prints_compact_summary_only(self) -> None:
+    def test_registered_task_uses_tabular_evaluation_for_public_split_and_prints_compact_summary(self) -> None:
         rows = self._public_rows()
         selected_rows = [rows[0], next(row for row in rows if row["analysis"]["suite_task_id"] != rows[0]["analysis"]["suite_task_id"])]
+        results = self._sample_results()
+
+        self.namespace["scored_rows"] = selected_rows
+        self.namespace["df"] = selected_rows
+        runner = RecordingTaskRunner(results)
+        self.namespace["run_flexible_task"] = runner
+
+        with patch("builtins.print") as mock_print:
+            returned_score = self.namespace["cogflex_suite_flexible"](object())
+
+        self.assertEqual(len(runner.evaluate_calls), 1)
+        self.assertEqual(runner.evaluate_calls[0]["evaluation_data"], selected_rows)
+        self.assertEqual(runner.call_args, [])
+        self.assertEqual(mock_print.call_count, 1)
+        printed_summary = json.loads(mock_print.call_args.args[0])
+        self.assertEqual(returned_score, printed_summary["score"])
+        self.assertEqual(
+            set(printed_summary),
+            {
+                "score",
+                "protocol_valid_rate",
+                "scorable_episodes",
+                "episodes",
+                "macro_accuracy",
+                "incongruent_accuracy",
+                "first_probe_accuracy",
+                "obsolete_rule_error_rate",
+            },
+        )
+
+    def test_registered_task_runs_private_split_in_memory_without_tabular_evaluation(self) -> None:
         results = [
             {
                 "numerator": 5,
@@ -288,14 +356,30 @@ class CogflexNotebookRuntimeTests(unittest.TestCase):
                 "scorable": True,
             },
         ]
+        runner = RecordingTaskRunner(results)
 
-        self.namespace["scored_rows"] = selected_rows
-        self.namespace["df"] = selected_rows
-        self.namespace["run_flexible_task"].evaluate = lambda llm, evaluation_data: FakeRuns(results)
+        self.namespace["run_flexible_task"] = runner
+        self.namespace["EVAL_SPLIT"] = "private"
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                bundle_dir = Path(tmpdir) / "bundle"
+                bundle_paths = write_private_bundle(bundle_dir)
+                private_rows = self.namespace["_load_rows"](bundle_paths["rows"])
+                self.namespace["PRIVATE_DATASET_ROOT"] = bundle_dir
+                self.namespace["PRIVATE_SCORING_DATASET_ROOT"] = bundle_dir
+                scored_rows = self.namespace["_attach_private_scoring"](private_rows)
+                self.namespace["scored_rows"] = scored_rows[:2]
+                self.namespace["df"] = object()
 
-        with patch("builtins.print") as mock_print:
-            returned_score = self.namespace["cogflex_suite_flexible"](object())
+                with patch("builtins.print") as mock_print:
+                    returned_score = self.namespace["cogflex_suite_flexible"](object())
+        finally:
+            self.namespace["EVAL_SPLIT"] = "public"
+            self.namespace["PRIVATE_DATASET_ROOT"] = self.namespace["DEFAULT_PRIVATE_DATASET_ROOT"]
+            self.namespace["PRIVATE_SCORING_DATASET_ROOT"] = self.namespace["DEFAULT_PRIVATE_SCORING_DATASET_ROOT"]
 
+        self.assertEqual(runner.evaluate_calls, [])
+        self.assertEqual(len(runner.call_args), 2)
         self.assertEqual(mock_print.call_count, 1)
         printed_summary = json.loads(mock_print.call_args.args[0])
         self.assertEqual(returned_score, printed_summary["score"])

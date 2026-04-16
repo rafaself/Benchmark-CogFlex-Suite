@@ -16,13 +16,8 @@ PUBLIC_ROWS_PATH = ROOT / "kaggle/dataset/public/public_leaderboard_rows.json"
 PUBLIC_METADATA_PATH = ROOT / "kaggle/dataset/public/dataset-metadata.json"
 PUBLIC_QUALITY_REPORT_PATH = ROOT / "kaggle/dataset/public/public_quality_report.json"
 PUBLIC_DIFFICULTY_CALIBRATION_PATH = ROOT / "kaggle/dataset/public/public_difficulty_calibration.json"
-PUBLIC_TEST_ROWS_PATH = ROOT / "kaggle/dataset/public-test/public_leaderboard_rows.json"
-PUBLIC_TEST_METADATA_PATH = ROOT / "kaggle/dataset/public-test/dataset-metadata.json"
-PUBLIC_TEST_QUALITY_REPORT_PATH = ROOT / "kaggle/dataset/public-test/public_quality_report.json"
-PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH = ROOT / "kaggle/dataset/public-test/public_difficulty_calibration.json"
 
 PUBLIC_DATASET_ID = "raptorengineer/cogflex-suite-runtime"
-PUBLIC_TEST_DATASET_ID = "raptorengineer/cogflex-suite-runtime-test"
 PRIVATE_ROWS_DATASET_ID = "raptorengineer/cogflex-suite-runtime-private"
 PRIVATE_SCORING_DATASET_ID = "raptorengineer/cogflex-suite-runtime-private-scoring"
 PRIVATE_DATASET_ID = PRIVATE_ROWS_DATASET_ID
@@ -46,21 +41,8 @@ PRIVATE_QUALITY_REPORT_VERSION = "cogflex_private_quality"
 PRIVATE_ANSWER_KEY_VERSION = "cogflex_private_answer_key"
 PRIVATE_CALIBRATION_PREDICTIONS_VERSION = "cogflex_private_predictions"
 
-PUBLIC_EPISODES_PER_TASK = 30
+PUBLIC_EPISODES_PER_TASK = 5
 EXPECTED_PUBLIC_ROW_COUNT = PUBLIC_EPISODES_PER_TASK * 4
-PUBLIC_TEST_EPISODE_IDS: Final[tuple[str, ...]] = (
-    "0001",
-    "0002",
-    "0005",
-    "0031",
-    "0032",
-    "0035",
-    "0061",
-    "0062",
-    "0091",
-    "0094",
-)
-EXPECTED_PUBLIC_TEST_ROW_COUNT = len(PUBLIC_TEST_EPISODE_IDS)
 
 TURN_HEADER_PREFIX = "CogFlex Suite Task. Episode "
 LINE_RE = re.compile(r"^(?P<index>\d+)\.\s+(?P<body>.+?)\s+->\s+(?P<label>[a-z0-9_:-]+|\?)$")
@@ -2399,44 +2381,6 @@ def build_public_artifacts() -> tuple[list[dict[str, object]], list[dict[str, ob
     return rows, answers, report
 
 
-def build_public_test_artifacts() -> tuple[list[dict[str, object]], list[dict[str, object]], dict[str, object], dict[str, object]]:
-    """Build the tracked public test split and its derived artifacts.
-
-    The public test split is a deterministic 10-episode subset of the full
-    public runtime, intended for fast integration checks and notebook smoke
-    tests. Difficulty ranks and bins are recomputed within the subset so the
-    derived calibration file remains internally consistent.
-
-    Returns:
-        The public test rows, answer payloads, quality report, and calibration
-        payload.
-
-    """
-    full_rows, full_answers, _full_report = build_public_artifacts()
-    full_rows_by_id = {str(row["episode_id"]): row for row in full_rows}
-    full_answers_by_id = {str(answer["episode_id"]): answer for answer in full_answers}
-    missing_episode_ids = [
-        episode_id
-        for episode_id in PUBLIC_TEST_EPISODE_IDS
-        if episode_id not in full_rows_by_id or episode_id not in full_answers_by_id
-    ]
-    if missing_episode_ids:
-        raise RuntimeError(f"public test split references missing episodes: {missing_episode_ids}")
-
-    rows = [json.loads(json.dumps(full_rows_by_id[episode_id])) for episode_id in PUBLIC_TEST_EPISODE_IDS]
-    answers = [json.loads(json.dumps(full_answers_by_id[episode_id])) for episode_id in PUBLIC_TEST_EPISODE_IDS]
-    _payload, full_calibration_entries = load_public_difficulty_calibration()
-    scores_by_episode = {
-        episode_id: float(full_calibration_entries[episode_id]["panel_mean_accuracy"])
-        for episode_id in PUBLIC_TEST_EPISODE_IDS
-    }
-    calibration_entries = empirical_difficulty_entries_from_scores(scores_by_episode)
-    apply_empirical_difficulty_to_payloads(rows, answers, calibration_entries)
-    report = build_public_quality_report(rows)
-    calibration_payload = public_difficulty_calibration_payload_from_entries(calibration_entries)
-    return rows, answers, report, calibration_payload
-
-
 def build_public_quality_report(rows: list[dict[str, object]]) -> dict[str, object]:
     """Build the aggregate quality report for the public split.
 
@@ -2517,14 +2461,9 @@ def main() -> None:
 
     """
     rows, _answers, report = build_public_artifacts()
-    test_rows, _test_answers, test_report, test_calibration = build_public_test_artifacts()
     write_json(PUBLIC_ROWS_PATH, rows)
     write_json(PUBLIC_QUALITY_REPORT_PATH, report)
     write_json(PUBLIC_METADATA_PATH, dataset_metadata(PUBLIC_DATASET_ID, "CogFlex Cognitive Flexibility Runtime"))
-    write_json(PUBLIC_TEST_ROWS_PATH, test_rows)
-    write_json(PUBLIC_TEST_QUALITY_REPORT_PATH, test_report)
-    write_json(PUBLIC_TEST_DIFFICULTY_CALIBRATION_PATH, test_calibration)
-    write_json(PUBLIC_TEST_METADATA_PATH, dataset_metadata(PUBLIC_TEST_DATASET_ID, "CogFlex Cognitive Flexibility Runtime Test"))
 
 
 if __name__ == "__main__":

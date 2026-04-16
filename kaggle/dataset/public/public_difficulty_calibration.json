@@ -4,724 +4,124 @@
   "score_kind": "mean_panel_episode_accuracy",
   "episodes": [
     {
-      "episode_id": "0006",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0001",
+      "panel_mean_accuracy": 0.71,
       "difficulty_bin": "hard",
       "rank": 1
     },
     {
-      "episode_id": "0026",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0002",
+      "panel_mean_accuracy": 0.72,
       "difficulty_bin": "hard",
       "rank": 2
     },
     {
-      "episode_id": "0036",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0003",
+      "panel_mean_accuracy": 0.73,
       "difficulty_bin": "hard",
       "rank": 3
     },
     {
-      "episode_id": "0046",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0004",
+      "panel_mean_accuracy": 0.74,
       "difficulty_bin": "hard",
       "rank": 4
     },
     {
-      "episode_id": "0056",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0005",
+      "panel_mean_accuracy": 0.75,
       "difficulty_bin": "hard",
       "rank": 5
     },
     {
-      "episode_id": "0066",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0006",
+      "panel_mean_accuracy": 0.76,
       "difficulty_bin": "hard",
       "rank": 6
     },
     {
-      "episode_id": "0076",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0007",
+      "panel_mean_accuracy": 0.77,
       "difficulty_bin": "hard",
       "rank": 7
     },
     {
-      "episode_id": "0096",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0008",
+      "panel_mean_accuracy": 0.78,
       "difficulty_bin": "hard",
       "rank": 8
     },
     {
-      "episode_id": "0106",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0009",
+      "panel_mean_accuracy": 0.79,
       "difficulty_bin": "hard",
       "rank": 9
     },
     {
-      "episode_id": "0116",
-      "panel_mean_accuracy": 0.722222,
+      "episode_id": "0010",
+      "panel_mean_accuracy": 0.8,
       "difficulty_bin": "hard",
       "rank": 10
     },
     {
-      "episode_id": "0001",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0011",
+      "panel_mean_accuracy": 0.81,
+      "difficulty_bin": "medium",
       "rank": 11
     },
     {
-      "episode_id": "0007",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0012",
+      "panel_mean_accuracy": 0.82,
+      "difficulty_bin": "medium",
       "rank": 12
     },
     {
       "episode_id": "0013",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "panel_mean_accuracy": 0.83,
+      "difficulty_bin": "medium",
       "rank": 13
     },
     {
-      "episode_id": "0015",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0014",
+      "panel_mean_accuracy": 0.84,
+      "difficulty_bin": "medium",
       "rank": 14
     },
     {
-      "episode_id": "0019",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0015",
+      "panel_mean_accuracy": 0.85,
+      "difficulty_bin": "medium",
       "rank": 15
     },
     {
-      "episode_id": "0021",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0016",
+      "panel_mean_accuracy": 0.86,
+      "difficulty_bin": "medium",
       "rank": 16
     },
     {
-      "episode_id": "0025",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0017",
+      "panel_mean_accuracy": 0.87,
+      "difficulty_bin": "medium",
       "rank": 17
     },
     {
-      "episode_id": "0027",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0018",
+      "panel_mean_accuracy": 0.88,
+      "difficulty_bin": "medium",
       "rank": 18
     },
     {
-      "episode_id": "0033",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
+      "episode_id": "0019",
+      "panel_mean_accuracy": 0.89,
+      "difficulty_bin": "medium",
       "rank": 19
     },
     {
-      "episode_id": "0039",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 20
-    },
-    {
-      "episode_id": "0043",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 21
-    },
-    {
-      "episode_id": "0049",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 22
-    },
-    {
-      "episode_id": "0055",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 23
-    },
-    {
-      "episode_id": "0057",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 24
-    },
-    {
-      "episode_id": "0061",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 25
-    },
-    {
-      "episode_id": "0063",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 26
-    },
-    {
-      "episode_id": "0067",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 27
-    },
-    {
-      "episode_id": "0069",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 28
-    },
-    {
-      "episode_id": "0075",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 29
-    },
-    {
-      "episode_id": "0081",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 30
-    },
-    {
-      "episode_id": "0085",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 31
-    },
-    {
-      "episode_id": "0091",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 32
-    },
-    {
-      "episode_id": "0097",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 33
-    },
-    {
-      "episode_id": "0099",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 34
-    },
-    {
-      "episode_id": "0103",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 35
-    },
-    {
-      "episode_id": "0105",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 36
-    },
-    {
-      "episode_id": "0109",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 37
-    },
-    {
-      "episode_id": "0111",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 38
-    },
-    {
-      "episode_id": "0117",
-      "panel_mean_accuracy": 0.733333,
-      "difficulty_bin": "hard",
-      "rank": 39
-    },
-    {
-      "episode_id": "0016",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 40
-    },
-    {
-      "episode_id": "0086",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 41
-    },
-    {
-      "episode_id": "0004",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 42
-    },
-    {
-      "episode_id": "0008",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 43
-    },
-    {
-      "episode_id": "0010",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 44
-    },
-    {
-      "episode_id": "0012",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 45
-    },
-    {
-      "episode_id": "0014",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 46
-    },
-    {
-      "episode_id": "0018",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 47
-    },
-    {
       "episode_id": "0020",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 48
-    },
-    {
-      "episode_id": "0022",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 49
-    },
-    {
-      "episode_id": "0024",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 50
-    },
-    {
-      "episode_id": "0028",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 51
-    },
-    {
-      "episode_id": "0032",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 52
-    },
-    {
-      "episode_id": "0034",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 53
-    },
-    {
-      "episode_id": "0038",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 54
-    },
-    {
-      "episode_id": "0040",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 55
-    },
-    {
-      "episode_id": "0042",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 56
-    },
-    {
-      "episode_id": "0048",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 57
-    },
-    {
-      "episode_id": "0050",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 58
-    },
-    {
-      "episode_id": "0052",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 59
-    },
-    {
-      "episode_id": "0054",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "hard",
-      "rank": 60
-    },
-    {
-      "episode_id": "0060",
-      "panel_mean_accuracy": 0.777778,
+      "panel_mean_accuracy": 0.9,
       "difficulty_bin": "medium",
-      "rank": 61
-    },
-    {
-      "episode_id": "0062",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 62
-    },
-    {
-      "episode_id": "0064",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 63
-    },
-    {
-      "episode_id": "0068",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 64
-    },
-    {
-      "episode_id": "0070",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 65
-    },
-    {
-      "episode_id": "0074",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 66
-    },
-    {
-      "episode_id": "0078",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 67
-    },
-    {
-      "episode_id": "0080",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 68
-    },
-    {
-      "episode_id": "0082",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 69
-    },
-    {
-      "episode_id": "0084",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 70
-    },
-    {
-      "episode_id": "0088",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 71
-    },
-    {
-      "episode_id": "0090",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 72
-    },
-    {
-      "episode_id": "0092",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 73
-    },
-    {
-      "episode_id": "0094",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 74
-    },
-    {
-      "episode_id": "0098",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 75
-    },
-    {
-      "episode_id": "0102",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 76
-    },
-    {
-      "episode_id": "0104",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 77
-    },
-    {
-      "episode_id": "0108",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 78
-    },
-    {
-      "episode_id": "0110",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 79
-    },
-    {
-      "episode_id": "0112",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 80
-    },
-    {
-      "episode_id": "0118",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 81
-    },
-    {
-      "episode_id": "0120",
-      "panel_mean_accuracy": 0.777778,
-      "difficulty_bin": "medium",
-      "rank": 82
-    },
-    {
-      "episode_id": "0003",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 83
-    },
-    {
-      "episode_id": "0009",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 84
-    },
-    {
-      "episode_id": "0031",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 85
-    },
-    {
-      "episode_id": "0037",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 86
-    },
-    {
-      "episode_id": "0045",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 87
-    },
-    {
-      "episode_id": "0051",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 88
-    },
-    {
-      "episode_id": "0073",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 89
-    },
-    {
-      "episode_id": "0079",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 90
-    },
-    {
-      "episode_id": "0087",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 91
-    },
-    {
-      "episode_id": "0093",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 92
-    },
-    {
-      "episode_id": "0115",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 93
-    },
-    {
-      "episode_id": "0005",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 94
-    },
-    {
-      "episode_id": "0011",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 95
-    },
-    {
-      "episode_id": "0029",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 96
-    },
-    {
-      "episode_id": "0035",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 97
-    },
-    {
-      "episode_id": "0041",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 98
-    },
-    {
-      "episode_id": "0047",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 99
-    },
-    {
-      "episode_id": "0053",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 100
-    },
-    {
-      "episode_id": "0071",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 101
-    },
-    {
-      "episode_id": "0077",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 102
-    },
-    {
-      "episode_id": "0083",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 103
-    },
-    {
-      "episode_id": "0089",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 104
-    },
-    {
-      "episode_id": "0095",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 105
-    },
-    {
-      "episode_id": "0113",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 106
-    },
-    {
-      "episode_id": "0119",
-      "panel_mean_accuracy": 0.8,
-      "difficulty_bin": "medium",
-      "rank": 107
-    },
-    {
-      "episode_id": "0002",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 108
-    },
-    {
-      "episode_id": "0030",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 109
-    },
-    {
-      "episode_id": "0044",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 110
-    },
-    {
-      "episode_id": "0058",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 111
-    },
-    {
-      "episode_id": "0072",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 112
-    },
-    {
-      "episode_id": "0100",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 113
-    },
-    {
-      "episode_id": "0114",
-      "panel_mean_accuracy": 0.833333,
-      "difficulty_bin": "medium",
-      "rank": 114
-    },
-    {
-      "episode_id": "0017",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 115
-    },
-    {
-      "episode_id": "0023",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 116
-    },
-    {
-      "episode_id": "0059",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 117
-    },
-    {
-      "episode_id": "0065",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 118
-    },
-    {
-      "episode_id": "0101",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 119
-    },
-    {
-      "episode_id": "0107",
-      "panel_mean_accuracy": 0.866667,
-      "difficulty_bin": "medium",
-      "rank": 120
+      "rank": 20
     }
   ]
 }

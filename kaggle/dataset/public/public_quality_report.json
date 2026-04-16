@@ -1,70 +1,70 @@
 {
   "version": "cogflex_public",
   "task_name": "cogflex_suite_flexible",
-  "row_count": 120,
+  "row_count": 20,
   "task_counts": {
-    "context_binding": 30,
-    "explicit_rule_update": 30,
-    "latent_rule_update": 30,
-    "trial_cued_switch": 30
+    "context_binding": 5,
+    "explicit_rule_update": 5,
+    "latent_rule_update": 5,
+    "trial_cued_switch": 5
   },
   "difficulty_bin_counts": {
-    "hard": 60,
-    "medium": 60
+    "hard": 10,
+    "medium": 10
   },
   "structure_family_counts": {
-    "cue_dense_balanced": 7,
-    "cue_dense_compact": 8,
-    "cue_dense_wide": 7,
-    "four_step_ladder": 18,
-    "staggered_refresh": 18,
-    "three_step_bridge": 18,
-    "two_step_focus": 26,
-    "wide_then_narrow": 18
+    "cue_dense_balanced": 1,
+    "cue_dense_compact": 1,
+    "cue_dense_wide": 1,
+    "four_step_ladder": 3,
+    "staggered_refresh": 3,
+    "three_step_bridge": 3,
+    "two_step_focus": 5,
+    "wide_then_narrow": 3
   },
   "turn_count_distribution": {
-    "3": 66,
-    "4": 36,
-    "5": 18
+    "3": 11,
+    "4": 6,
+    "5": 3
   },
   "probe_count_distribution": {
-    "4": 25,
-    "5": 52,
-    "6": 25,
-    "7": 18
+    "4": 4,
+    "5": 9,
+    "6": 4,
+    "7": 3
   },
   "label_vocab_size_distribution": {
-    "2": 78,
-    "3": 24,
-    "4": 18
+    "2": 13,
+    "3": 4,
+    "4": 3
   },
   "suite_task_structure_counts": {
     "context_binding": {
-      "four_step_ladder": 6,
-      "staggered_refresh": 6,
-      "three_step_bridge": 6,
-      "two_step_focus": 6,
-      "wide_then_narrow": 6
+      "four_step_ladder": 1,
+      "staggered_refresh": 1,
+      "three_step_bridge": 1,
+      "two_step_focus": 1,
+      "wide_then_narrow": 1
     },
     "explicit_rule_update": {
-      "four_step_ladder": 6,
-      "staggered_refresh": 6,
-      "three_step_bridge": 6,
-      "two_step_focus": 6,
-      "wide_then_narrow": 6
+      "four_step_ladder": 1,
+      "staggered_refresh": 1,
+      "three_step_bridge": 1,
+      "two_step_focus": 1,
+      "wide_then_narrow": 1
     },
     "latent_rule_update": {
-      "four_step_ladder": 6,
-      "staggered_refresh": 6,
-      "three_step_bridge": 6,
-      "two_step_focus": 6,
-      "wide_then_narrow": 6
+      "four_step_ladder": 1,
+      "staggered_refresh": 1,
+      "three_step_bridge": 1,
+      "two_step_focus": 1,
+      "wide_then_narrow": 1
     },
     "trial_cued_switch": {
-      "cue_dense_balanced": 7,
-      "cue_dense_compact": 8,
-      "cue_dense_wide": 7,
-      "two_step_focus": 8
+      "cue_dense_balanced": 1,
+      "cue_dense_compact": 1,
+      "cue_dense_wide": 1,
+      "two_step_focus": 2
     }
   },
   "stimulus_space_summary": {
@@ -79,8 +79,8 @@
       }
     },
     "nominal_cardinality": {
-      "context": 16,
-      "cue": 16,
+      "context": 10,
+      "cue": 10,
       "shape": 6,
       "tone": 5
     },

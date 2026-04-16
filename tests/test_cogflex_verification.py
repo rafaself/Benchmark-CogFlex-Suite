@@ -109,7 +109,7 @@ class CogflexVerificationTests(unittest.TestCase):
             verify_public_split()
         payload = json.loads(stdout.getvalue())
         self.assertEqual(payload["split"], "public")
-        self.assertEqual(payload["row_count"], 120)
+        self.assertEqual(payload["row_count"], 20)
         self.assertIn("structure_family_counts", payload)
         self.assertIn("turn_count_distribution", payload)
         self.assertIn("probe_count_distribution", payload)
@@ -123,7 +123,7 @@ class CogflexVerificationTests(unittest.TestCase):
         self.assertEqual(payload["split"], "public")
         self.assertEqual(audit_payload["split"], "public")
         self.assertEqual(audit_payload["verification_result"], "passed")
-        self.assertEqual(audit_payload["summary"], {"row_count": 120})
+        self.assertEqual(audit_payload["summary"], {"row_count": 20})
         self.assertEqual(
             audit_payload["artifact_digests"],
             {

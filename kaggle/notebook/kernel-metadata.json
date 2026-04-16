@@ -9,7 +9,6 @@
   "enable_tpu": false,
   "enable_internet": false,
   "dataset_sources": [
-    "raptorengineer/cogflex-suite-runtime-test",
     "raptorengineer/cogflex-suite-runtime",
     "raptorengineer/cogflex-suite-runtime-private",
     "raptorengineer/cogflex-suite-runtime-private-scoring"
