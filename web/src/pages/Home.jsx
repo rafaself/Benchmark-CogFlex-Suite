@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Zap, History, Brain, Target, Timer } from 'lucide-react';
+import { Activity, Zap, History, Brain, Target, Timer, Plus } from 'lucide-react';
 import data from '../data.json';
 import { getTotalProbeCount, shuffleArray } from '../utils/logic';
 
