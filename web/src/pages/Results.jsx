@@ -1,10 +1,21 @@
 import React, { useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Check, Zap, Star, Timer } from 'lucide-react';
+import { Check, ChevronDown, Star, Timer, Zap } from 'lucide-react';
 import data from '../data.json';
 import { Card } from '../components/Card';
 import { MetricCard } from '../components/MetricCard';
-import { getProbeCount, getTotalProbeCount, shuffleArray, parseItem } from '../utils/logic';
+import { getEpisodeExampleGroups, getEpisodeProbes, getProbeCount, getTotalProbeCount, shuffleArray } from '../utils/logic';
+
+function RuleHint({ description }) {
+  if (!description) return null;
+
+  return (
+    <div className="w-full max-w-56 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-center">
+      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Rule</div>
+      <div className="mt-1 text-xs font-medium leading-relaxed text-zinc-300">{description}</div>
+    </div>
+  );
+}
 
 export function Results() {
   const navigate = useNavigate();
@@ -71,6 +82,9 @@ export function Results() {
           const epResults = results.filter(r => r.episodeId === episode.episode_id);
           const epCorrect = epResults.filter(r => r.isCorrect).length;
           const probeCount = getProbeCount(episode);
+          const probeItems = getEpisodeProbes(episode);
+          const exampleGroups = getEpisodeExampleGroups(episode);
+
           return (
             <div key={episode.episode_id} className="group bg-zinc-950 rounded-[3rem] border border-zinc-800 overflow-hidden hover:border-zinc-600 transition-all">
               <div className="bg-zinc-900/80 px-12 py-10 flex flex-col md:flex-row justify-between items-center gap-6 border-b border-zinc-800">
@@ -88,10 +102,63 @@ export function Results() {
                 </div>
               </div>
               <div className="p-12 space-y-16">
+                {exampleGroups.length > 0 && (
+                  <details className="group/examples rounded-[2rem] border border-zinc-800 bg-black/30 open:bg-zinc-950/80">
+                    <summary className="list-none cursor-pointer px-8 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-black uppercase tracking-[0.2em] text-zinc-300">Show Examples</div>
+                        <p className="mt-2 text-sm text-zinc-500">
+                          Review the labeled examples used to infer the rule for this challenge.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 text-zinc-400">
+                        <span className="text-xs font-black uppercase tracking-[0.2em]">
+                          {exampleGroups.reduce((total, group) => total + group.examples.length, 0)} examples
+                        </span>
+                        <ChevronDown size={18} className="transition-transform group-open/examples:rotate-180" />
+                      </div>
+                    </summary>
+
+                    <div className="px-8 pb-8 space-y-8 border-t border-zinc-800">
+                      {exampleGroups.map(group => (
+                        <section key={group.turnIndex} className="pt-8">
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="px-3 py-1 bg-white/5 text-zinc-300 text-[10px] font-black rounded-full border border-white/10 uppercase tracking-widest">
+                              {group.title}
+                            </span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-zinc-600">
+                              {group.examples.length} examples
+                            </span>
+                          </div>
+                          <p className="max-w-3xl text-sm leading-relaxed text-zinc-500 mb-6">{group.narrative}</p>
+                          <div className="flex flex-wrap gap-6">
+                            {group.examples.map((example, exampleIndex) => (
+                              <div key={`${group.turnIndex}-${exampleIndex}`} className="flex flex-col items-center gap-3">
+                                <Card data={example.data} />
+                                <RuleHint description={example.ruleDescription} />
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </details>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
                   {epResults.map((res, i) => (
                     <div key={i} className={`p-8 rounded-[2.5rem] border-2 ${res.isCorrect ? 'border-green-500/20 bg-green-500/[0.02]' : 'border-red-500/20 bg-red-500/[0.02]'}`}>
-                      <div className="mb-8 flex justify-center"><Card data={parseItem(episode.inference.turns[episode.inference.turns.length - 1].split('Probes:\n')[1].split('\n')[i].replace(/^\d+\.\s+/, '').replace(' -> ?', ''))} showLabel={false} /></div>
+                      <div className="mb-8 flex flex-col items-center gap-3">
+                        {probeItems[i] ? <Card data={probeItems[i].data} showLabel={false} /> : null}
+                        <div className={`px-6 py-2 rounded-xl text-sm font-black uppercase tracking-tighter shadow-2xl border-2 ${
+                          res.isCorrect 
+                          ? 'bg-green-500 text-white border-green-400' 
+                          : 'bg-red-500 text-white border-red-400'
+                        }`}>
+                          {res.userLabel}
+                        </div>
+                        <RuleHint description={probeItems[i]?.ruleDescription} />
+                      </div>
                       <div className="text-center text-xs font-black uppercase text-zinc-500">{res.isCorrect ? 'Correct' : 'Incorrect'}</div>
                       <div className="mt-2 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white/[0.03] rounded-full border border-white/5 mx-auto w-fit">
                         <Timer size={14} className="text-zinc-500" />
