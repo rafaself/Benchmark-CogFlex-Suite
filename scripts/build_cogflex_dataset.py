@@ -167,7 +167,7 @@ PUBLIC_IDENTIFIABILITY_SPEC_BY_TASK: Final[dict[str, tuple[str, str | None]]] = 
 
 PRIVATE_IDENTIFIABILITY_SPEC_BY_STRUCTURE: Final[dict[str, tuple[str, str | None]]] = {
     "delayed_reversal": (IDENTIFIABILITY_KIND_SINGLE_LAST, None),
-    "irrelevant_feature_interference": (IDENTIFIABILITY_KIND_SINGLE_ALL, None),
+    "irrelevant_feature_interference": (IDENTIFIABILITY_KIND_SINGLE_LAST, None),
     "competitive_rule_switch": (IDENTIFIABILITY_KIND_SINGLE_LAST, None),
     "latent_rebinding": (IDENTIFIABILITY_KIND_SINGLE_LAST, None),
     "variable_evidence_budget": (IDENTIFIABILITY_KIND_SINGLE_LAST, None),
@@ -1405,6 +1405,7 @@ def sample_mixed_route_examples(
     route_key: str,
     exclude: set[tuple[object, ...]] | None = None,
     disagreement_rule: tuple[RuleSpec, RuleSpec] | None = None,
+    alternate_min_mismatch: int = 0,
 ) -> list[dict[str, object]]:
     """Sample and interleave items from multiple routing assignments.
 
@@ -1416,6 +1417,8 @@ def sample_mixed_route_examples(
         route_key: Field name that stores the route value on each item.
         exclude: Signatures that must not be reused.
         disagreement_rule: Optional rule pair used to enforce contrasting items.
+        alternate_min_mismatch: Minimum disagreement count to enforce on the
+            alternate route when a disagreement rule is provided.
 
     Returns:
         The mixed serialized items in randomized order.
@@ -1435,7 +1438,11 @@ def sample_mixed_route_examples(
             exclude=excluded,
             rotation=route_index,
             mismatch_rule=disagreement_rule[0] if disagreement_rule and rule_id == "alternate" else None,
-            min_mismatch=1 if take > 1 and disagreement_rule and rule_id == "alternate" else 0,
+            min_mismatch=(
+                min(take, alternate_min_mismatch)
+                if disagreement_rule and rule_id == "alternate"
+                else 0
+            ),
         )
         for stimulus in stimuli:
             excluded.add(stimulus_signature(stimulus))
@@ -1447,6 +1454,94 @@ def sample_mixed_route_examples(
     for index, item in enumerate(items, start=1):
         item["index"] = index
     return items
+
+
+def shift_diagnostic_window_size(probe_count: int) -> int:
+    """Return the reserved early-adaptation diagnostic window size.
+
+    Args:
+        probe_count: Number of decision probes in the episode.
+
+    Returns:
+        The number of leading probes reserved for shift diagnostics.
+
+    """
+    return 2 if probe_count >= 4 else 1
+
+
+def _is_shift_diagnostic_candidate(metadata: dict[str, object]) -> bool:
+    """Return whether a probe can serve as an early shift diagnostic.
+
+    Args:
+        metadata: Candidate per-probe scoring metadata.
+
+    Returns:
+        ``True`` when the probe requires a rule switch and differs from the
+        obsolete routing rule, otherwise ``False``.
+
+    """
+    obsolete_rule_label = metadata.get("obsolete_rule_label")
+    if obsolete_rule_label is None or str(obsolete_rule_label).strip() == "":
+        return False
+    return (
+        bool(metadata.get("requires_switch"))
+        and str(metadata.get("congruency")) == "incongruent"
+        and str(obsolete_rule_label) != str(metadata.get("target_label"))
+    )
+
+
+def _renumber_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Return copied items with sequential display indices."""
+    renumbered = [dict(item) for item in items]
+    for index, item in enumerate(renumbered, start=1):
+        item["index"] = index
+    return renumbered
+
+
+def prioritize_shift_diagnostic_probes(
+    probe_items: list[dict[str, object]],
+    *,
+    active_rules_by_id: dict[str, RuleSpec],
+    obsolete_rules_by_id: dict[str, RuleSpec | None],
+    requires_switch_rule_ids: frozenset[str] = frozenset(),
+) -> list[dict[str, object]]:
+    """Move early shift-diagnostic probes to the front of the decision turn.
+
+    Args:
+        probe_items: Serialized decision-turn items.
+        active_rules_by_id: Rule definitions keyed by active ``rule_id``.
+        obsolete_rules_by_id: Obsolete or contrast rules keyed by active
+            ``rule_id``.
+        requires_switch_rule_ids: Active rule IDs that count as requiring a
+            switch away from the obsolete/default path.
+
+    Returns:
+        Reordered decision-turn items with the diagnostic window first.
+
+    Raises:
+        RuntimeError: If the probe set does not contain enough shift-diagnostic
+            candidates to fill the reserved window.
+
+    """
+    diagnostic_size = shift_diagnostic_window_size(len(probe_items))
+    metadata = compute_probe_metadata(
+        probe_items,
+        active_rules_by_id=active_rules_by_id,
+        obsolete_rules_by_id=obsolete_rules_by_id,
+        requires_switch_rule_ids=requires_switch_rule_ids,
+    )
+    diagnostic_items: list[dict[str, object]] = []
+    remaining_items: list[dict[str, object]] = []
+    for item, item_metadata in zip(probe_items, metadata, strict=True):
+        if _is_shift_diagnostic_candidate(item_metadata) and len(diagnostic_items) < diagnostic_size:
+            diagnostic_items.append(item)
+        else:
+            remaining_items.append(item)
+    if len(diagnostic_items) != diagnostic_size:
+        raise RuntimeError(
+            f"expected {diagnostic_size} shift-diagnostic probes, found {len(diagnostic_items)}"
+        )
+    return _renumber_items([*diagnostic_items, *remaining_items])
 
 
 def compute_probe_metadata(
@@ -1470,6 +1565,7 @@ def compute_probe_metadata(
 
     """
     metadata: list[dict[str, object]] = []
+    diagnostic_window = shift_diagnostic_window_size(len(probe_items))
     for probe_index, item in enumerate(probe_items, start=1):
         active_rule_id = str(item["rule_id"])
         active_rule = active_rules_by_id[active_rule_id]
@@ -1485,6 +1581,11 @@ def compute_probe_metadata(
             "requires_switch": active_rule_id in requires_switch_rule_ids,
             "active_rule_id": active_rule_id,
         }
+        if probe_index <= diagnostic_window and _is_shift_diagnostic_candidate(probe_metadata):
+            probe_metadata["diagnostic_role"] = "shift_diagnostic"
+            probe_metadata["shift_window_rank"] = probe_index
+        else:
+            probe_metadata["diagnostic_role"] = "standard"
         route_metadata = {
             key: str(item[key])
             for key in ("context", "cue")
@@ -1575,6 +1676,7 @@ def build_episode_payload(
                 "obsolete_rule_label": None,
                 "congruency": annotation,
                 "requires_switch": annotation == "incongruent",
+                "diagnostic_role": "standard",
             }
             for index, (target, annotation) in enumerate(zip(targets, probe_annotations), start=1)
         ]
@@ -1900,7 +2002,13 @@ def build_explicit_episode(episode_id: str, *, structure: EpisodeStructure, vari
         mismatch_rule=initial_rule,
         min_mismatch=max(1, structure.probe_count // 2),
     )
-    turn_items.append(enumerate_items(probes, shift_rule))
+    probe_items = prioritize_shift_diagnostic_probes(
+        enumerate_items(probes, shift_rule),
+        active_rules_by_id={shift_rule.rule_id: shift_rule},
+        obsolete_rules_by_id={shift_rule.rule_id: initial_rule},
+        requires_switch_rule_ids=frozenset({shift_rule.rule_id}),
+    )
+    turn_items.append(probe_items)
     prompts.append(_rotating_prompt(EXPLICIT_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
     probe_metadata = compute_probe_metadata(
         turn_items[-1],
@@ -1970,7 +2078,13 @@ def build_latent_episode(episode_id: str, *, structure: EpisodeStructure, varian
         mismatch_rule=initial_rule,
         min_mismatch=max(1, structure.probe_count // 2),
     )
-    turn_items.append(enumerate_items(probes, shift_rule))
+    probe_items = prioritize_shift_diagnostic_probes(
+        enumerate_items(probes, shift_rule),
+        active_rules_by_id={shift_rule.rule_id: shift_rule},
+        obsolete_rules_by_id={shift_rule.rule_id: initial_rule},
+        requires_switch_rule_ids=frozenset({shift_rule.rule_id}),
+    )
+    turn_items.append(probe_items)
     prompts.append(_rotating_prompt(LATENT_DECISION_PROMPTS, variant=variant, offset=len(structure.evidence_counts)))
     probe_metadata = compute_probe_metadata(
         turn_items[-1],
@@ -2055,8 +2169,22 @@ def build_context_episode(episode_id: str, *, structure: EpisodeStructure, varia
         structure.probe_count,
         route_key="context",
         exclude=used,
+        disagreement_rule=(primary_rule, secondary_rule),
+        alternate_min_mismatch=shift_diagnostic_window_size(structure.probe_count),
     )
-    turn_items.append(probes)
+    probe_items = prioritize_shift_diagnostic_probes(
+        probes,
+        active_rules_by_id={
+            primary_rule.rule_id: primary_rule,
+            secondary_rule.rule_id: secondary_rule,
+        },
+        obsolete_rules_by_id={
+            primary_rule.rule_id: secondary_rule,
+            secondary_rule.rule_id: primary_rule,
+        },
+        requires_switch_rule_ids=frozenset({secondary_rule.rule_id}),
+    )
+    turn_items.append(probe_items)
     probe_metadata = compute_probe_metadata(
         turn_items[-1],
         active_rules_by_id={
@@ -2154,8 +2282,21 @@ def build_cued_episode(episode_id: str, *, structure: EpisodeStructure, variant:
         route_key="cue",
         exclude=used,
         disagreement_rule=(keep_rule, switch_rule),
+        alternate_min_mismatch=shift_diagnostic_window_size(structure.probe_count),
     )
-    turn_items.append(probes)
+    probe_items = prioritize_shift_diagnostic_probes(
+        probes,
+        active_rules_by_id={
+            keep_rule.rule_id: keep_rule,
+            switch_rule.rule_id: switch_rule,
+        },
+        obsolete_rules_by_id={
+            keep_rule.rule_id: switch_rule,
+            switch_rule.rule_id: keep_rule,
+        },
+        requires_switch_rule_ids=frozenset({switch_rule.rule_id}),
+    )
+    turn_items.append(probe_items)
     probe_metadata = compute_probe_metadata(
         turn_items[-1],
         active_rules_by_id={
@@ -2226,7 +2367,10 @@ def build_identifiable_public_episode(
     if builder is None:
         raise ValueError(f"unsupported suite task {suite_task_id}")
     for attempt in range(retry_budget):
-        row, answer = builder(episode_id, structure=structure, variant=variant, attempt=attempt)
+        try:
+            row, answer = builder(episode_id, structure=structure, variant=variant, attempt=attempt)
+        except RuntimeError:
+            continue
         report = identifiability_report_for_row(row, split="public", rule_catalogue=PUBLIC_RULES)
         if report["is_identifiable"]:
             return row, answer, report

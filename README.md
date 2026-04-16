@@ -43,6 +43,22 @@ Public rows also include `scoring` with:
 - `probe_annotations`
 - optional `probe_metadata`
 
+When `probe_metadata` is present, the notebook now consumes these benchmark-facing fields:
+
+- `target_label`
+- `obsolete_rule_label`
+- `congruency`
+- `requires_switch`
+- `diagnostic_role`
+- `shift_window_rank`
+
+The decision turn still has one final scored response. Within that response, the first `1` or `2` probes are reserved as an early shift-diagnostic window:
+
+- `2` probes when `probe_count >= 4`
+- otherwise `1` probe
+
+Those leading diagnostic probes are generated to require a rule switch and to disagree with the obsolete or default rule.
+
 Private leaderboard rows are inference-only and must be paired with a separate answer key.
 
 `response_spec` uses this shape:
@@ -86,10 +102,11 @@ The notebook at `kaggle/notebook/cogflex_notebook_task.ipynb` currently:
 - uses `/kaggle/input/datasets/raptorengineer/cogflex-suite-runtime-private` as the private dataset root
 - loads `private_leaderboard_rows.json` and the bundled `private_answer_key.json` when the split is `private`
 - appends a JSON-only ordered-label instruction to the final decision turn
+- keeps the single final decision turn contract while reserving an early shift-diagnostic probe window inside that probe set
 - accepts ordered-label responses from JSON strings, lists or tuples, dicts containing `ordered_labels`, dataclasses exposing `ordered_labels`, or objects exposing `ordered_labels`
 - treats malformed responses, wrong label counts, and out-of-vocabulary labels as protocol failures
 
-The registered notebook task is a held-out benchmark task only. Its summary is model-relative and dataset-relative; no human baselines or human-relative normalization are included.
+The registered notebook task is a held-out model evaluation of rule switching / rule induction within cognitive flexibility. Its summary is model-relative and dataset-relative; no human baselines or human-relative normalization are included.
 
 The leaderboard-facing score is:
 
@@ -103,6 +120,7 @@ score = average(
 ```
 
 `summarize_suite_benchmark(..., include_debug=True)` also emits additional diagnostics such as `micro_accuracy`, `congruent_accuracy`, `switch_cost`, `per_task_metrics`, `structure_family_accuracy`, and raw numerator and denominator counts.
+The debug summary also includes `shift_window_accuracy`, `shift_window_numerator`, and `shift_window_denominator` so early post-shift recovery can be read separately from the stricter `first_probe_accuracy` signal.
 The debug summary also marks the task scope explicitly as held-out-only and declares that human baseline and human-relative mapping are absent.
 
 ## Verification

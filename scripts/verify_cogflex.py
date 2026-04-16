@@ -51,6 +51,7 @@ from scripts.build_cogflex_dataset import (  # noqa: E402
     normalized_turn_text,
     parse_case_line,
     parse_turn_items,
+    shift_diagnostic_window_size,
 )
 
 EXPECTED_PUBLIC_ROW_COUNT: Final[int] = len(SUITE_TASKS) * PUBLIC_EPISODES_PER_TASK
@@ -241,6 +242,51 @@ def normalize_labels(values: object, label_vocab: list[str]) -> tuple[str, ...] 
     normalized = tuple(str(value).strip() for value in values)
     if len(normalized) == 0 or any(label not in label_vocab for label in normalized):
         return None
+    return normalized
+
+
+def _validate_probe_metadata_sequence(
+    episode_id: str,
+    metadata: object,
+    *,
+    targets: tuple[str, ...],
+    annotations: list[str],
+) -> list[dict[str, object]]:
+    """Validate probe metadata and its shift-diagnostic window annotations."""
+    probe_count = len(targets)
+    if not isinstance(metadata, list) or len(metadata) != probe_count:
+        raise RuntimeError(f"row {episode_id} has invalid probe_metadata length")
+    expected_window = shift_diagnostic_window_size(probe_count)
+    normalized: list[dict[str, object]] = []
+    for index, item in enumerate(metadata, start=1):
+        if not isinstance(item, dict):
+            raise RuntimeError(f"row {episode_id} has invalid probe_metadata entry {index}")
+        required = {"target_label", "obsolete_rule_label", "congruency", "requires_switch"}
+        if not required.issubset(item):
+            raise RuntimeError(f"row {episode_id} probe_metadata entry {index} is missing required fields")
+        if str(item["target_label"]) != targets[index - 1]:
+            raise RuntimeError(f"row {episode_id} probe_metadata target_label mismatch at probe {index}")
+        if str(item["congruency"]) != annotations[index - 1]:
+            raise RuntimeError(f"row {episode_id} probe_metadata congruency mismatch at probe {index}")
+        diagnostic_role = str(item.get("diagnostic_role", "standard"))
+        if diagnostic_role not in {"shift_diagnostic", "standard"}:
+            raise RuntimeError(f"row {episode_id} probe_metadata entry {index} has invalid diagnostic_role")
+        shift_rank = item.get("shift_window_rank")
+        if index <= expected_window:
+            if diagnostic_role != "shift_diagnostic":
+                raise RuntimeError(f"row {episode_id} probe_metadata entry {index} must be shift_diagnostic")
+            if shift_rank != index:
+                raise RuntimeError(f"row {episode_id} probe_metadata entry {index} has invalid shift_window_rank")
+            if str(item["congruency"]) != "incongruent" or not bool(item["requires_switch"]):
+                raise RuntimeError(
+                    f"row {episode_id} probe_metadata entry {index} must be incongruent and require a switch"
+                )
+        else:
+            if diagnostic_role != "standard":
+                raise RuntimeError(f"row {episode_id} probe_metadata entry {index} must be standard")
+            if shift_rank is not None:
+                raise RuntimeError(f"row {episode_id} probe_metadata entry {index} must not set shift_window_rank")
+        normalized.append(item)
     return normalized
 
 
@@ -444,7 +490,10 @@ def build_private_quality_report(
         The private quality report payload.
 
     """
-    _summary, episode_targets, private_generator_metadata, _episode_annotations = verify_private_answer_key(answer_key, private_rows)
+    _summary, episode_targets, private_generator_metadata, _episode_annotations, _episode_probe_metadata = verify_private_answer_key(
+        answer_key,
+        private_rows,
+    )
     predictions_by_model = verify_private_calibration_predictions(predictions, private_rows, episode_targets)
     verify_private_empirical_difficulty(private_rows, answer_key, predictions_by_model, episode_targets)
     scored_private_rows = attach_private_scoring(private_rows, answer_key)
@@ -952,19 +1001,12 @@ def verify_schema(rows: list[dict[str, object]], split: str) -> dict[str, object
             if not all(a in ("congruent", "incongruent") for a in annotations):
                 raise RuntimeError(f"row {episode_id} has invalid probe_annotations values")
             if "probe_metadata" in scoring:
-                metadata = scoring["probe_metadata"]
-                if not isinstance(metadata, list) or len(metadata) != probe_count:
-                    raise RuntimeError(f"row {episode_id} has invalid probe_metadata length")
-                for index, item in enumerate(metadata, start=1):
-                    if not isinstance(item, dict):
-                        raise RuntimeError(f"row {episode_id} has invalid probe_metadata entry {index}")
-                    required = {"target_label", "obsolete_rule_label", "congruency", "requires_switch"}
-                    if not required.issubset(item):
-                        raise RuntimeError(f"row {episode_id} probe_metadata entry {index} is missing required fields")
-                    if str(item["target_label"]) != targets[index - 1]:
-                        raise RuntimeError(f"row {episode_id} probe_metadata target_label mismatch at probe {index}")
-                    if str(item["congruency"]) != annotations[index - 1]:
-                        raise RuntimeError(f"row {episode_id} probe_metadata congruency mismatch at probe {index}")
+                _validate_probe_metadata_sequence(
+                    episode_id,
+                    scoring["probe_metadata"],
+                    targets=targets,
+                    annotations=annotations,
+                )
         elif "scoring" in row:
             raise RuntimeError(f"row {episode_id} leaks scoring fields in the private split")
 
@@ -1355,7 +1397,13 @@ def load_private_calibration_predictions(path: Path) -> dict[str, object]:
 def verify_private_answer_key(
     payload: dict[str, object],
     private_rows: list[dict[str, object]],
-) -> tuple[dict[str, object], dict[str, tuple[str, ...]], dict[str, dict[str, str]], dict[str, list[str]]]:
+) -> tuple[
+    dict[str, object],
+    dict[str, tuple[str, ...]],
+    dict[str, dict[str, str]],
+    dict[str, list[str]],
+    dict[str, list[dict[str, object]]] | None,
+]:
     """Verify the private answer key against the private rows.
 
     Args:
@@ -1364,7 +1412,8 @@ def verify_private_answer_key(
 
     Returns:
         A summary, normalized episode targets, normalized generator
-        metadata, and per-episode probe annotations.
+        metadata, per-episode probe annotations, and optional per-episode
+        probe metadata.
 
     Raises:
         RuntimeError: If the answer key is inconsistent or incomplete.
@@ -1374,6 +1423,7 @@ def verify_private_answer_key(
     episode_targets: dict[str, tuple[str, ...]] = {}
     episode_generators: dict[str, dict[str, str]] = {}
     episode_annotations: dict[str, list[str]] = {}
+    episode_probe_metadata: dict[str, list[dict[str, object]]] = {}
     label_counts: Counter[str] = Counter()
     for episode in payload["episodes"]:
         if not isinstance(episode, dict):
@@ -1399,6 +1449,14 @@ def verify_private_answer_key(
             raise RuntimeError(f"private answer key episode {episode_id} has invalid probe_annotations length")
         if not all(a in ("congruent", "incongruent") for a in annotations):
             raise RuntimeError(f"private answer key episode {episode_id} has invalid probe_annotations values")
+        metadata = episode.get("probe_metadata")
+        if metadata is not None:
+            episode_probe_metadata[episode_id] = _validate_probe_metadata_sequence(
+                episode_id,
+                metadata,
+                targets=targets,
+                annotations=annotations,
+            )
         episode_generators[episode_id] = _normalize_generator_metadata(episode, episode_id=episode_id)
         episode_targets[episode_id] = targets
         episode_annotations[episode_id] = annotations
@@ -1409,7 +1467,7 @@ def verify_private_answer_key(
     return {
         "answer_key_episode_count": len(episode_targets),
         "answer_key_label_counts": dict(sorted(label_counts.items())),
-    }, episode_targets, episode_generators, episode_annotations
+    }, episode_targets, episode_generators, episode_annotations, (episode_probe_metadata or None)
 
 
 def verify_private_calibration_predictions(
@@ -1498,7 +1556,10 @@ def attach_private_scoring(private_rows: list[dict[str, object]], answer_key: di
         Copies of the private rows with scoring attached.
 
     """
-    _summary, episode_targets, _episode_generators, episode_annotations = verify_private_answer_key(answer_key, private_rows)
+    _summary, episode_targets, _episode_generators, episode_annotations, episode_probe_metadata = verify_private_answer_key(
+        answer_key,
+        private_rows,
+    )
     attached: list[dict[str, object]] = []
     for row in private_rows:
         episode_id = str(row["episode_id"])
@@ -1513,6 +1574,8 @@ def attach_private_scoring(private_rows: list[dict[str, object]], answer_key: di
                 },
             }
         )
+        if episode_probe_metadata is not None and episode_id in episode_probe_metadata:
+            attached[-1]["scoring"]["probe_metadata"] = episode_probe_metadata[episode_id]
     return attached
 
 
@@ -1703,7 +1766,10 @@ def verify_private_bundle(bundle_dir: Path, *, emit_audit_report: Path | None = 
     schema_summary = verify_schema(private_rows, "private")
     identifiability_summary = verify_identifiability(private_rows, split="private")
     answer_key = load_private_answer_key(bundle_paths["answer_key"])
-    answer_summary, _episode_targets, _episode_generators, _episode_annotations = verify_private_answer_key(answer_key, private_rows)
+    answer_summary, _episode_targets, _episode_generators, _episode_annotations, _episode_probe_metadata = verify_private_answer_key(
+        answer_key,
+        private_rows,
+    )
     predictions = load_private_calibration_predictions(bundle_paths["predictions"])
     prediction_models = verify_private_calibration_predictions(predictions, private_rows, _episode_targets)
     verify_private_empirical_difficulty(private_rows, answer_key, prediction_models, _episode_targets)
